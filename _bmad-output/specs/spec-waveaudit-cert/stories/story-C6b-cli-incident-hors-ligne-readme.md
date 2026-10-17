@@ -58,7 +58,38 @@ sources:
 
 ## Revue
 
-- Second avis et reviewer : à exécuter par l'orchestrateur après remise de cette spec.
+Branche `story-C6b-revue` (depuis `story-C6b`, à jour sur main).
+
+- high — reviewer — corrigé : le script PowerShell du README produisait un fichier que le lecteur
+  ignore entièrement (exécuté sur le journal System : 0 événement, « objet invalide » ×N) :
+  `MachineName` absent (requis), `Data` sérialisé en tableau d'`XmlElement` au lieu d'un objet,
+  `LogName` absent, et un seul événement donnait un objet au lieu d'un tableau. Script réécrit
+  (`Data` = objet `Name → #text`, champs de tête, `ConvertTo-Json -InputObject @(...)`) et
+  vérifié : 20 événements et 1 événement relus sans ligne ignorée.
+- medium — second avis 1 — corrigé : `--modele` inconnu en `local-gere` sur un dossier sans
+  détection donnait 0 (moteur jamais ouvert) au lieu de 2 (§4, §19). La commande vérifie le
+  nom contre le manifeste (`composition.choisir_modele`) avant `executer_incident`, dans
+  `cli.py` seulement ; `application/incident.py` (C5) inchangé. Tests : sans détection et démo
+  → 2. `fiches` n'en a pas besoin (le moteur y est toujours ouvert).
+- low — second avis 2 — consigné, gardé : `_sans_chemin` sur `EntreeInvalide`/
+  `ConfigurationInvalide` touche aussi `fiches` (écart à « autres commandes inchangées »,
+  limité au message, conforme à AD-8). Test ajouté : `fiches` dossier absent sans chemin absolu.
+- low — second avis 3 — corrigé : le message de `PermissionError` affiche la cible
+  (`filename2` d'`os.replace`) et non le provisoire `.<nom>.partiel` ; effet aussi sur `fiches`
+  (même helper, message seulement). Test : « (verrou) » affiché, « partiel » absent.
+- low — second avis 4 — corrigé : la synthèse d'`incident` affiche `rapport-incident.docx (lot
+  <id>)` et plus le chemin absolu. Divergence consignée : `fiches` affiche toujours le chemin
+  complet (§19 « le chemin du rapport », non modifié).
+- low — second avis 5 — corrigé : « Limites connues » reformulées d'après le code : le point
+  final est traité par les garde-fous du récit (C4), la limite réelle est l'extraction
+  d'indicateurs (IPv4 suivie d'un point final dans un message non relevée, vérifié) ; l'IPv6 de
+  prose est retirée du récit, pas des indicateurs (vérifié) ; coupe-circuit et lecture non en
+  flux confirmés (AD-6, `read_bytes`).
+- low — reviewer — corrigé : `test_incident_modele_externe_surcharge` ne vérifiait pas le
+  modèle (`lot_demarre` incident n'a pas de `modele`) ; il contrôle désormais le champ `model`
+  des requêtes reçues par le faux moteur.
+- Complexité : 0 constat (abonné console en O(1) par événement, aucune structure qui grossit).
+- Reports : aucun.
 
 ## Preuves
 

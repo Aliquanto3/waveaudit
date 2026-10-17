@@ -83,7 +83,9 @@ def _codes_retour(commande: str) -> Iterator[None]:
         _echouer(str(erreur), 5)
     except PermissionError as erreur:
         _log.exception("%s : accès refusé", commande)
-        cible = Path(erreur.filename).name if erreur.filename else ""
+        # os.replace(provisoire, cible) : `filename2` est la cible, `filename` le provisoire.
+        nom = erreur.filename2 or erreur.filename
+        cible = Path(nom).name if nom else ""
         _echouer(f"{commande} : accès refusé en écriture ou en lecture ({cible})", 4)
     except Exception as erreur:  # erreurs httpx, OSError, CalledProcessError...
         _log.exception("%s : échec", commande)
@@ -213,6 +215,13 @@ def incident(
             )
 
         with _codes_retour("incident"):
+            if modele and cfg.moteur.mode == "local-gere":
+                # Sans détection, le moteur n'est jamais ouvert : le nom est vérifié ici
+                # pour que `--modele` inconnu donne toujours le code 2 (contrats §4, §19).
+                from waveaudit.application.composition import choisir_modele
+                from waveaudit.installation import manifeste
+
+                choisir_modele(cfg, manifeste.charger(cfg.chemins.manifeste), modele)
             resultat = executer_incident(
                 RequeteIncident(
                     dossier=dossier,
@@ -226,7 +235,10 @@ def incident(
 
         ok = sum(1 for r in resultat.rapport.recits if r.statut == Statut.OK)
         a_revoir = len(resultat.rapport.recits) - ok
-        typer.echo(f"{ok} récit(s) ok, {a_revoir} à revoir ; rapport : {resultat.chemin_rapport}")
+        typer.echo(
+            f"{ok} récit(s) ok, {a_revoir} à revoir ; "
+            f"rapport : {resultat.chemin_rapport.name} (lot {resultat.id_lot})"
+        )
         typer.echo(BANDEAU)
 
 

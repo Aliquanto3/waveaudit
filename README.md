@@ -113,27 +113,43 @@ Limites connues :
   sur un changement d'heure, lancer deux analyses séparées.
 - Exports de journal Windows : `ConvertTo-Json` brut de PowerShell 5.1 ne donne ni la propriété
   `Data` ni un horodatage ISO ; utiliser plutôt le script PowerShell ci-dessous.
-- Les motifs se terminant par un point final sont neutralisés (le point n'est jamais inclus dans
-  l'indicateur extrait), et les adresses IPv6 écrites en prose abrégée (type « A::B », hors
-  contexte réseau) sont retirées des indicateurs pour éviter les faux positifs.
-- Aucun coupe-circuit sur le moteur : un moteur qui échoue systématiquement est retenté à chaque
-  détection (repli en « à revoir »), sans détection précoce ni arrêt anticipé du lot.
-- Lecture des journaux non en flux : chaque fichier est chargé en mémoire en entier, jamais lu
-  en continu.
+- Indicateurs extraits des journaux : une adresse IPv4 suivie d'un point final dans le message
+  d'une ligne (« depuis 203.0.113.5. ») n'est pas relevée. Les garde-fous du récit, eux, traitent
+  ce cas.
+- Garde-fous du récit : un mot qui a la forme d'une adresse IPv6 valide (« cafe::dead », « :: »)
+  et qui n'apparaît pas dans les journaux est retiré du récit comme indicateur inventé ; le récit
+  passe alors « à revoir ».
+- Aucun coupe-circuit sur le moteur : s'il tombe en cours d'analyse, il est rappelé pour chaque
+  détection restante, et chaque récit concerné reprend le texte type de la règle (« à revoir »).
+- Lecture des journaux non en flux : chaque fichier est chargé en mémoire en entier.
 
-Export d'un journal d'événements Windows au format normalisé attendu (PowerShell) :
+Export d'un journal d'événements Windows au format normalisé attendu (PowerShell 5.1 ; le
+journal `Security` demande une console administrateur). Le lecteur exige un tableau JSON
+d'objets portant `TimeCreated` (ISO 8601 avec fuseau), `Id`, `MachineName` et `Data` (objet des
+champs `EventData`) ; `LogName` sert aux règles :
 
 ```powershell
-Get-WinEvent -LogName Security |
-    ForEach-Object {
-        [xml]$xml = $_.ToXml()
-        [PSCustomObject]@{
-            Id            = $_.Id
-            TimeCreated   = $_.TimeCreated.ToString("o")
-            Data          = $xml.Event.EventData.Data
-        }
-    } | ConvertTo-Json -Depth 5 | Out-File security.json -Encoding utf8
+$evenements = Get-WinEvent -LogName Security -MaxEvents 5000 | ForEach-Object {
+    $xml = [xml]$_.ToXml()
+    $data = [ordered]@{}
+    foreach ($champ in $xml.Event.EventData.Data) {
+        if ($champ.Name) { $data[$champ.Name] = $champ.'#text' }
+    }
+    [PSCustomObject]@{
+        TimeCreated  = $_.TimeCreated.ToString("o")
+        Id           = $_.Id
+        LogName      = $_.LogName
+        ProviderName = $_.ProviderName
+        MachineName  = $_.MachineName
+        Message      = $_.Message
+        Data         = $data
+    }
+}
+ConvertTo-Json -InputObject @($evenements) -Depth 4 | Out-File security.json -Encoding utf8
 ```
+
+`-InputObject @(...)` garde un tableau même pour un seul événement (le pipeline donnerait un
+objet seul, que le lecteur ignore).
 
 ## Preuve hors ligne
 

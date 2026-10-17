@@ -24,7 +24,9 @@ def test_incident_nominal_demo_bandeau_et_garde(tmp_path, faux_moteur):
     assert lignes[-1] == BANDEAU
     lignes_recit = [ligne for ligne in lignes if ligne.startswith("[")]
     assert len(lignes_recit) == 16
-    assert any("rapport :" in ligne for ligne in lignes)
+    (synthese,) = [ligne for ligne in lignes if "rapport :" in ligne]
+    assert "rapport : rapport-incident.docx (lot " in synthese
+    assert str(tmp_path) not in resultat.output
     assert not garde_reseau._actif
 
 
@@ -92,13 +94,58 @@ def test_incident_sortie_verrouillee_code_4(tmp_path, faux_moteur):
 
     assert resultat.exit_code == 4
     assert "accès refusé" in resultat.output
+    assert "(verrou)" in resultat.output  # la cible, pas le fichier provisoire `.partiel`
+    assert "partiel" not in resultat.output
     assert str(tmp_path) not in resultat.output
+
+
+def _dossier_sans_detection(tmp_path):
+    dossier = tmp_path / "journaux"
+    dossier.mkdir()
+    (dossier / "auth.log").write_text(
+        "Oct 14 08:00:01 BASTION01 sshd[100]: Server listening on 0.0.0.0 port 22.\n",
+        encoding="utf-8",
+    )
+    return dossier
+
+
+def test_incident_modele_inconnu_local_gere_sans_detection_code_2(tmp_path):
+    """Sans détection le moteur n'est pas ouvert, mais `--modele` inconnu donne 2 (§4, §19)."""
+    config = _ecrire_config(tmp_path, mode="local-gere")
+    resultat = runner.invoke(
+        app,
+        [
+            "incident",
+            str(_dossier_sans_detection(tmp_path)),
+            "--annee",
+            ANNEE,
+            "--config",
+            str(config),
+            "--modele",
+            "inconnu-xyz",
+        ],
+    )
+
+    assert resultat.exit_code == 2
+    assert "inconnu-xyz" in resultat.output
+    assert not garde_reseau._actif
+
+
+def test_incident_modele_inconnu_local_gere_demo_code_2(tmp_path):
+    config = _ecrire_config(tmp_path, mode="local-gere")
+    resultat = runner.invoke(
+        app,
+        ["incident", str(DEMO), "--annee", ANNEE, "--config", str(config), "--modele", "x-y"],
+    )
+
+    assert resultat.exit_code == 2
 
 
 def test_incident_modele_externe_surcharge(tmp_path, faux_moteur):
     import json
 
-    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    moteur = faux_moteur()
+    config = _ecrire_config(tmp_path, base_url=moteur.base_url)
     resultat = runner.invoke(
         app,
         [
@@ -117,3 +164,5 @@ def test_incident_modele_externe_surcharge(tmp_path, faux_moteur):
     (journal,) = (tmp_path / "var" / "sorties").glob("*/journal.jsonl")
     demarre = json.loads(journal.read_text(encoding="utf-8").splitlines()[0])
     assert demarre["type"] == "lot_demarre"
+    assert moteur.requetes
+    assert {corps["model"] for corps in moteur.requetes} == {"mon-modele"}
