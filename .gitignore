@@ -24,3 +24,7 @@ __pycache__/
 .claude/settings.local.json
 .claude/cost-kit/.blocages
 .claude/worktrees/
+
+# État d'exécution et surcharge locale de la configuration
+/var/
+waveaudit.local.toml

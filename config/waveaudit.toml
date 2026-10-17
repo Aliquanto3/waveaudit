@@ -1,0 +1,30 @@
+[moteur]
+mode = "local-gere"          # "local-gere" | "externe"
+base_url = ""                # externe : URL complète finissant par /v1, ex. "http://127.0.0.1:8080/v1"
+modele = ""                  # nom d'une entrée du manifeste ; vide = choix auto défaut/repli
+modele_api = ""              # champ "model" envoyé ; vide = nom de l'entrée du manifeste
+prefixe_systeme = ""         # externe seulement ; en local-gere il vient du manifeste
+cle_api = ""                 # vide = pas d'en-tête Authorization
+timeout_s = 180.0
+temperature = 0.2
+seed = 42
+max_tokens = 700
+longueur_max_rubrique = 1200
+taille_max_note = 6000       # caractères du corps envoyés au modèle
+ctx = 4096
+threads = 4
+ram_min_defaut_go = 4.5
+delai_demarrage_s = 120.0
+[reseau]
+hotes_autorises = ["127.0.0.1", "::1", "localhost"]
+[recherche]
+k1 = 1.5
+b = 0.75
+[chemins]                    # relatifs à racine_projet()
+var = "var"
+catalogue = "donnees/catalogue"
+theme_prive = "theme-prive"
+manifeste = "config/artefacts.toml"
+[ui]
+hote = "127.0.0.1"
+port = 8765

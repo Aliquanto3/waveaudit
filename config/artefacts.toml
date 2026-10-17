@@ -1,0 +1,73 @@
+# Manifeste des artefacts installés par `waveaudit installer` (contrats §11, AD-12).
+# `destination` est relatif à var/ : un dossier si extraire = true, sinon le fichier final.
+# `executable` est le chemin de l'exécutable dans `destination`, pour le rôle moteur seulement.
+
+[[artefact]]
+nom = "llama-server-b11714"
+role = "moteur"
+version = "b11714"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b11714/llama-b11714-bin-win-cpu-x64.zip"
+sha256 = "f78eded047061a3f86372db426797400a2f1bb0ec37868d5927dd820eb3386c0"
+taille = 19662606
+licence = "MIT"
+source = "https://github.com/ggml-org/llama.cpp"
+destination = "moteur/b11714"
+extraire = true
+executable = "llama-server.exe"
+prefixe_systeme = ""
+
+[[artefact]]
+nom = "granite-4.0-1b-q4km"
+role = "modele_defaut"
+version = "b27c2fe3f211b7f44e80fa620177aea371099aaa"
+url = "https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF/resolve/b27c2fe3f211b7f44e80fa620177aea371099aaa/granite-4.0-1b-Q4_K_M.gguf"
+sha256 = "22ec0f9cc99a90185312de3c882c84e7bd6789bdd050389844380a01a831d7f1"
+taille = 1023645440
+licence = "Apache-2.0"
+source = "https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF"
+destination = "modeles/granite-4.0-1b-Q4_K_M.gguf"
+extraire = false
+executable = ""
+prefixe_systeme = ""
+
+[[artefact]]
+nom = "minicpm5-1b-q4km"
+role = "modele_repli"
+version = "3d55fac80935ae6456986ad2384b5cbcc4d6c948"
+url = "https://huggingface.co/openbmb/MiniCPM5-1B-GGUF/resolve/3d55fac80935ae6456986ad2384b5cbcc4d6c948/MiniCPM5-1B-Q4_K_M.gguf"
+sha256 = "81b64d05a23b17b34c475f42b3e72fbde62d4b92cc34541f7a8031d0752deafa"
+taille = 688065920
+licence = "Apache-2.0"
+source = "https://huggingface.co/openbmb/MiniCPM5-1B-GGUF"
+destination = "modeles/MiniCPM5-1B-Q4_K_M.gguf"
+extraire = false
+executable = ""
+prefixe_systeme = ""
+
+[[artefact]]
+nom = "qwen3-1.7b-q4km"
+role = "candidat"
+version = "d7f544eead698dbd1f15126ef60b45a1e1933222"
+url = "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/d7f544eead698dbd1f15126ef60b45a1e1933222/Qwen3-1.7B-Q4_K_M.gguf"
+sha256 = "b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897"
+taille = 1107409472
+licence = "Apache-2.0"
+source = "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF"
+destination = "modeles/Qwen3-1.7B-Q4_K_M.gguf"
+extraire = false
+executable = ""
+prefixe_systeme = "/no_think"
+
+[[artefact]]
+nom = "qwen3.5-0.8b-q4km"
+role = "candidat"
+version = "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0"
+url = "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/6ab461498e2023f6e3c1baea90a8f0fe38ab64d0/Qwen3.5-0.8B-Q4_K_M.gguf"
+sha256 = "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517"
+taille = 532517120
+licence = "Apache-2.0"
+source = "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF"
+destination = "modeles/Qwen3.5-0.8B-Q4_K_M.gguf"
+extraire = false
+executable = ""
+prefixe_systeme = ""
