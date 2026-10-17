@@ -11,12 +11,17 @@ inconnu ou `catalogue verifier` en échec), 3 moteur injoignable (sonde), 4 conn
 permission refusée sur `-o`, ou toute autre erreur, 5 empreinte d'artefact invalide.
 """
 
+import logging
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from importlib.metadata import version as version_paquet
 from pathlib import Path
 from typing import NoReturn
 
 import typer
+
+_log = logging.getLogger(__name__)
 
 app = typer.Typer(help="WaveAudit : notes brutes vers fiches de vulnérabilité, hors ligne.")
 catalogue_app = typer.Typer(help="Opérations sur le catalogue de constats types (contrats §15).")
@@ -51,6 +56,41 @@ def _charger_config(chemin: Path | None = None):  # noqa: ANN201 - Configuration
         _echouer(str(erreur), 2)
 
 
+@contextmanager
+def _codes_retour(commande: str) -> Iterator[None]:
+    """Traduit les erreurs du bloc en codes retour (contrats §4), message d'une ligne, trace
+    dans `logging`. `typer.Exit` (sous-classe d'`Exception`) est relancée telle quelle."""
+    from waveaudit.domaine.erreurs import (
+        ConfigurationInvalide,
+        ConnexionInterdite,
+        EmpreinteInvalide,
+        EntreeInvalide,
+        MoteurInjoignable,
+    )
+
+    try:
+        yield
+    except typer.Exit:
+        raise
+    except (EntreeInvalide, ConfigurationInvalide) as erreur:
+        _echouer(str(erreur), 2)
+    except MoteurInjoignable as erreur:
+        _echouer(str(erreur), 3)
+    except ConnexionInterdite as erreur:
+        _echouer(str(erreur), 4)
+    except EmpreinteInvalide as erreur:
+        _echouer(str(erreur), 5)
+    except PermissionError as erreur:
+        _log.exception("%s : accès refusé", commande)
+        cible = Path(erreur.filename).name if erreur.filename else ""
+        _echouer(f"{commande} : accès refusé en écriture ou en lecture ({cible})", 4)
+    except Exception as erreur:  # erreurs httpx, OSError, CalledProcessError...
+        from waveaudit.application.lot import _sans_chemin
+
+        _log.exception("%s : échec", commande)
+        _echouer(f"{commande} : échec ({_sans_chemin(str(erreur))})", 4)
+
+
 def _module_optionnel(nom: str):  # noqa: ANN201 - module | None, import tardif
     """Importe `nom` ; `None` s'il n'existe pas encore (fonctionnalité d'une story ultérieure)."""
     import importlib
@@ -71,18 +111,11 @@ def installer(
 ) -> None:
     """Télécharge et vérifie les artefacts du manifeste (contrats §11)."""
     config = _charger_config()
-    from waveaudit.domaine.erreurs import EmpreinteInvalide
     from waveaudit.installation import manifeste, telechargement
 
-    try:
+    with _codes_retour("installer"):
         artefacts = manifeste.charger(config.chemins.manifeste)
         telechargement.installer(artefacts, config.chemins.var, candidats)
-    except EmpreinteInvalide as erreur:
-        _echouer(str(erreur), 5)
-    except OSError as erreur:
-        _echouer(f"erreur disque pendant l'installation : {erreur}", 4)
-    except Exception as erreur:  # erreurs httpx (hors ligne, hôte injoignable, HTTP...) incluses
-        _echouer(f"téléchargement impossible : {erreur}", 4)
     typer.echo("installation terminée")
 
 
@@ -107,12 +140,6 @@ def fiches(
     with garde(cfg.reseau.hotes_autorises):
         from waveaudit.adaptateurs.export_docx import BANDEAU
         from waveaudit.application.lot import executer_lot
-        from waveaudit.domaine.erreurs import (
-            ConfigurationInvalide,
-            ConnexionInterdite,
-            EntreeInvalide,
-            MoteurInjoignable,
-        )
         from waveaudit.domaine.modeles import EvenementLot, RequeteLot, Statut, TypeEvenement
 
         typer.echo(BANDEAU)
@@ -130,34 +157,26 @@ def fiches(
                 f"{evenement.statut} ({duree} s)"
             )
 
-        try:
+        with _codes_retour("fiches"):
             resultat = executer_lot(
                 RequeteLot(dossier=dossier, modele=modele, copie_rapport=o), cfg, abonne
             )
-        except EntreeInvalide as erreur:
-            _echouer(str(erreur), 2)
-        except ConfigurationInvalide as erreur:
-            _echouer(str(erreur), 2)
-        except MoteurInjoignable as erreur:
-            _echouer(str(erreur), 3)
-        except ConnexionInterdite as erreur:
-            _echouer(str(erreur), 4)
-        except Exception as erreur:
-            _echouer(f"échec du lot : {erreur}", 4)
 
         ok = sum(1 for f in resultat.rapport.fiches if f.statut == Statut.OK)
         a_revoir = len(resultat.rapport.fiches) - ok
         typer.echo(
             f"{ok} fiche(s) ok, {a_revoir} à revoir, "
             f"{len(resultat.rapport.ecartees)} entrée(s) écartée(s) ; "
-            f"rapport : {resultat.chemin_rapport.name}"
+            f"rapport : {resultat.chemin_rapport}"
         )
         typer.echo(BANDEAU)
 
 
 @app.command()
 def ui(
-    port: int | None = typer.Option(None, "--port", help="Port d'écoute (remplace la config)"),
+    port: int | None = typer.Option(
+        None, "--port", min=1, max=65535, help="Port d'écoute (remplace la config)"
+    ),
     config: Path | None = typer.Option(
         None, "--config", help="Fichier de configuration TOML supplémentaire"
     ),
@@ -176,7 +195,12 @@ def ui(
 
         from waveaudit.interfaces.web.app import creer_app
 
-        uvicorn.run(creer_app(cfg), host=cfg.ui.hote, port=cfg.ui.port)
+        with _codes_retour("ui"):
+            try:
+                uvicorn.run(creer_app(cfg), host=cfg.ui.hote, port=cfg.ui.port)
+            except SystemExit as sortie:  # uvicorn quitte par sys.exit(1) si le port est pris
+                if sortie.code not in (0, None):
+                    _echouer(f"ui : démarrage impossible sur le port {cfg.ui.port} (occupé ?)", 4)
 
 
 @catalogue_app.command("verifier")
@@ -211,7 +235,8 @@ def banc(
         module = _module_optionnel("waveaudit.application.banc")
         if module is None:
             _echouer("banc : disponible en story 15", 2)
-        module.executer_banc(dossier, cfg, modele)
+        with _codes_retour("banc"):
+            module.executer_banc(dossier, cfg, modele)
 
 
 @app.command()
@@ -220,12 +245,8 @@ def sbom() -> None:
     config = _charger_config()
     from waveaudit.installation import sbom as sbom_module
 
-    try:
+    with _codes_retour("sbom"):
         chemin = sbom_module.generer(config.chemins.var)
-    except OSError as erreur:
-        _echouer(f"sbom : erreur disque ({erreur})", 4)
-    except Exception as erreur:  # subprocess.CalledProcessError notamment
-        _echouer(f"sbom : {erreur}", 4)
     typer.echo(f"sbom écrit : {chemin}")
 
 

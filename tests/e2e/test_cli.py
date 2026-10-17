@@ -4,6 +4,7 @@ Chaque test de `fiches` écrit sa propre configuration TOML sous `tmp_path` et l
 `--config` ; aucun test n'écrit dans le `var/` du dépôt (AD-10).
 """
 
+import json
 import sys
 from collections.abc import Iterable
 from pathlib import Path
@@ -109,6 +110,8 @@ def test_fiches_sortie_verrouillee_code_4(tmp_path, faux_moteur):
     resultat = runner.invoke(app, ["fiches", str(DEMO), "--config", str(config), "-o", str(verrou)])
 
     assert resultat.exit_code == 4
+    assert "accès refusé" in resultat.output
+    assert str(tmp_path) not in resultat.output
 
 
 def test_catalogue_verifier_depot_valide_code_0():
@@ -128,29 +131,51 @@ def test_catalogue_verifier_casse_code_2(tmp_path):
     assert resultat.output.strip()
 
 
-def test_ui_lance_uvicorn_avec_creer_app(monkeypatch, tmp_path):
-    """`interfaces.web.app` (story 14) n'est pas encore sur `main` : import et `uvicorn.run`
-    monkeypatchés ici ; l'intégration réelle se vérifie après fusion des deux stories."""
+def test_ui_lance_uvicorn_avec_la_vraie_creer_app(monkeypatch, tmp_path):
+    """Vraie `interfaces.web.app.creer_app` ; seul `uvicorn.run` est remplacé. Le port de
+    `--port` doit atteindre le middleware Host de l'application créée."""
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
     config = _ecrire_config(tmp_path)
     appels: dict[str, Any] = {}
 
-    def fausse_creer_app(cfg: Any) -> str:
-        appels["config"] = cfg
-        return "app-web"
-
-    faux_module = type(sys)("waveaudit.interfaces.web.app")
-    faux_module.creer_app = fausse_creer_app
-    monkeypatch.setitem(sys.modules, "waveaudit.interfaces.web.app", faux_module)
-
     def faux_run(application: Any, *, host: str, port: int) -> None:
         appels["run"] = (application, host, port)
+        appels["garde_actif"] = garde_reseau._actif
 
     monkeypatch.setattr("uvicorn.run", faux_run)
 
     resultat = runner.invoke(app, ["ui", "--config", str(config), "--port", "9999"])
 
     assert resultat.exit_code == 0, resultat.output
-    assert appels["run"] == ("app-web", "127.0.0.1", 9999)
+    application, hote, port = appels["run"]
+    assert isinstance(application, FastAPI)
+    assert (hote, port) == ("127.0.0.1", 9999)
+    assert appels["garde_actif"]  # uvicorn démarre sous le garde
+    assert not garde_reseau._actif
+    client = TestClient(application)
+    assert client.get("/", headers={"host": "127.0.0.1:9999"}).status_code == 200
+    assert client.get("/", headers={"host": "127.0.0.1:8765"}).status_code == 400
+
+
+def test_ui_port_hors_bornes_code_2(tmp_path):
+    resultat = runner.invoke(
+        app, ["ui", "--config", str(_ecrire_config(tmp_path)), "--port", "70000"]
+    )
+
+    assert resultat.exit_code == 2
+
+
+def test_ui_port_occupe_code_4(monkeypatch, tmp_path):
+    def faux_run(application: Any, *, host: str, port: int) -> None:
+        sys.exit(1)  # comportement d'uvicorn quand le bind échoue
+
+    monkeypatch.setattr("uvicorn.run", faux_run)
+    resultat = runner.invoke(app, ["ui", "--config", str(_ecrire_config(tmp_path))])
+
+    assert resultat.exit_code == 4
+    assert "port" in resultat.output
     assert not garde_reseau._actif
 
 
@@ -171,6 +196,35 @@ def test_banc_module_absent_code_2(tmp_path):
     assert resultat.exit_code == 2
     assert "story 15" in resultat.output
     assert not garde_reseau._actif
+
+
+def test_banc_erreurs_traduites_en_codes(monkeypatch, tmp_path):
+    from waveaudit.domaine.erreurs import EntreeInvalide, MoteurInjoignable
+
+    faux_banc = type(sys)("waveaudit.application.banc")
+    monkeypatch.setitem(sys.modules, "waveaudit.application.banc", faux_banc)
+    for erreur, code in ((EntreeInvalide("x"), 2), (MoteurInjoignable("x"), 3), (KeyError(1), 4)):
+
+        def leve(*a: Any, erreur: Exception = erreur) -> None:
+            raise erreur
+
+        faux_banc.executer_banc = leve
+        resultat = runner.invoke(app, ["banc", str(tmp_path)])
+        assert resultat.exit_code == code, (erreur, resultat.output)
+    assert not garde_reseau._actif
+
+
+def test_fiches_modele_externe_surcharge_modele_api(tmp_path, faux_moteur):
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    resultat = runner.invoke(
+        app, ["fiches", str(DEMO), "--config", str(config), "--modele", "mon-modele"]
+    )
+
+    assert resultat.exit_code == 0, resultat.output
+    (journal,) = (tmp_path / "var" / "sorties").glob("*/journal.jsonl")
+    demarre = json.loads(journal.read_text(encoding="utf-8").splitlines()[0])
+    assert demarre["type"] == "lot_demarre"
+    assert demarre["details"]["modele"] == "mon-modele"
 
 
 def test_sbom_succes_code_0(monkeypatch):
@@ -224,6 +278,19 @@ def test_installer_erreur_httpx_code_4(monkeypatch):
     resultat = runner.invoke(app, ["installer"])
 
     assert resultat.exit_code == 4
+
+
+def test_installer_manifeste_invalide_code_2(monkeypatch):
+    from waveaudit.domaine.erreurs import ConfigurationInvalide
+
+    def leve(*a: Any, **k: Any) -> None:
+        raise ConfigurationInvalide("manifeste invalide")
+
+    monkeypatch.setattr("waveaudit.installation.manifeste.charger", leve)
+    resultat = runner.invoke(app, ["installer"])
+
+    assert resultat.exit_code == 2
+    assert "manifeste invalide" in resultat.output
 
 
 def test_installer_erreur_os_code_4(monkeypatch):

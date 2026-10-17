@@ -39,9 +39,8 @@ sources:
   `tmp_path`) : lot nominal sur les 20 notes de démonstration (code 0, bandeau, 20 lignes, garde
   désactivé en sortie), dossier absent (2), moteur injoignable (3), `--modele` inconnu en
   local-gere (2), `-o` vers un dossier existant simulant un verrou Windows (4, `PermissionError`),
-  `catalogue verifier` sur le dépôt (0) et sur un catalogue cassé (2), `ui` avec `creer_app` et
-  `uvicorn.run` monkeypatchés (module inséré dans `sys.modules`, puisque `interfaces/web/app.py`
-  n'est pas encore sur `main`) et un hôte invalide (2), `banc` avec son module absent (2, message
+  `catalogue verifier` sur le dépôt (0) et sur un catalogue cassé (2), `ui` avec la vraie `creer_app` et
+  `uvicorn.run` monkeypatché, un hôte invalide (2), un port hors bornes (2), un port occupé (4), `banc` avec son module absent (2, message
   et garde désactivé), `sbom` et `installer` avec
   `installation.sbom.generer`/`installation.telechargement.installer` monkeypatchés (succès,
   `EmpreinteInvalide` -> 5, `OSError`/erreur httpx -> 4). Aucun vrai téléchargement ni appel au
@@ -60,18 +59,26 @@ sources:
 
 ## Reports
 
-- `ui` appelle réellement `interfaces.web.app.creer_app` et `uvicorn.run`, mais ce module
-  (branche `story-14`) n'est pas encore sur `main` : le test e2e monkeypatche l'import (faux
-  module inséré dans `sys.modules`) et `uvicorn.run`. L'appel réel reste à vérifier après fusion
-  des deux branches.
-- Le corps réel de `banc` (appel du futur `application.banc`) n'est pas testé en e2e : le module
-  n'existe pas encore (story 15). La story 15 est explicitement chargée de rebrancher `banc`
-  (seule modification autorisée de `cli.py` par son `invoke_dev_with`) et devra vérifier l'appel
-  réel.
+- Le corps réel de `banc` (appel du futur `application.banc`) n'est testé qu'avec un module
+  factice (traduction des erreurs en codes) : la story 15 fournit le module et vérifie l'appel réel.
+- Port occupé : vérifié avec un `uvicorn.run` qui fait `sys.exit(1)` (comportement d'uvicorn) ; à
+  vérifier une fois à la main (`waveaudit ui` lancé deux fois) -> code 4, message d'une ligne.
 
 ## Revue
 
-En attente (second avis puis reviewer).
+Branche rebasée sur `main` (dc99785, story 14 incluse), sans conflit.
 
-Tests : ciblés verts (`test_cli.py` 16, `test_architecture.py`, `test_lot.py`) ; suite complète
-254 verts, 1 sauté (`slow`) ; `ruff check` et `ruff format --check` verts.
+| Sévérité | Source | Constat | Suite |
+|---|---|---|---|
+| medium | second avis 1 | `installer` : `ConfigurationInvalide` du manifeste avalée par `except Exception` -> 4 au lieu de 2 | corrigé : traduction commune `_codes_retour` (2/3/4/5) ; test |
+| medium | second avis 2 | `ui` : `--port 70000` -> trace et code 1 ; port occupé -> `sys.exit(1)` brut d'uvicorn | corrigé : `--port` borné 1..65535 (code 2), `SystemExit` non nul d'uvicorn -> code 4 ; tests |
+| medium | second avis 3 | `banc` : erreurs d'`executer_banc` non traduites | corrigé : `executer_banc` sous `_codes_retour("banc")`, la story 15 n'a qu'à fournir le module ; test avec module factice |
+| medium | revue | `ui` testée contre un faux `creer_app` injecté dans `sys.modules` | corrigé : test contre la vraie `creer_app`, `uvicorn.run` seul remplacé ; le port de `--port` atteint le middleware Host (200 / 400), garde actif pendant `run` |
+| medium | revue | synthèse de `fiches` : `chemin_rapport.name` (« rapport.docx ») au lieu du chemin (§19), rapport introuvable sans l'id du lot | corrigé : chemin complet affiché (console locale, hors traçabilité AD-8) |
+| low | second avis 4 | messages bruts en anglais avec chemins absolus (`PermissionError` de `-o`, `CalledProcessError`) | corrigé : message français « accès refusé (nom) », messages génériques passés par `_sans_chemin`, trace dans `logging` (§4) |
+| low | second avis 5 | pas de test `ui` hôte non loopback, ni `--modele` en externe | partiellement rejeté : `test_ui_hote_invalide_code_2` existait déjà (0.0.0.0) ; ajouté : `--modele` externe -> `modele_api` (journal `lot_demarre`) |
+| low | revue 14 | champ `erreur` du lot avec chemin absolu | sans objet pour la CLI (elle n'affiche pas ce champ) ; les messages génériques sont nettoyés par `_sans_chemin` |
+| — | revue | Complexité : 0 constat (abonné en O(1) par événement, un seul comptage final) | — |
+
+Tests : `test_cli.py` 21 verts ; suite complète 271 verts, 1 désélectionné (`slow`) ; `ruff check`
+et `ruff format --check` verts.
