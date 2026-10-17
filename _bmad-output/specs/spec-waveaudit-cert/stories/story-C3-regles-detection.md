@@ -57,3 +57,11 @@ Aucun.
 ## Reports
 
 Aucun.
+
+## Revue
+
+- medium, second avis, corrigé : fenêtre glissante O(n²) réécrite en O(n) (`_fenetres`), équivalence prouvée contre le pseudo-code littéral (jeux aléatoires), test 50 000 événements.
+- low, second avis, rejeté : pas de dédoublonnage dans `detecter` ; §21 ne le prévoit pas, unicité de `Evenement.cle` assurée par la lecture (C2) ; à arbitrer en C5 si besoin.
+- Complexité : 1 constat (corrigé).
+
+Détail : `_bmad-output/implementation-artifacts/revues/story-C3.md`.

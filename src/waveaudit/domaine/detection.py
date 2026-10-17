@@ -110,29 +110,8 @@ def _detecter_agrege(regle: Regle, correspondants: list[Evenement]) -> list[Dete
     resultats: list[Detection] = []
     for groupe in groupes.values():
         groupe = sorted(groupe, key=lambda e: (e.horodatage, e.fichier.casefold(), e.ligne))
-        n = len(groupe)
         t = [e.horodatage.timestamp() for e in groupe]
-        seuil = agregation.seuil
-        fenetre = agregation.fenetre_s
-
-        i = 0
-        while i < n:
-            k = None
-            for candidat in range(i, n):
-                compte = sum(1 for j in range(i, candidat + 1) if t[candidat] - t[j] <= fenetre)
-                if compte >= seuil:
-                    k = candidat
-                    break
-            if k is None:
-                break
-            d = min(j for j in range(i, k + 1) if t[k] - t[j] <= fenetre)
-            f = k
-            while f + 1 < n:
-                compte = sum(1 for j in range(d, f + 2) if t[f + 1] - t[j] <= fenetre)
-                if compte >= seuil:
-                    f += 1
-                else:
-                    break
+        for d, f in _fenetres(t, agregation.seuil, agregation.fenetre_s):
             sous_groupe = groupe[d : f + 1]
             resultats.append(
                 Detection(
@@ -143,6 +122,46 @@ def _detecter_agrege(regle: Regle, correspondants: list[Evenement]) -> list[Dete
                     evenements=sous_groupe,
                 )
             )
-            i = f + 1
 
     return resultats
+
+
+def _fenetres(t: list[float], seuil: int, fenetre: float) -> list[tuple[int, int]]:
+    """Bornes `(d, f)` incluses des fenêtres du pseudo-code de contrats §21, en O(n).
+
+    `t` est trié. Pour un indice `k`, les `j <= k` tels que `t[k] - t[j] <= fenetre`
+    forment un suffixe `[lo(k), k]`, avec `lo` croissant en `k` ; et `k`, `f` ne font
+    qu'avancer d'une itération à l'autre (`i = f + 1`). Un seul pointeur `lo` suffit
+    donc : `#{j : a <= j <= k et t[k] - t[j] <= fenetre} = k - max(a, lo(k)) + 1`.
+    Mêmes comparaisons que le pseudo-code, donc mêmes résultats.
+    """
+    n = len(t)
+    lo = 0
+
+    def avancer(k: int) -> None:
+        nonlocal lo
+        while t[k] - t[lo] > fenetre:
+            lo += 1
+
+    fenetres: list[tuple[int, int]] = []
+    i = 0
+    while i < n:
+        k = i
+        while k < n:
+            avancer(k)
+            if k - max(i, lo) + 1 >= seuil:
+                break
+            k += 1
+        if k >= n:
+            break
+        d = max(i, lo)
+        f = k
+        while f + 1 < n:
+            avancer(f + 1)
+            if (f + 1) - max(d, lo) + 1 >= seuil:
+                f += 1
+            else:
+                break
+        fenetres.append((d, f))
+        i = f + 1
+    return fenetres

@@ -1,5 +1,7 @@
 """Moteur de détection déterministe (CAP-2, CAP-3, contrats §21 « Détection », C3)."""
 
+import random
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -8,7 +10,7 @@ import yaml
 
 from tests.incident_outils import evenement, regle
 from waveaudit.adaptateurs.regles_yaml import CatalogueReglesYaml
-from waveaudit.domaine.detection import correspond, detecter
+from waveaudit.domaine.detection import _fenetres, correspond, detecter
 from waveaudit.domaine.incident import Evenement
 
 DOSSIER_REGLES = Path(__file__).parents[2] / "donnees" / "regles"
@@ -216,3 +218,67 @@ def test_detecter_laisse_les_indicateurs_vides():
     r = regle(agregation=None)
     detections = detecter([r], [evenement()])
     assert detections[0].indicateurs == []
+
+
+# --- Fenêtre glissante : équivalence avec le pseudo-code littéral (revue C3) ---------------
+
+
+def _fenetres_oracle(t: list[float], seuil: int, fenetre: float) -> list[tuple[int, int]]:
+    """Transcription littérale (O(n²)) du pseudo-code de contrats §21, servant d'oracle."""
+    n = len(t)
+
+    def compte(a: int, k: int) -> int:
+        return sum(1 for j in range(a, k + 1) if t[k] - t[j] <= fenetre)
+
+    resultat: list[tuple[int, int]] = []
+    i = 0
+    while i < n:
+        k = next((c for c in range(i, n) if compte(i, c) >= seuil), None)
+        if k is None:
+            break
+        d = min(j for j in range(i, k + 1) if t[k] - t[j] <= fenetre)
+        f = k
+        while f + 1 < n and compte(d, f + 1) >= seuil:
+            f += 1
+        resultat.append((d, f))
+        i = f + 1
+    return resultat
+
+
+def test_fenetres_identiques_au_pseudo_code_sur_jeux_aleatoires():
+    alea = random.Random(20261018)
+    for _ in range(3000):
+        n = alea.randint(0, 40)
+        pas = alea.choice([0, 1, 5, 30, 60, 120])
+        t = sorted(float(alea.randint(0, pas * n)) for _ in range(n))
+        if alea.random() < 0.3:  # fractions de seconde, comme timestamp()
+            t = sorted(x + alea.random() for x in t)
+        seuil = alea.choice([1, 2, 3, 5, alea.randint(1, 10)])
+        fenetre = alea.choice([0, 1, 30, 60, 300, alea.randint(0, 200)])
+        attendu = _fenetres_oracle(t, seuil, fenetre)
+        assert _fenetres(t, seuil, fenetre) == attendu, (t, seuil, fenetre)
+
+
+@pytest.mark.parametrize(
+    ("t", "seuil", "fenetre"),
+    [
+        ([0, 60, 120, 180], 2, 60),  # bornes égales enchaînées
+        ([5, 5, 5, 5, 5], 3, 0),  # doublons d'horodatage, fenêtre 0
+        ([0, 1, 2], 1, 0),  # seuil 1
+        ([0, 0, 61, 61, 61], 3, 60),
+        ([], 2, 60),
+        ([0], 2, 60),
+    ],
+)
+def test_fenetres_cas_limites(t, seuil, fenetre):
+    assert _fenetres(t, seuil, fenetre) == _fenetres_oracle(t, seuil, fenetre)
+
+
+def test_agregation_50000_evenements_meme_groupe_reste_rapide():
+    r = regle(agregation={"seuil": 5, "fenetre_s": 300, "par": ["ip"]})
+    evs = _evenements_force_brute([float(i * 7) for i in range(50_000)])
+    debut = time.perf_counter()
+    detections = detecter([r], evs)
+    duree = time.perf_counter() - debut
+    assert len(detections) == 1 and len(detections[0].evenements) == 50_000
+    assert duree < 5, duree
