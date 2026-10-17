@@ -97,7 +97,8 @@ def _separer_entete(texte: str) -> tuple[dict, str]:
 def _extraire_champs(
     champs: dict, nom: str
 ) -> tuple[str | None, str | None, str | None, str | None]:
-    for cle in sorted(set(champs) - _CHAMPS_CONNUS):
+    # YAML admet des clés non str (entiers, dates) : tri sur repr pour ne jamais planter
+    for cle in sorted(set(champs) - _CHAMPS_CONNUS, key=repr):
         _LOG.warning("note %s : champ d'en-tête inconnu ignoré (%s)", nom, cle)
 
     def _texte(valeur: object) -> str | None:
@@ -108,7 +109,7 @@ def _extraire_champs(
     constat_attendu = _texte(champs.get("constat_attendu"))
 
     severite = champs.get("severite_pressentie")
-    if severite is not None and severite not in _SEVERITES_VALIDES:
+    if severite is not None and not (isinstance(severite, str) and severite in _SEVERITES_VALIDES):
         _LOG.warning("note %s : severite_pressentie hors liste ignorée (%r)", nom, severite)
         severite = None
 

@@ -4,10 +4,13 @@ from pathlib import Path
 
 import pytest
 
+from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
 from waveaudit.adaptateurs.notes_fichiers import NotesFichiers
 from waveaudit.application.config import racine_projet
+from waveaudit.domaine.configuration import ConfigRecherche
 from waveaudit.domaine.erreurs import EntreeInvalide
 from waveaudit.domaine.modeles import Note, NoteInvalide
+from waveaudit.domaine.recherche import classer, requete_depuis_note
 
 DOSSIER_DEMO = racine_projet() / "donnees" / "demo" / "notes"
 DOSSIER_FIXTURES = Path(__file__).resolve().parents[1] / "donnees" / "notes"
@@ -126,6 +129,24 @@ def test_note_hors_sujet_est_valide_mais_sans_constat_attendu():
     assert hors_sujet.constat_attendu is None
 
 
+def _score_max(note: Note) -> float:
+    constats = CatalogueYaml(racine_projet() / "donnees" / "catalogue").constats()
+    reglages = ConfigRecherche()
+    candidats = classer(constats, requete_depuis_note(note), k1=reglages.k1, b=reglages.b)
+    return candidats[0].score
+
+
+def test_note_hors_sujet_n_a_aucun_jeton_du_catalogue():
+    # contrats §5 étape 2 : score BM25 maximal <= 0 -> non_rattachee sans appel au modèle
+    hors_sujet = _trouver(NotesFichiers().lire(DOSSIER_FIXTURES), "hors-sujet.md")
+    assert _score_max(hors_sujet) <= 0.0
+
+
+def test_les_20_notes_de_demonstration_sont_rattachables():
+    for note in NotesFichiers().lire(DOSSIER_DEMO):
+        assert _score_max(note) > 0.0, note.fichier
+
+
 # --- Sélection et tri des fichiers (contrats §14) ---------------------------------------------
 
 
@@ -237,3 +258,26 @@ def test_bom_et_crlf_sont_tolerés(tmp_path: Path):
     assert isinstance(resultat, Note)
     assert resultat.titre == "note avec bom et crlf"
     assert resultat.corps == "corps en crlf\nsur deux lignes"
+
+
+def test_cle_non_str_et_cle_inconnue_ne_font_pas_planter_le_dossier(tmp_path: Path):
+    (tmp_path / "cles-mixtes.md").write_text("---\n1: a\nzz: b\n---\ncorps", encoding="utf-8")
+    resultat = _trouver(NotesFichiers().lire(tmp_path), "cles-mixtes.md")
+    assert isinstance(resultat, Note)
+
+
+@pytest.mark.parametrize("valeur", ["[elevee]", "{a: 1}", "3", "Elevee"])
+def test_severite_non_texte_ou_mal_casee_devient_none(tmp_path: Path, valeur: str):
+    (tmp_path / "sev.md").write_text(
+        f"---\nseverite_pressentie: {valeur}\n---\ncorps", encoding="utf-8"
+    )
+    resultat = _trouver(NotesFichiers().lire(tmp_path), "sev.md")
+    assert isinstance(resultat, Note)
+    assert resultat.severite_pressentie is None
+
+
+def test_fichier_vide_et_utf16_sont_des_notes_invalides(tmp_path: Path):
+    (tmp_path / "vide.md").write_bytes(b"")
+    (tmp_path / "utf16.md").write_bytes("---\ntitre: t\n---\ncorps".encode("utf-16"))
+    resultats = NotesFichiers().lire(tmp_path)
+    assert all(isinstance(r, NoteInvalide) for r in resultats)
