@@ -48,6 +48,31 @@ sources:
 
 ## Reports
 
-- `MOTIF_IPV4` (normatif) ne reconnaît pas une IP suivie d'un point final
-  (« … depuis 192.0.2.10. ») à cause de `(?![\d.])` : une IP inventée en fin de phrase ne
-  serait pas retirée par les garde-fous (C4). À trancher par mise à jour de contrats §21.
+- Point final collé à un jeton (motifs normatifs, `(?![\d.])`, comportement figé par
+  `test_motifs_point_final_comportement_fige`) : `MOTIF_TECHNIQUE` sur « T9999. » ou
+  « T1110.001. » → aucun jeton ; `MOTIF_IPV4` sur « 203.0.113.254. » → aucun jeton ;
+  `MOTIF_IPV6` sur « 2001:db8::1. » → candidat `2001:db8::1.` invalide pour `ipaddress`,
+  donc « laissé tel quel » par §21 garde-fous étape 3. Conséquence : une technique, une IPv4
+  ou une IPv6 inventée en fin de phrase survit aux garde-fous (trou CAP-5). §21 ne décrit
+  aucun retrait de ponctuation pour ces jetons (seul §6 MVP le fait, pour les URL).
+  À faire en C4, après décision consignée dans contrats §21 : passer les motifs sur une
+  copie du texte où chaque « . » suivi d'un blanc ou de la fin du texte est remplacé par
+  une espace (même longueur, donc positions inchangées pour le retrait dans le texte
+  d'origine) ; tests C4 obligatoires : « T9999. », « 203.0.113.254. », « 2001:db8::1. »
+  retirés ; « T1110.001. » gardé si la règle l'a ; vecteurs de non-mutilation inchangés
+  (`10.0.17763.1`, `08:02:10`…). Si l'orchestrateur refuse l'écart, C4 applique les motifs
+  tels quels et le trou est consigné comme limite connue.
+
+## Revue
+
+- medium — second avis — reporté (C4) : motifs normatifs ratant un jeton suivi d'un point
+  final ; motifs non modifiés (contrat), comportement figé par un test, traitement C4
+  décrit ci-dessus.
+- info — reviewer — vérifié : `JournalLot` sûr en cas d'exception (fichier fermé par
+  `__exit__`, exception propagée, `lot_echoue` écrit avant fermeture comme avant).
+- info — reviewer — vérifié : faux moteur incident (`<constat>` prioritaire, `<regle>`
+  ensuite, `SANS_CONSTAT` sinon ; scénarios d'erreur traités avant, donc valables en mode
+  incident).
+- low — reviewer — rejeté : `decalage_syslog` accepte `+99:99` (motif du contrat seul) ;
+  C2 échouera au calcul du fuseau, hors périmètre C1.
+- Complexité : 0 constat (journal en ajout O(1) par événement).

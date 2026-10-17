@@ -253,3 +253,21 @@ def test_motif_technique():
         "T1110.999",
     ]
     assert MOTIF_TECHNIQUE.findall("XT1110 T11100 T1110.0011 T1110.") == []
+
+
+def test_motifs_point_final_comportement_fige():
+    """Motifs normatifs de §21 tels quels : un point final collé au jeton le fait rater.
+
+    Comportement figé volontairement (revue C1) : le lookahead `(?![\\d.])` exclut un jeton
+    suivi d'un « . » de fin de phrase. C4 (garde-fous) doit traiter ce cas, sinon une
+    technique, une IPv4 ou une IPv6 inventée en fin de phrase survit (CAP-5).
+    """
+    assert MOTIF_TECHNIQUE.findall("Technique T1110.001.") == []
+    assert MOTIF_TECHNIQUE.findall("Technique T9999.") == []
+    assert MOTIF_IPV4.findall("Depuis 203.0.113.254.") == []
+    assert MOTIF_IPV6.findall("Adresse 2001:db8::1.") == ["2001:db8::1."]
+    with pytest.raises(ValueError):
+        ipaddress.ip_address("2001:db8::1.")
+    # Les autres ponctuations finales ne gênent pas.
+    assert MOTIF_IPV4.findall("Depuis 203.0.113.254, puis") == ["203.0.113.254"]
+    assert MOTIF_TECHNIQUE.findall("(T1110.001)") == ["T1110.001"]
