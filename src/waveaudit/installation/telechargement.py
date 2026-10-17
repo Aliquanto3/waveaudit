@@ -30,16 +30,34 @@ def _empreinte_valide(fichier: Path, artefact: Artefact) -> bool:
     )
 
 
-def _telecharger_vers(url: str, cible: Path, transport: httpx.BaseTransport | None) -> None:
-    """Télécharge `url` vers `<cible>.part`, puis renomme en `cible`."""
+# Délai par opération (connexion, lecture d'un bloc), pas pour le transfert entier : un poids de
+# 1 Go peut prendre du temps, mais une connexion figée ne doit pas bloquer indéfiniment.
+_DELAI = httpx.Timeout(60.0)
+
+
+def _telecharger_verifie(
+    artefact: Artefact, cible: Path, transport: httpx.BaseTransport | None
+) -> None:
+    """Télécharge vers `<cible>.part`, vérifie taille puis SHA-256, puis renomme en `cible`.
+
+    En cas d'écart ou d'échec, le `.part` est supprimé ; un écart lève `EmpreinteInvalide`.
+    """
     cible.parent.mkdir(parents=True, exist_ok=True)
     partiel = cible.with_name(cible.name + ".part")
-    with httpx.Client(transport=transport, trust_env=True, timeout=None) as client:
-        with client.stream("GET", url) as reponse:
-            reponse.raise_for_status()
-            with partiel.open("wb") as flux:
-                for bloc in reponse.iter_bytes():
-                    flux.write(bloc)
+    try:
+        with httpx.Client(
+            transport=transport, trust_env=True, timeout=_DELAI, follow_redirects=True
+        ) as client:
+            with client.stream("GET", artefact.url) as reponse:
+                reponse.raise_for_status()
+                with partiel.open("wb") as flux:
+                    for bloc in reponse.iter_bytes():
+                        flux.write(bloc)
+        if not _empreinte_valide(partiel, artefact):
+            raise EmpreinteInvalide(f"empreinte invalide pour {artefact.nom} ({artefact.url})")
+    except BaseException:
+        partiel.unlink(missing_ok=True)
+        raise
     partiel.replace(cible)
 
 
@@ -56,10 +74,7 @@ def telecharger(
     if not _empreinte_valide(fichier, artefact):
         if fichier.is_file():
             fichier.unlink()
-        _telecharger_vers(artefact.url, fichier, transport)
-        if not _empreinte_valide(fichier, artefact):
-            fichier.unlink(missing_ok=True)
-            raise EmpreinteInvalide(f"empreinte invalide pour {artefact.nom} ({fichier})")
+        _telecharger_verifie(artefact, fichier, transport)
     if artefact.extraire:
         destination = var / artefact.destination
         with zipfile.ZipFile(fichier) as archive:

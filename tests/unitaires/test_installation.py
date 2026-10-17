@@ -139,6 +139,45 @@ def test_mauvaise_empreinte_leve_et_supprime_le_fichier(tmp_path):
     assert not (tmp_path / artefact.destination).exists()
 
 
+def test_mauvaise_empreinte_ne_laisse_ni_final_ni_part(tmp_path):
+    """Vérification sur le `.part`, avant renommage : rien n'atteint le chemin final."""
+    artefact = _artefact(**_contenu(b"attendu"))
+    transport = httpx.MockTransport(lambda requete: httpx.Response(200, content=b"recu"))
+    with pytest.raises(EmpreinteInvalide):
+        telechargement.telecharger(artefact, tmp_path, transport=transport)
+    cible = tmp_path / artefact.destination
+    assert not cible.exists()
+    assert not cible.with_name(cible.name + ".part").exists()
+
+
+def test_redirection_suivie(tmp_path):
+    """GitHub releases et Hugging Face `resolve` répondent par une redirection 302."""
+    contenu = b"poids"
+    artefact = _artefact(**_contenu(contenu))
+    cdn = "https://cdn.exemple.invalid/blob"
+
+    def repondeur(requete: httpx.Request) -> httpx.Response:
+        if requete.url == httpx.URL(artefact.url):
+            return httpx.Response(302, headers={"Location": cdn})
+        assert requete.url == httpx.URL(cdn)
+        return httpx.Response(200, content=contenu)
+
+    resultat = telechargement.telecharger(
+        artefact, tmp_path, transport=httpx.MockTransport(repondeur)
+    )
+    assert resultat.read_bytes() == contenu
+
+
+def test_erreur_http_ne_laisse_pas_de_part(tmp_path):
+    artefact = _artefact(**_contenu(b"x"))
+    transport = httpx.MockTransport(lambda requete: httpx.Response(404))
+    with pytest.raises(httpx.HTTPStatusError):
+        telechargement.telecharger(artefact, tmp_path, transport=transport)
+    cible = tmp_path / artefact.destination
+    assert not cible.exists()
+    assert not cible.with_name(cible.name + ".part").exists()
+
+
 def test_fichier_deja_valide_est_saute_sans_requete(tmp_path):
     contenu = b"deja la et correct"
     artefact = _artefact(**_contenu(contenu))
