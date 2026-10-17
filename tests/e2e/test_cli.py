@@ -188,13 +188,37 @@ def test_ui_hote_invalide_code_2(tmp_path):
     assert not garde_reseau._actif
 
 
-def test_banc_module_absent_code_2(tmp_path):
-    notes = tmp_path / "notes"
-    notes.mkdir()
-    resultat = runner.invoke(app, ["banc", str(notes)])
+def test_banc_dossier_absent_code_2(tmp_path):
+    """Branchement réel de `banc` sur `application.banc.executer_banc` (story 15) : l'erreur de
+    dossier manquant est levée avant tout accès au moteur, donc sans configuration dédiée."""
+    resultat = runner.invoke(app, ["banc", str(tmp_path / "absent")])
 
     assert resultat.exit_code == 2
-    assert "story 15" in resultat.output
+    assert not garde_reseau._actif
+
+
+def test_banc_succes_code_0(monkeypatch, config_test):
+    """Chemin nominal de `banc` par la CLI : faux moteur (config_test), mesure mémoire factice."""
+    import os
+
+    from waveaudit.application import composition
+    from waveaudit.interfaces import cli
+
+    class _Mesure:
+        def rss_octets(self, pid: int) -> int | None:
+            return 1000 if pid == os.getpid() else None
+
+    monkeypatch.setattr(cli, "_charger_config", lambda chemin=None: config_test)
+    monkeypatch.setattr(composition, "creer_mesure_memoire", _Mesure)
+
+    resultat = runner.invoke(app, ["banc", str(DEMO)])
+
+    assert resultat.exit_code == 0, resultat.output
+    (chemin,) = (config_test.chemins.var / "sorties").glob("*/banc.json")
+    donnees = json.loads(chemin.read_text(encoding="utf-8"))
+    assert donnees["pic_rss_app_o"] == 1000
+    assert len(donnees["fiches"]) == len([*DEMO.glob("*.md"), *DEMO.glob("*.txt")])
+    assert "top1" in resultat.output
     assert not garde_reseau._actif
 
 
