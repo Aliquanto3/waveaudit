@@ -36,7 +36,10 @@ def faux_binaire(monkeypatch, tmp_path):
 def _attendre_fin(pid: int, delai_s: float = 10.0) -> bool:
     limite = time.monotonic() + delai_s
     while time.monotonic() < limite:
-        if not psutil.pid_exists(pid) or psutil.Process(pid).status() == psutil.STATUS_ZOMBIE:
+        try:
+            if psutil.Process(pid).status() == psutil.STATUS_ZOMBIE:
+                return True
+        except psutil.NoSuchProcess:  # mort entre deux sondes : course normale
             return True
         time.sleep(0.1)
     return False

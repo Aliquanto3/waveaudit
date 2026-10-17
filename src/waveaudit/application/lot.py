@@ -36,7 +36,13 @@ JOURNAL = "journal.jsonl"
 RAPPORT = "rapport.docx"
 _ID_LOT = re.compile(r"[0-9A-Za-z][0-9A-Za-z-]*")
 # Chemin absolu Windows (C:\..., \\serveur\...) ou POSIX (/a/b) dans un message d'erreur.
-_CHEMIN_ABSOLU = re.compile(r"(?:[A-Za-z]:[\\/]|\\\\|(?<![\w/:.])/(?=[^\s/]+/))[^\s'\"()<>,;]*")
+# Un espace reste dans le chemin si le mot suivant contient encore un séparateur
+# (« C:\Users\Prénom Nom\x.md absent ») ; un chemin entre apostrophes est pris en entier.
+_CAR = r"[^\s'\"()<>,;]"
+_DEBUT = r"(?:(?<!\w)[A-Za-z]:[\\/]|\\\\|(?<![\w/:.])/(?=[^\s/]+/))"
+_CHEMIN_ABSOLU = re.compile(
+    rf"(?<=')(?:(?<!\w)[A-Za-z]:[\\/]|\\\\|/)[^'\n]*(?=')|{_DEBUT}(?:{_CAR}| (?={_CAR}*[\\/]))*"
+)
 
 
 def _sans_chemin(message: str) -> str:
@@ -128,7 +134,13 @@ def executer_lot(
         if not _ID_LOT.fullmatch(requete.id_lot):
             raise EntreeInvalide(f"identifiant de lot invalide : {requete.id_lot!r}")
         id_lot = requete.id_lot
-        (_sorties(config) / id_lot).mkdir(parents=True, exist_ok=True)
+        try:
+            (_sorties(config) / id_lot).mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
+        # Nom réservé Windows (NUL…) : mkdir « réussit » sans créer de dossier.
+        if not (_sorties(config) / id_lot).is_dir():
+            raise EntreeInvalide(f"identifiant de lot inutilisable : {id_lot!r}")
     dossier_sortie = _sorties(config) / id_lot
 
     with (dossier_sortie / JOURNAL).open("a", encoding="utf-8") as journal:

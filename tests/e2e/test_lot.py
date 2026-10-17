@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -108,6 +109,26 @@ def test_entrees_invalides(config_test, tmp_path):
         executer_lot(RequeteLot(dossier=DEMO, workflow="inconnu"), config_test)
     with pytest.raises(EntreeInvalide):
         executer_lot(RequeteLot(dossier=DEMO, id_lot="../evasion"), config_test)
+    if sys.platform == "win32":  # nom réservé : mkdir ne crée rien
+        with pytest.raises(EntreeInvalide):
+            executer_lot(RequeteLot(dossier=DEMO, id_lot="NUL"), config_test)
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        r"C:\Users\Prénom Nom\proj\var\llama-server.exe absent : lancer l'installation",
+        str(FileNotFoundError(2, "introuvable", r"C:\Users\Prénom Nom\notes\x.md")),
+        "voir /home/Prénom Nom/var/journaux/l.log",
+    ],
+)
+def test_sans_chemin_avec_espaces(message):
+    nettoye = lot._sans_chemin(message)
+    assert "Prénom" not in nettoye and "Users" not in nettoye and "home" not in nettoye
+
+
+def test_sans_chemin_garde_les_url():
+    assert lot._sans_chemin("moteur http://127.0.0.1:8080/v1") == "moteur http://127.0.0.1:8080/v1"
 
 
 def test_lot_echoue_sans_chemin_absolu(config_test, tmp_path):
