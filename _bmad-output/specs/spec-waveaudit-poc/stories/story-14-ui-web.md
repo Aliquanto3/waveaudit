@@ -61,6 +61,23 @@ sources:
   redémarrage du processus UI perd l'état des lots en cours (acceptable pour le POC, non
   testé ici).
 
+## Revue
+
+Détail : `_bmad-output/implementation-artifacts/revues/story-14.md`.
+
+- medium, second avis : verrou non relâché sur multipart malformé — corrigé (`try/finally` jusqu'au démarrage du thread).
+- medium, second avis : `Host: [::1]:<port>` refusé alors que `ui.hote = "::1"` est permis — corrigé ; **écart au §18** (hôte ajouté), à reporter dans contrats.md.
+- low, second avis : noms réservés avec point ou espace (`CON.x.md`, `NUL .md`) — corrigé.
+- low, second avis : lecture entière avant le contrôle de 1 Mo — corrigé (`read(1 Mo + 1)`).
+- low, second avis : `testserver` en production — rejeté (imposé par §18).
+- low, second avis : `Thread.start()` hors `try` — corrigé avec le premier constat.
+- low, second avis : `.docx` absent d'un lot terminé -> 500 — corrigé (404) ; filtrage d'`id_lot` rejeté (borné par le registre).
+- low, second avis : `POST` sans `Origin` accepté — rejeté (§18 ne vise que l'`Origin` présent).
+- low, revue (complexité) : chaque interrogation renvoyait et redessinait tout le journal — corrigé (`?depuis=N` facultatif, JS incrémental).
+- low, revue : interrogation sans fin d'un lot inconnu — corrigé (arrêt sur 404).
+- low, revue : `erreur` peut contenir un chemin absolu — reporté (affichage local, hors contrat).
+- Reporté, story 13 : commande `ui` (refus code 2 hors boucle locale, garde autour d'`uvicorn.run`) à vérifier à son intégration.
+
 Tests : ciblés verts (`test_ui.py`, 16 avec `test_architecture.py`) ; suite complète 246 verts ;
 `ruff check` et `ruff format --check` verts ; contrôle rapide vert. Aucune note écrite au disque
 quand une note est refusée ou qu'un lot est déjà en cours.

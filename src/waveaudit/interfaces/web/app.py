@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, Request, UploadFile
+from fastapi import FastAPI, Query, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -83,12 +83,13 @@ class _RegistreLots:
                 etat.etat = "echoue"
                 etat.erreur = message
 
-    def lire(self, id_lot: str) -> _EtatLot | None:
+    def lire(self, id_lot: str, depuis: int = 0) -> _EtatLot | None:
+        """Copie de l'état ; `depuis` ne copie que les événements à partir de cet indice."""
         with self._verrou:
             etat = self._etats.get(id_lot)
             if etat is None:
                 return None
-            return _EtatLot(etat=etat.etat, evenements=list(etat.evenements), erreur=etat.erreur)
+            return _EtatLot(etat=etat.etat, evenements=etat.evenements[depuis:], erreur=etat.erreur)
 
 
 def _valider_nom(nom_brut: str, deja_vus: set[str]) -> str:
@@ -100,7 +101,9 @@ def _valider_nom(nom_brut: str, deja_vus: set[str]) -> str:
     base = Path(nom_brut).name
     if base != nom_brut or not _MOTIF_NOM.fullmatch(base):
         raise NomRefuse(f"nom de fichier refusé : {nom_brut!r}")
-    if Path(base).stem.upper() in _RESERVES_WINDOWS:
+    # Windows résout le périphérique sur la partie avant le premier point, espaces finaux
+    # retirés : `CON.x.md` et `NUL .md` sont réservés comme `CON.md`.
+    if base.split(".", 1)[0].rstrip(" ").upper() in _RESERVES_WINDOWS:
         raise NomRefuse(f"nom de fichier réservé (Windows) : {nom_brut!r}")
     cle = base.casefold()
     if cle in deja_vus:
@@ -117,7 +120,7 @@ async def _valider_notes(fichiers: list[UploadFile]) -> list[tuple[str, bytes]]:
     resultat: list[tuple[str, bytes]] = []
     for fichier in fichiers:
         nom = _valider_nom(fichier.filename or "", deja_vus)
-        contenu = await fichier.read()
+        contenu = await fichier.read(_TAILLE_MAX_OCTETS + 1)
         if len(contenu) > _TAILLE_MAX_OCTETS:
             raise NomRefuse(f"note trop volumineuse (> 1 Mo) : {nom!r}")
         resultat.append((nom, contenu))
@@ -132,7 +135,9 @@ def creer_app(config: Configuration) -> FastAPI:
     registre = _RegistreLots()
     verrou_post = threading.Lock()
     port = config.ui.port
-    hotes_autorises = {f"127.0.0.1:{port}", f"localhost:{port}", "testserver"}
+    # `[::1]:<port>` : en-tête Host envoyé par le navigateur quand `ui.hote` vaut `::1`
+    # (permis par contrats §18, absent de sa liste d'hôtes ; écart consigné dans la spec).
+    hotes_autorises = {f"127.0.0.1:{port}", f"localhost:{port}", f"[::1]:{port}", "testserver"}
     origines_autorisees = {f"http://{hote}" for hote in hotes_autorises}
 
     @app.middleware("http")
@@ -165,23 +170,35 @@ def creer_app(config: Configuration) -> FastAPI:
     async def creer_lot(request: Request) -> RedirectResponse:
         if not verrou_post.acquire(blocking=False):
             return JSONResponse({"detail": "un lot est déjà en cours"}, status_code=409)
-        formulaire = await request.form()
-        notes = [v for v in formulaire.getlist("notes") if isinstance(v, UploadFileBrut)]
+        # Toute sortie avant le démarrage du thread (multipart malformé, refus, erreur disque)
+        # relâche le verrou ; ensuite c'est le `finally` du thread qui le relâche.
+        lance = False
         try:
-            fichiers = await _valider_notes(notes)
-        except NomRefuse as erreur:
-            verrou_post.release()
-            return JSONResponse({"detail": str(erreur)}, status_code=400)
-        id_lot = nouvel_id_lot(config.chemins.var)
-        dossier_entree = config.chemins.var / "entrees" / id_lot
-        dossier_entree.mkdir(parents=True, exist_ok=True)
-        for nom, contenu in fichiers:
-            (dossier_entree / nom).write_bytes(contenu)
-        registre.creer(id_lot)
-        threading.Thread(
-            target=_executer_en_fond, args=(id_lot, dossier_entree), daemon=True
-        ).start()
-        return RedirectResponse(f"/lots/{id_lot}", status_code=303)
+            formulaire = await request.form()
+            notes = [v for v in formulaire.getlist("notes") if isinstance(v, UploadFileBrut)]
+            try:
+                fichiers = await _valider_notes(notes)
+            except NomRefuse as erreur:
+                return JSONResponse({"detail": str(erreur)}, status_code=400)
+            id_lot = nouvel_id_lot(config.chemins.var)
+            dossier_entree = config.chemins.var / "entrees" / id_lot
+            dossier_entree.mkdir(parents=True, exist_ok=True)
+            for nom, contenu in fichiers:
+                (dossier_entree / nom).write_bytes(contenu)
+            registre.creer(id_lot)
+            fil = threading.Thread(
+                target=_executer_en_fond, args=(id_lot, dossier_entree), daemon=True
+            )
+            try:
+                fil.start()
+            except RuntimeError as erreur:
+                registre.echouer(id_lot, str(erreur))
+                raise
+            lance = True
+            return RedirectResponse(f"/lots/{id_lot}", status_code=303)
+        finally:
+            if not lance:
+                verrou_post.release()
 
     @app.get("/lots/{id_lot}", response_class=HTMLResponse)
     def page_lot(request: Request, id_lot: str) -> HTMLResponse:
@@ -190,8 +207,10 @@ def creer_app(config: Configuration) -> FastAPI:
         )
 
     @app.get("/lots/{id_lot}/etat")
-    def etat_lot(id_lot: str) -> JSONResponse:
-        etat = registre.lire(id_lot)
+    def etat_lot(id_lot: str, depuis: int = Query(0, ge=0)) -> JSONResponse:
+        # `depuis` (facultatif) : le JS ne redemande que les nouveaux événements à chaque
+        # interrogation, sans recopier tout le journal du lot ; 0 donne la réponse complète.
+        etat = registre.lire(id_lot, depuis)
         if etat is None:
             return JSONResponse({"detail": "lot inconnu"}, status_code=404)
         return JSONResponse(
@@ -211,6 +230,8 @@ def creer_app(config: Configuration) -> FastAPI:
         if etat.etat != "termine":
             return JSONResponse({"detail": "lot non terminé"}, status_code=409)
         chemin = config.chemins.var / "sorties" / id_lot / RAPPORT
+        if not chemin.is_file():
+            return JSONResponse({"detail": "rapport introuvable"}, status_code=404)
         return FileResponse(
             chemin,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

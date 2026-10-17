@@ -6,9 +6,10 @@
   var texte = document.getElementById("etat-texte");
   var liste = document.getElementById("evenements");
   var telechargement = document.getElementById("telechargement");
+  var recus = 0; // événements déjà affichés : seuls les suivants sont redemandés et ajoutés
 
-  function afficherEvenements(evenements) {
-    liste.innerHTML = "";
+  function ajouterEvenements(evenements) {
+    recus += evenements.length;
     evenements.forEach(function (evenement) {
       var ligne = document.createElement("li");
       var morceaux = [evenement.type];
@@ -24,12 +25,19 @@
   }
 
   function interroger() {
-    fetch("/lots/" + idLot + "/etat")
+    fetch("/lots/" + encodeURIComponent(idLot) + "/etat?depuis=" + recus)
       .then(function (reponse) {
+        if (reponse.status === 404) {
+          texte.textContent = "Lot inconnu.";
+          return null;
+        }
         return reponse.json();
       })
       .then(function (donnees) {
-        afficherEvenements(donnees.evenements || []);
+        if (donnees === null) {
+          return;
+        }
+        ajouterEvenements(donnees.evenements || []);
         if (donnees.etat === "termine") {
           texte.textContent = "Lot terminé.";
           var lien = document.createElement("a");

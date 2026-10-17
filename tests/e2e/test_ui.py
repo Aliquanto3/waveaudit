@@ -161,3 +161,36 @@ def test_rapport_avant_la_fin_et_lot_inconnu(config_test, faux_moteur):
     assert inconnu.status_code == 404
     inconnu_etat = client.get("/lots/jamais-vu/etat")
     assert inconnu_etat.status_code == 404
+
+
+def test_multipart_malforme_relache_le_verrou(config_test):
+    client = TestClient(creer_app(config_test))
+    malforme = client.post("/lots", content=b"zzz", headers={"content-type": "multipart/form-data"})
+    assert malforme.status_code == 400
+    reponse = client.post("/lots", files=[_notes_demo()[0]], follow_redirects=False)
+    assert reponse.status_code == 303
+    _attendre_fin(client, reponse.headers["location"].rsplit("/", 1)[-1])
+
+
+def test_noms_reserves_windows_avec_point_ou_espace(config_test):
+    client = TestClient(creer_app(config_test))
+    for nom in ("CON.x.md", "NUL .md", "aux.b.txt", "LPT1.a.md", "COM1 .txt"):
+        reponse = client.post("/lots", files=[("notes", (nom, b"x"))], follow_redirects=False)
+        assert reponse.status_code == 400, nom
+
+
+def test_host_ipv6_boucle_locale_accepte(config_test):
+    client = TestClient(creer_app(config_test))
+    reponse = client.get("/", headers={"host": f"[::1]:{config_test.ui.port}"})
+    assert reponse.status_code == 200
+
+
+def test_etat_depuis_ne_renvoie_que_les_nouveaux_evenements(config_test):
+    client = TestClient(creer_app(config_test))
+    reponse = client.post("/lots", files=_notes_demo()[:2], follow_redirects=False)
+    id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+    complet = _attendre_fin(client, id_lot)["evenements"]
+    assert len(complet) > 2
+    suite = client.get(f"/lots/{id_lot}/etat", params={"depuis": 2}).json()["evenements"]
+    assert suite == complet[2:]
+    assert client.get(f"/lots/{id_lot}/etat", params={"depuis": -1}).status_code == 422
