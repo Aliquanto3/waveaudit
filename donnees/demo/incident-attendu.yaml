@@ -2,9 +2,10 @@
 # démonstration et oracle »). Calculé à la main à partir de la chronologie normative et des
 # fichiers de `donnees/demo/incident/` ; jamais régénéré depuis une sortie du programme.
 #
-# C2 ne vérifie que `ignorees` et le nombre total d'événements lus (>= 80) : `detections` et
-# `indicateurs` sont calculés pour C5 (calibrage), qui peut corriger cet oracle si lui ou la
-# ligne de démo contredit ce fichier ou §21 (motif cité dans son commit).
+# Revue C2 : `system.json:7` (104, SubjectUserName administrateur) ajouté aux origines du
+# compte administrateur, omis au calcul initial (formats-incident.md : SubjectUserName est une
+# source de compte). test_demo_incident confronte cet oracle à detecter() puis extraire() ;
+# C5 peut le corriger si lui ou la ligne de démo contredit formats-incident.md ou §21.
 
 annee: 2026
 decalage_syslog: "+02:00"
@@ -119,6 +120,7 @@ indicateurs:
       - "security.json:25"
       - "security.json:27"
       - "security.json:32"
+      - "system.json:7"
   - type: compte
     valeur: deploy
     origines:

@@ -115,6 +115,60 @@ def test_json_racine_non_tableau(tmp_path):
     assert lecture.ignorees[0].ligne == 1
 
 
+_ENTETE_CSV = "TimeCreated,Id,LogName,ProviderName,MachineName,Message,Image"
+_ENREGISTREMENT_CSV = (
+    "2026-10-14T08:0{m}:00+02:00,1,Microsoft-Windows-Sysmon/Operational,p,PC01,m,C:\\x{m}.exe"
+)
+
+
+@pytest.mark.parametrize("fin", ["\r\r\n", "\r\n", "\n", "\r"], ids=["CRCRLF", "CRLF", "LF", "CR"])
+def test_csv_ligne_physique_quelle_que_soit_la_fin_de_ligne(tmp_path, fin):
+    """Revue C2 : `\\r\\r\\n` doublait les numéros de ligne (csv compte chaque `\\r`)."""
+    lignes = [_ENTETE_CSV] + [_ENREGISTREMENT_CSV.format(m=m) for m in (1, 2, 3)]
+    (tmp_path / "sysmon.csv").write_bytes((fin.join(lignes) + fin).encode("utf-8"))
+    lecture = SourceJournauxFichiers().lire(tmp_path, annee=2026)
+    assert lecture.ignorees == []
+    assert [(e.ligne, e.champs["Image"]) for e in lecture.evenements] == [
+        (2, "C:\\x1.exe"),
+        (3, "C:\\x2.exe"),
+        (4, "C:\\x3.exe"),
+    ]
+
+
+@pytest.mark.parametrize("nom", ["security.json", "sysmon.csv"])
+def test_windows_non_utf8_ecarte_sans_exception(tmp_path, nom):
+    """Revue C2 : un export cp1252 levait UnicodeDecodeError et faisait échouer le lot."""
+    contenu = (
+        '[{"TimeCreated": "2026-10-14T08:00:00+02:00", "Id": 4624, "MachineName": "PC01",'
+        ' "Message": "Ouverture réussie", "Data": {}}]'
+        if nom.endswith(".json")
+        else f"{_ENTETE_CSV}\n2026-10-14T08:00:00+02:00,1,L,p,PC01,créé,C:\\x.exe\n"
+    )
+    (tmp_path / nom).write_bytes(contenu.encode("cp1252"))
+    lecture = SourceJournauxFichiers().lire(tmp_path, annee=2026)
+    assert lecture.evenements == []
+    assert [(i.fichier, i.ligne) for i in lecture.ignorees] == [(nom, 1)]
+    assert "encodage" in lecture.ignorees[0].raison
+
+
+def test_utf16_sans_bom_motif_explicite(tmp_path):
+    contenu = f"{_ENTETE_CSV}\n{_ENREGISTREMENT_CSV.format(m=1)}\n"
+    (tmp_path / "sysmon.csv").write_bytes(contenu.encode("utf-16-le"))
+    lecture = SourceJournauxFichiers().lire(tmp_path, annee=2026)
+    assert lecture.evenements == []
+    assert len(lecture.ignorees) == 1
+    assert "NUL" in lecture.ignorees[0].raison
+
+
+def test_csv_id_chiffre_non_ascii_ignore(tmp_path):
+    """Revue C2 : `"²".isdigit()` est vrai mais `int("²")` lève ValueError."""
+    contenu = f"{_ENTETE_CSV}\n2026-10-14T08:00:00+02:00,²,L,p,PC01,m,C:\\x.exe\n"
+    (tmp_path / "sysmon.csv").write_text(contenu, encoding="utf-8")
+    lecture = SourceJournauxFichiers().lire(tmp_path, annee=2026)
+    assert lecture.evenements == []
+    assert [i.ligne for i in lecture.ignorees] == [2]
+
+
 def test_lignes_illisibles_comptees(tmp_path):
     (tmp_path / "auth.log").write_text(
         "Oct 14 08:00:00 BASTION01 sshd[1]: Accepted publickey for deploy from"

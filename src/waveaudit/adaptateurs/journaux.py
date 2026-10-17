@@ -78,7 +78,15 @@ class SourceJournauxFichiers:
             return journaux_linux.lire(
                 texte, chemin.name, annee=annee, decalage=self._decalage_syslog
             )
-        texte = _decoder(donnees, repli_syslog=False)
+        try:
+            texte = _decoder(donnees, repli_syslog=False)
+        except UnicodeDecodeError:
+            # §21 : jamais d'exception sur un fichier illisible (cp1252, UTF-16 tronqué…).
+            return [], [LigneIgnoree(fichier=chemin.name, ligne=1, raison="encodage non UTF-8")]
+        if chr(0) in texte:
+            return [], [
+                LigneIgnoree(fichier=chemin.name, ligne=1, raison="octets NUL (UTF-16 sans BOM ?)")
+            ]
         if nature == "json":
             return journaux_windows.lire_json(texte, chemin.name)
         return journaux_windows.lire_csv(texte, chemin.name)

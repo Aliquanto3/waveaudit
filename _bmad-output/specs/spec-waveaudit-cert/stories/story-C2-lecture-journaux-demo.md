@@ -35,7 +35,7 @@ sources:
   (entrée corrompue) et `security.json:3` (objet sans fuseau).
 - `donnees/demo/incident-attendu.yaml` (hors du dossier lu) : oracle au schéma figé de
   formats-incident.md, calculé à la main depuis la chronologie et les fichiers de démo
-  (algorithme d'agrégation et table des indicateurs de §21) ; 16 détections, 14 indicateurs
+  (algorithme d'agrégation et table des indicateurs de §21) ; 16 détections, 16 indicateurs
   distincts (6 `compte`, 3 `executable`, 2 `hachage`, 3 `hote`, 2 `ip`).
 - Tests : `tests/unitaires/test_journaux.py` (34 cas paramétrés sur `canoniques.yaml` +
   dossier absent/sans fichier routé, fichiers ignorés en silence, BOM UTF-16/UTF-8,
@@ -60,4 +60,32 @@ Aucun.
 
 ## Revue
 
-(à compléter par le second avis et le reviewer)
+- medium, second avis, corrigé : `sysmon.csv` commité en `\r\r\n` (git le voyait binaire), et
+  `csv` sur `StringIO(newline="")` compte chaque `\r` : lignes et origines doublées
+  (`sysmon.csv:19` au lieu de 10). Fichier remis en LF ; `lire_csv` numérote désormais par
+  lignes physiques `\n` (itérateur compteur ; fichier en `\r` seuls découpé sur `\r`),
+  `csv.Error` → `LigneIgnoree`. Tests paramétrés CRCRLF/CRLF/LF/CR, test « démo sans `\r` ».
+- medium, second avis, corrigé : oracle sans `system.json:7` (104, SubjectUserName
+  administrateur) dans les origines du compte `administrateur`. Ajouté à la main d'après
+  formats-incident.md (16 indicateurs, et non 14 comme l'annonçait le récapitulatif).
+  Nouveau test lecture → `detecter` → `extraire` (code de main) = oracle, part bénigne
+  comprise (0,65).
+- medium, second avis, corrigé : JSON/CSV non UTF-8 (cp1252) → `UnicodeDecodeError`, contraire
+  au §21 (jamais d'exception). Désormais une `LigneIgnoree(ligne=1, "encodage non UTF-8")`.
+- low, second avis, corrigé : Id `²` (`isdigit` vrai, `int` lève) → `isascii() and isdecimal()`.
+- low, second avis, corrigé : UTF-16 LE sans BOM → une `LigneIgnoree(ligne=1)` au motif
+  explicite (octets NUL).
+- low, second avis, rejeté : passage d'année sur Jan, Dec, Jan → 2027. C'est la règle exacte
+  du §21 (mois inférieur à celui de la ligne acceptée précédente ; jamais de décrément).
+- low, second avis, rejeté : décalage `+0200` ; `ConfigIncident.decalage_syslog` valide déjà
+  `^[+-]\d{2}:\d{2}$`.
+- low, second avis, rejeté : objet JSON unique (ConvertTo-Json d'un seul événement). Le §21
+  exige une racine tableau, sinon une `LigneIgnoree(ligne=1)` ; l'accepter serait un écart.
+- low, second avis, consigné : lecture non en flux (`read_bytes` du fichier entier),
+  acceptable pour le POC.
+- Complexité : 0 constat. Lecture, normalisation et extraction linéaires par fichier, tri
+  final en O(n log n) ; aucun parcours complet par événement.
+- Note : `test_demo_incident` importe désormais `domaine.detection` et `domaine.indicateurs`
+  (interdit pendant le développement parallèle, possible maintenant que C3 et C4 sont sur main).
+- Branchement : `SourceJournauxFichiers` n'est encore appelée par aucune composition ; c'est
+  le rôle de C5.

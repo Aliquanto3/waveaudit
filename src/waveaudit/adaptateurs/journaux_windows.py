@@ -5,7 +5,6 @@ Les règles de correspondance et de normalisation des champs sont dans
 """
 
 import csv
-import io
 import json
 from datetime import datetime
 
@@ -98,28 +97,51 @@ def _evenement_json(objet: object, fichier: str, ligne: int) -> Evenement | None
     )
 
 
+class _LignesPhysiques:
+    r"""Itère sur les lignes physiques (terminées par `\n`) en les comptant.
+
+    Le numéro de ligne ne dépend que des `\n` : un `\r` isolé ou doublé (`\r\r\n`) ne
+    crée pas de ligne physique supplémentaire, contrairement à `csv.reader.line_num`.
+    Un fichier sans aucun `\n` (fins de ligne `\r` seules) est découpé sur `\r`.
+    """
+
+    def __init__(self, texte: str) -> None:
+        separateur = "\n" if "\n" in texte or "\r" not in texte else "\r"
+        self._lignes = iter(texte.split(separateur))
+        self.lues = 0
+
+    def __iter__(self) -> "_LignesPhysiques":
+        return self
+
+    def __next__(self) -> str:
+        ligne = next(self._lignes)
+        self.lues += 1
+        return ligne + "\n"
+
+
 def lire_csv(texte: str, fichier: str) -> tuple[list[Evenement], list[LigneIgnoree]]:
     """Lit un contenu CSV Windows déjà décodé."""
     entete_brute = texte.splitlines()[0] if texte else ""
     separateur = ";" if entete_brute.count(";") > entete_brute.count(",") else ","
-    tampon = io.StringIO(texte, newline="")
-    lecteur = csv.reader(tampon, delimiter=separateur)
+    lignes = _LignesPhysiques(texte)
+    lecteur = csv.reader(lignes, delimiter=separateur)
     try:
         entete = next(lecteur)
-    except StopIteration:
+    except (StopIteration, csv.Error):
         entete = None
     if entete is None or any(colonne not in entete for colonne in _COLONNES_REQUISES):
         return [], [LigneIgnoree(fichier=fichier, ligne=1, raison="en-tête CSV invalide")]
     evenements: list[Evenement] = []
     ignorees: list[LigneIgnoree] = []
-    debut_suivant = lecteur.line_num + 1
     while True:
-        debut = debut_suivant
+        debut = lignes.lues + 1
         try:
             ligne = next(lecteur)
         except StopIteration:
             break
-        debut_suivant = lecteur.line_num + 1
+        except csv.Error:
+            ignorees.append(LigneIgnoree(fichier=fichier, ligne=debut, raison="CSV illisible"))
+            continue
         if not ligne or all(valeur == "" for valeur in ligne):
             continue
         if len(ligne) != len(entete):
@@ -143,7 +165,7 @@ def _evenement_csv(enregistrement: dict, fichier: str, ligne: int) -> Evenement 
     if horodatage is None:
         return None
     id_brut = enregistrement.get("Id", "")
-    if not id_brut.isdigit():
+    if not (id_brut.isascii() and id_brut.isdecimal()):
         return None
     hote = enregistrement.get("MachineName", "")
     if not hote.strip():
