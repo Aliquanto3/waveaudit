@@ -5,10 +5,10 @@
 | 1 | Socle commun | intégrée 080d53e (revue : revues/story-1.md, validée par Anaël) |
 | 2 | Recherche BM25 | intégrée b74abe1 (revue : revues/story-2.md) |
 | 3 | CVSS 3.1 et garde-fous | intégrée c980c3f (revue : revues/story-3.md) |
-| 4 | Catalogue de constats types | en cours |
-| 5 | Notes brutes et jeu de démonstration | à faire |
-| 6 | Adaptateur moteur OpenAI | à faire |
-| 7 | Garde réseau | à faire |
+| 4 | Catalogue de constats types | intégrée 2fef712 (revue : revues/story-4.md ; suite 106 verte) |
+| 5 | Notes brutes et jeu de démonstration | en cours |
+| 6 | Adaptateur moteur OpenAI | en cours |
+| 7 | Garde réseau | en cours |
 | 8 | Installation vérifiée et SBOM | à faire |
 | 9 | Export Word et thèmes | à faire |
 | 10 | Pipeline fiches et prompt | à faire |
@@ -35,3 +35,4 @@
 
 - Story 2 : la tokenisation remplace œ, æ, ß (oe, ae, ss) avant NFKD ; le §7 ne cite que NFKD (sans cela « œuvre » donne « uvre »). Écart mineur, à entériner dans contrats.md.
 - Story 3 (reporté par la revue) : conformément au §6, un titre de moins de 20 caractères (ex. « Injection SQL ») est remplacé par celui du constat type et la fiche passe `a_revoir` ; seuil probablement trop strict, à vérifier au banc.
+- Story 4 (reporté, réseau requis) : vérifier que les 41 URL du catalogue répondent, et ajouter des références ANSSI vérifiées en ligne (le catalogue n'en cite aucune).
