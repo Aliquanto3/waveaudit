@@ -10,9 +10,9 @@
 | 6 | Adaptateur moteur OpenAI | intégrée 2277976 (revue : revues/story-6.md) |
 | 7 | Garde réseau | intégrée 8be7a3e (revue : section « Revue » de stories/story-7-garde-reseau.md) |
 | 8 | Installation vérifiée et SBOM | intégrée 7769749 (revue : revues/story-8.md) |
-| 9 | Export Word et thèmes | en cours |
-| 10 | Pipeline fiches et prompt | à faire |
-| 11 | Calibrage du rattachement | à faire |
+| 9 | Export Word et thèmes | intégrée 28b7a07 (revue : revues/story-9.md ; suite complète de vague C : 196 verte, lint OK) |
+| 10 | Pipeline fiches et prompt | en cours |
+| 11 | Calibrage du rattachement | en cours |
 | 12 | Composition, lot, llama-server | à faire |
 | 13 | CLI complète | à faire |
 | 14 | UI web locale | à faire |
@@ -43,4 +43,5 @@
 - Story 7 (reporté) : sous Windows, une boucle asyncio Proactor échappe au garde (sockets non Python). Le relecteur a aussi gardé sendto/sendmsg (UDP), que le §12 ne liste pas.
 - Story 5 (reporté) : notes de démo en prose, peu de jargon ; BM25 seul classe le bon constat 1er pour 15/20, top 3 pour 19/20 (05-idor raté). À revoir après le premier banc.
 - Story 8 (reporté) : première installation réelle à vérifier (proxy, empreintes du manifeste, présence de llama-server.exe dans le zip) ; la CLI devra traduire les erreurs httpx en message clair.
+- Story 9 : le §17 ne prévoit pas de thème privé invalide (couleur hors #RRGGBB, TOML mal formé, modele.docx illisible) ; la revue lève `ConfigurationInvalide` (code 2) dès la construction de l’export, plutôt qu’un repli silencieux. Logo du thème privé validé mais pas encore inséré dans le document.
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
