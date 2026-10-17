@@ -25,6 +25,12 @@ var = "var"
 catalogue = "donnees/catalogue"
 theme_prive = "theme-prive"
 manifeste = "config/artefacts.toml"
+regles = "donnees/regles"     # règles de détection du workflow incident
 [ui]
 hote = "127.0.0.1"
 port = 8765
+[incident]                   # workflow CERT (contrats §21)
+decalage_syslog = "+02:00"   # fixe, sans heure d'été ; motif ^[+-]\d{2}:\d{2}$
+max_preuves = 10             # >= 1 ; preuves citées dans le prompt et le rapport
+longueur_max_recit = 800     # >= 100 ; maxLength de chaque rubrique du récit
+max_tokens = 1000            # >= 100 ; passé à generer_json pour le récit

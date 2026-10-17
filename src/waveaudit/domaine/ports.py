@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Protocol, TypedDict
 
+from waveaudit.domaine.incident import LectureJournaux, RapportIncident, Regle
 from waveaudit.domaine.modeles import ConstatType, Note, NoteInvalide, Rapport
 
 
@@ -58,3 +59,30 @@ class InfoMoteur:
     nom_modele: str
     pid: int | None
     base_url: str
+
+
+# Workflow incident (contrats §21, AD-17). Aucun processus ni connexion dans ces ports :
+# le moteur est ouvert à part (`composition.ouvrir_moteur_incident`), s'il y a une détection.
+
+
+class SourceJournaux(Protocol):
+    def lire(self, dossier: Path, *, annee: int) -> LectureJournaux:
+        """EntreeInvalide si le dossier est absent ou ne contient aucun fichier routé."""
+        ...
+
+
+class CatalogueRegles(Protocol):
+    def regles(self) -> list[Regle]:
+        """Règles triées par id."""
+        ...
+
+
+class ExporteurIncident(Protocol):
+    def exporter(self, rapport: RapportIncident, chemin: Path) -> None: ...
+
+
+@dataclass(frozen=True)
+class PortsIncident:
+    source_journaux: SourceJournaux
+    regles: CatalogueRegles
+    exporteur: ExporteurIncident

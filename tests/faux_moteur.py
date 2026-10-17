@@ -35,6 +35,10 @@ _CONSTAT = re.compile(r"<constat>(.*?)</constat>", re.DOTALL)
 # Réponse non JSON si le dernier message user n'a pas de balise <constat> : un prompt mal formé
 # échoue visiblement (SortieInvalide côté adaptateur) au lieu de produire une fiche plausible.
 SANS_CONSTAT = "ERREUR faux moteur : balise <constat> absente"
+# Mode incident (contrats §21) : balise <regle> présente, <constat> absente.
+_REGLE = re.compile(r"<regle>(.*?)</regle>", re.DOTALL)
+# Une technique ATT&CK, une IP et un hachage inventés, ajoutés au récit (CAP-5).
+REFERENCES_INVENTEES_INCIDENT = " T9999 T1110.999 203.0.113.254 " + "0f" * 32
 
 
 @dataclass
@@ -63,6 +67,23 @@ def _sortie_nominale(corps: dict) -> dict | None:
     }
     sortie["cvss"] = metriques_depuis_vecteur(constat["cvss_vecteur"]).model_dump()
     return sortie
+
+
+def _sortie_incident(corps: dict) -> dict | None:
+    """Récit nominal du mode incident, ou None si le dernier message user n'a pas de <regle>."""
+    messages = [m for m in corps.get("messages", []) if m.get("role") == "user"]
+    texte = messages[-1].get("content", "") if messages else ""
+    trouve = _REGLE.search(texte)
+    if trouve is None:
+        return None
+    regle = json.loads(trouve.group(1))
+    sources = {
+        "titre": "titre",
+        "recit": "description",
+        "impact": "impact",
+        "recommandation": "recommandation",
+    }
+    return {rubrique: "[adapté] " + regle[cle] for rubrique, cle in sources.items()}
 
 
 def _completion(corps: dict, contenu: str) -> dict:
@@ -109,7 +130,13 @@ def creer_app(scenario: str, requetes: list[dict]) -> FastAPI:
             await asyncio.sleep(DELAI_LENT_S)
         sortie = _sortie_nominale(corps)
         if sortie is None:
-            return JSONResponse(_completion(corps, SANS_CONSTAT))
+            recit = _sortie_incident(corps)
+            if recit is None:
+                return JSONResponse(_completion(corps, SANS_CONSTAT))
+            # vecteur_invalide : identique à nominal (aucune clé cvss en mode incident).
+            if scenario == "references_inventees":
+                recit["recit"] += REFERENCES_INVENTEES_INCIDENT
+            return JSONResponse(_completion(corps, json.dumps(recit, ensure_ascii=False)))
         if scenario == "references_inventees":
             sortie["description"] += REFERENCES_INVENTEES
         elif scenario == "vecteur_invalide":

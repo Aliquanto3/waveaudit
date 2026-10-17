@@ -1,6 +1,7 @@
 """Composition des ports (contrats §9, AD-2, AD-11). Seul module à instancier les adaptateurs.
 
-`ouvrir` est aussi le seul point qui démarre llama-server, une fois par lot.
+`ouvrir` (fiches) et `ouvrir_moteur_incident` (CERT) sont les seuls points qui démarrent
+llama-server, une fois par lot, par la fonction privée commune `_ouvrir_moteur`.
 """
 
 from collections.abc import Iterator
@@ -15,7 +16,7 @@ from waveaudit.adaptateurs.moteur_openai import MoteurOpenAI
 from waveaudit.adaptateurs.notes_fichiers import NotesFichiers
 from waveaudit.domaine.configuration import Configuration
 from waveaudit.domaine.erreurs import ConfigurationInvalide
-from waveaudit.domaine.ports import InfoMoteur, MesureMemoire, Ports
+from waveaudit.domaine.ports import InfoMoteur, MesureMemoire, Moteur, Ports
 from waveaudit.installation import manifeste
 from waveaudit.installation.manifeste import Artefact
 
@@ -69,13 +70,11 @@ def _ports(
 
 
 @contextmanager
-def ouvrir(
-    config: Configuration, modele: str | None, *, id_lot: str | None = None
-) -> Iterator[tuple[Ports, InfoMoteur]]:
-    """Ports et moteur d'un lot. `id_lot` nomme le journal `llama-server-<id_lot>.log`."""
+def _ouvrir_moteur(
+    config: Configuration, modele: str | None, id_lot: str | None
+) -> Iterator[tuple[MoteurOpenAI, str, InfoMoteur]]:
+    """Résolution et cycle de vie du moteur, communs à `ouvrir` et `ouvrir_moteur_incident`."""
     m = config.moteur
-    # Le thème privé est validé ici (ExportDocx), avant tout démarrage du moteur.
-    exporteur = ExportDocx(config.chemins.theme_prive)
     if m.mode == "externe":
         if not m.base_url:
             raise ConfigurationInvalide("moteur.base_url est vide en mode externe")
@@ -83,7 +82,8 @@ def ouvrir(
         moteur = _moteur(config, m.base_url, modele_api)
         try:
             yield (
-                _ports(config, moteur, exporteur, m.prefixe_systeme),
+                moteur,
+                m.prefixe_systeme,
                 InfoMoteur(nom_modele=modele_api or "externe", pid=None, base_url=m.base_url),
             )
         finally:
@@ -105,8 +105,32 @@ def ouvrir(
         moteur = _moteur(config, serveur.base_url, m.modele_api or artefact.nom)
         try:
             yield (
-                _ports(config, moteur, exporteur, artefact.prefixe_systeme),
+                moteur,
+                artefact.prefixe_systeme,
                 InfoMoteur(nom_modele=artefact.nom, pid=serveur.pid, base_url=serveur.base_url),
             )
         finally:
             moteur.fermer()
+
+
+@contextmanager
+def ouvrir(
+    config: Configuration, modele: str | None, *, id_lot: str | None = None
+) -> Iterator[tuple[Ports, InfoMoteur]]:
+    """Ports et moteur d'un lot. `id_lot` nomme le journal `llama-server-<id_lot>.log`."""
+    # Le thème privé est validé ici (ExportDocx), avant tout démarrage du moteur.
+    exporteur = ExportDocx(config.chemins.theme_prive)
+    with _ouvrir_moteur(config, modele, id_lot) as (moteur, prefixe_systeme, info):
+        yield _ports(config, moteur, exporteur, prefixe_systeme), info
+
+
+@contextmanager
+def ouvrir_moteur_incident(
+    config: Configuration, modele: str | None, *, id_lot: str | None = None
+) -> Iterator[tuple[Moteur, str, InfoMoteur]]:
+    """(moteur, prefixe_systeme, info) du workflow incident ; même cycle de vie qu'`ouvrir`.
+
+    Aucun port des fiches (catalogue, notes, exporteur Word) n'est instancié.
+    """
+    with _ouvrir_moteur(config, modele, id_lot) as ouvert:
+        yield ouvert

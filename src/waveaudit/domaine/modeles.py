@@ -109,6 +109,7 @@ class CodeMotif(StrEnum):
     REPLI_MOTEUR = "repli_moteur"
     NOTE_INVALIDE = "note_invalide"
     AUCUN_CONSTAT = "aucun_constat"
+    INDICATEUR_RETIRE = "indicateur_retire"  # workflow incident (contrats §21)
 
 
 class Motif(BaseModel):
