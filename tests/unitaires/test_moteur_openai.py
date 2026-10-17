@@ -3,6 +3,7 @@
 import json
 from collections.abc import Callable
 
+import httpx
 import pytest
 
 from tests.faux_moteur import FauxMoteur
@@ -115,3 +116,38 @@ def test_trust_env_false_ignore_un_proxy_bidon(
     fm = faux_moteur("nominal")
     moteur = _moteur(fm)
     moteur.sonder()  # réussit : le proxy bidon n'est pas utilisé
+
+
+def test_sonder_statut_non_200_leve_moteur_injoignable(
+    faux_moteur: Callable[..., FauxMoteur],
+) -> None:
+    fm = faux_moteur("nominal")
+    moteur = MoteurOpenAI(fm.base_url.removesuffix("/v1"), "mon-modele-api")  # /models -> 404
+    with pytest.raises(MoteurInjoignable):
+        moteur.sonder()
+
+
+@pytest.mark.parametrize(
+    ("corps", "erreur"),
+    [
+        ("pas du json", MoteurInjoignable),
+        ({"choices": []}, MoteurInjoignable),
+        ({"choices": [{}]}, MoteurInjoignable),
+        ({"choices": [{"message": {"content": None}}]}, SortieInvalide),
+        ({"choices": [{"message": {"content": "[1, 2]"}}]}, SortieInvalide),
+    ],
+)
+def test_reponse_200_malformee_leve_une_erreur_du_domaine(
+    corps: object, erreur: type[Exception]
+) -> None:
+    def repondre(requete: httpx.Request) -> httpx.Response:
+        if isinstance(corps, str):
+            return httpx.Response(200, text=corps)
+        return httpx.Response(200, json=corps)
+
+    moteur = MoteurOpenAI("http://127.0.0.1:9/v1", "mon-modele-api")
+    moteur._client = httpx.Client(
+        base_url="http://127.0.0.1:9/v1", transport=httpx.MockTransport(repondre)
+    )
+    with pytest.raises(erreur):
+        moteur.generer_json(MESSAGES, SCHEMA, max_tokens=10)

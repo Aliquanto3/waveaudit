@@ -56,7 +56,13 @@ class MoteurOpenAI:
         reponse = self._requeter("POST", "/chat/completions", json=corps)
         if reponse.status_code != 200:
             raise MoteurInjoignable(f"statut {reponse.status_code} sur /chat/completions")
-        contenu = reponse.json()["choices"][0]["message"]["content"]
+        try:
+            contenu = reponse.json()["choices"][0]["message"]["content"]
+        except (ValueError, LookupError, TypeError) as erreur:
+            # Statut 200 mais enveloppe non conforme à l'API : l'endpoint n'est pas utilisable.
+            raise MoteurInjoignable("réponse du moteur non conforme à l'API") from erreur
+        if not isinstance(contenu, str):
+            raise SortieInvalide("réponse du moteur : contenu absent ou non textuel")
         try:
             sortie = json.loads(contenu)
         except json.JSONDecodeError as erreur:
