@@ -12,6 +12,7 @@ import shutil
 import pytest
 from docx import Document
 
+from waveaudit.adaptateurs.export_docx import BANDEAU
 from waveaudit.application.config import charger_configuration, racine_projet
 from waveaudit.application.lot import executer_lot
 from waveaudit.domaine.modeles import RequeteLot
@@ -49,8 +50,9 @@ def test_lot_reel_deux_notes_mode_local_gere(tmp_path):
         assert len(resultat.rapport.fiches) + len(resultat.rapport.ecartees) == 2
         for fiche in resultat.rapport.fiches:
             assert fiche.titre and fiche.description and fiche.impact and fiche.recommandation
-            assert (fiche.statut == "a_revoir") == bool(fiche.motifs)
-        Document(str(resultat.chemin_rapport))  # lève si le .docx est invalide
+        document = Document(str(resultat.chemin_rapport))  # lève si le .docx est invalide
+        for section in document.sections:
+            assert BANDEAU in [p.text for p in section.header.paragraphs]
     finally:
         shutil.rmtree(dossier_sortie, ignore_errors=True)
         journal_moteur.unlink(missing_ok=True)

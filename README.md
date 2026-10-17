@@ -89,16 +89,18 @@ télécharge le rapport Word une fois le lot terminé.
   fonctions de connexion du module `socket` pendant les commandes `fiches`, `ui` et `banc`, et
   lève une erreur avant toute connexion vers un hôte hors boucle locale.
   `tests/e2e/test_hors_ligne.py` exécute un lot CLI et un lot UI complets sous ce garde et vérifie
-  qu'aucune tentative n'a été refusée, puis prouve, à l'inverse, que le garde détecte bien une
-  tentative de connexion sortante.
+  qu'aucune tentative n'a été refusée, puis prouve, à l'inverse, que le garde détecte et bloque
+  une tentative de connexion sortante faite par un abonné du lot.
 - **SHA-256** : chaque artefact téléchargé par `waveaudit installer` (moteur, modèles) est vérifié
   contre l'empreinte du manifeste (`config/artefacts.toml`), qui documente aussi sa source et sa
   licence ; une empreinte incorrecte est refusée et le fichier supprimé.
 - **SBOM** : `uv run waveaudit sbom` écrit un inventaire CycloneDX des dépendances installées
   dans `var/`, pour l'audit.
 - **Suite de tests** : `uv run pytest -q` n'utilise jamais le vrai modèle ni le réseau (faux
-  moteur HTTP local). Seul `tests/e2e/test_reel.py`, marqué `slow`, appelle le vrai moteur sur 2
-  notes de démonstration ; il est sauté tant que `waveaudit installer` n'a pas été lancé.
+  moteur HTTP local). Seuls les tests marqués `slow` (`tests/e2e/test_reel.py`, lot de bout en
+  bout sur 2 notes de démonstration, et `tests/e2e/test_llama_reel.py`) lancent le vrai
+  `llama-server` ; ils sont exclus par défaut (`-m 'not slow'`), et sautés tant que
+  `waveaudit installer` n'a pas été lancé.
 
 ## Choix et licences des modèles
 

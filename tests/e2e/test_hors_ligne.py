@@ -2,15 +2,17 @@
 
 Un lot CLI et un lot UI complets, lancés sous `garde()` (la commande CLI l'active, comme en
 exploitation réelle), ne déclenchent aucune tentative de connexion hors boucle locale
-(`garde_reseau.tentatives() == []`). Un test négatif prouve que le garde refuse bien une
+(`garde_reseau.tentatives() == []`). Deux tests négatifs prouvent que le garde refuse une
 connexion vers une adresse hors liste (192.0.2.1, TEST-NET-1 de la RFC 5737, jamais routée)
-avant qu'elle n'atteigne le réseau, et que la CLI la traduit en code retour 4.
+avant qu'elle n'atteigne le réseau : depuis un abonné du vrai lot, et depuis la commande (code 4).
 """
 
 from typing import Any
 
 from tests.e2e.test_cli import DEMO, _ecrire_config, app, runner
 from tests.e2e.test_ui import _attendre_fin, _notes_demo
+from waveaudit.domaine.erreurs import ConnexionInterdite
+from waveaudit.domaine.modeles import TypeEvenement
 from waveaudit.securite import garde_reseau
 
 
@@ -49,21 +51,54 @@ def test_ui_lot_sous_garde_sans_tentative(monkeypatch, tmp_path, faux_moteur):
 
 
 def test_negatif_connexion_hors_boucle_locale_refusee(monkeypatch, tmp_path, faux_moteur):
-    """Simule un abonné du lot (code tiers rejoué pendant le traitement) qui tenterait de joindre
-    192.0.2.1 : le garde doit lever avant toute connexion réelle, et la CLI traduire ça en code 4
-    (aucune trace de l'adresse ne doit réussir à sortir)."""
+    """Un abonné du vrai lot (code tiers appelé à chaque événement) tente de joindre 192.0.2.1 :
+    le garde lève avant toute connexion réelle et enregistre la tentative. Le lot ignore les
+    erreurs d'abonné (AD-6) : la commande se termine donc normalement, mais rien n'est sorti."""
     import socket
 
     import waveaudit.application.lot as lot_module
 
-    def executer_lot_abonne_malicieux(requete: Any, config: Any, abonne: Any = None) -> None:
+    executer_lot_reel = lot_module.executer_lot
+    erreurs: list[BaseException] = []
+
+    def executer_lot_avec_abonne_malicieux(requete: Any, config: Any, abonne: Any = None) -> Any:
+        def malicieux(evenement: Any) -> None:
+            if abonne is not None:
+                abonne(evenement)
+            if evenement.type == TypeEvenement.LOT_DEMARRE:
+                try:
+                    socket.create_connection(("192.0.2.1", 80), timeout=0.2)
+                except BaseException as erreur:
+                    erreurs.append(erreur)
+                    raise
+
+        return executer_lot_reel(requete, config, malicieux)
+
+    monkeypatch.setattr(lot_module, "executer_lot", executer_lot_avec_abonne_malicieux)
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    resultat = runner.invoke(app, ["fiches", str(DEMO), "--config", str(config)])
+
+    assert resultat.exit_code == 0, resultat.output
+    assert len(erreurs) == 1 and isinstance(erreurs[0], ConnexionInterdite)
+    assert garde_reseau.tentatives() == [("192.0.2.1", 80)]
+    assert not garde_reseau._actif
+
+
+def test_negatif_connexion_hors_boucle_locale_code_retour_4(monkeypatch, tmp_path, faux_moteur):
+    """Une connexion interdite qui remonte jusqu'à la commande (hors abonné) donne le code 4."""
+    import socket
+
+    import waveaudit.application.lot as lot_module
+
+    def executer_lot_qui_se_connecte(requete: Any, config: Any, abonne: Any = None) -> None:
         socket.create_connection(("192.0.2.1", 80), timeout=0.2)
         raise AssertionError("jamais atteint : le garde doit lever avant la connexion")
 
-    monkeypatch.setattr(lot_module, "executer_lot", executer_lot_abonne_malicieux)
+    monkeypatch.setattr(lot_module, "executer_lot", executer_lot_qui_se_connecte)
     config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
     resultat = runner.invoke(app, ["fiches", str(DEMO), "--config", str(config)])
 
     assert resultat.exit_code == 4, resultat.output
+    assert "192.0.2.1" in resultat.output
     assert garde_reseau.tentatives() == [("192.0.2.1", 80)]
     assert not garde_reseau._actif
