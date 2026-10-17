@@ -1,0 +1,228 @@
+# Oracle du jeu de démonstration CERT (contrats §21, formats-incident.md « Jeu de
+# démonstration et oracle »). Calculé à la main à partir de la chronologie normative et des
+# fichiers de `donnees/demo/incident/` ; jamais régénéré depuis une sortie du programme.
+#
+# Revue C2 : `system.json:7` (104, SubjectUserName administrateur) ajouté aux origines du
+# compte administrateur, omis au calcul initial (formats-incident.md : SubjectUserName est une
+# source de compte). test_demo_incident confronte cet oracle à detecter() puis extraire() ;
+# C5 peut le corriger si lui ou la ligne de démo contredit formats-incident.md ou §21.
+
+annee: 2026
+decalage_syslog: "+02:00"
+min_part_benigne: 0.60
+
+detections:
+  - regle_id: INC-LIN-SSH-FORCE-BRUTE
+    debut: "2026-10-14T08:02:10+02:00"
+    fin: "2026-10-14T08:03:20+02:00"
+    hotes: [BASTION01]
+    nb_evenements: 8
+  - regle_id: INC-LIN-SUDO-SHELL
+    debut: "2026-10-14T08:05:02+02:00"
+    fin: "2026-10-14T08:05:02+02:00"
+    hotes: [BASTION01]
+    nb_evenements: 1
+  - regle_id: INC-LIN-COMPTE-CREE
+    debut: "2026-10-14T08:07:15+02:00"
+    fin: "2026-10-14T08:07:15+02:00"
+    hotes: [BASTION01]
+    nb_evenements: 1
+  - regle_id: INC-LIN-CLE-SSH-AJOUTEE
+    debut: "2026-10-14T08:09:40+02:00"
+    fin: "2026-10-14T08:09:40+02:00"
+    hotes: [BASTION01]
+    nb_evenements: 1
+  - regle_id: INC-LIN-SSH-CONNEXION-ROOT
+    debut: "2026-10-14T08:12:03+02:00"
+    fin: "2026-10-14T08:12:03+02:00"
+    hotes: [BASTION01]
+    nb_evenements: 1
+  - regle_id: INC-WIN-FORCE-BRUTE
+    debut: "2026-10-14T09:14:00+02:00"
+    fin: "2026-10-14T09:15:15+02:00"
+    hotes: [SRV-FICHIERS]
+    nb_evenements: 6
+  - regle_id: INC-WIN-CONNEXION-RDP
+    debut: "2026-10-14T09:15:40+02:00"
+    fin: "2026-10-14T09:15:40+02:00"
+    hotes: [SRV-FICHIERS]
+    nb_evenements: 1
+  - regle_id: INC-WIN-COMPTE-CREE
+    debut: "2026-10-14T09:20:11+02:00"
+    fin: "2026-10-14T09:20:11+02:00"
+    hotes: [SRV-FICHIERS]
+    nb_evenements: 1
+  - regle_id: INC-WIN-AJOUT-GROUPE-ADMIN
+    debut: "2026-10-14T09:20:45+02:00"
+    fin: "2026-10-14T09:20:45+02:00"
+    hotes: [SRV-FICHIERS]
+    nb_evenements: 1
+  - regle_id: INC-WIN-SERVICE-INSTALLE
+    debut: "2026-10-14T09:23:10+02:00"
+    fin: "2026-10-14T09:23:10+02:00"
+    hotes: [SRV-FICHIERS]
+    nb_evenements: 1
+  - regle_id: INC-WIN-TACHE-PLANIFIEE
+    debut: "2026-10-14T09:24:30+02:00"
+    fin: "2026-10-14T09:24:30+02:00"
+    hotes: [SRV-FICHIERS]
+    nb_evenements: 1
+  - regle_id: INC-WIN-POWERSHELL-ENCODE
+    debut: "2026-10-14T09:41:02+02:00"
+    fin: "2026-10-14T09:41:02+02:00"
+    hotes: [PC-COMPTA07]
+    nb_evenements: 1
+  - regle_id: INC-WIN-OUTIL-OFFENSIF
+    debut: "2026-10-14T09:44:20+02:00"
+    fin: "2026-10-14T09:44:20+02:00"
+    hotes: [PC-COMPTA07]
+    nb_evenements: 1
+  - regle_id: INC-WIN-ACCES-LSASS
+    debut: "2026-10-14T09:44:31+02:00"
+    fin: "2026-10-14T09:44:31+02:00"
+    hotes: [PC-COMPTA07]
+    nb_evenements: 1
+  - regle_id: INC-WIN-JOURNAL-EFFACE
+    debut: "2026-10-14T10:05:00+02:00"
+    fin: "2026-10-14T10:05:00+02:00"
+    hotes: [SRV-FICHIERS]
+    nb_evenements: 1
+  - regle_id: INC-WIN-JOURNAL-EFFACE
+    debut: "2026-10-14T10:06:30+02:00"
+    fin: "2026-10-14T10:06:30+02:00"
+    hotes: [PC-COMPTA07]
+    nb_evenements: 1
+
+# indicateurs = extraire(union des événements des 16 détections ci-dessus) ; trié (type, valeur).
+indicateurs:
+  - type: compte
+    valeur: admin
+    origines:
+      - "auth.log:10"
+      - "auth.log:11"
+      - "auth.log:12"
+      - "auth.log:13"
+      - "auth.log:14"
+      - "auth.log:15"
+      - "auth.log:16"
+      - "auth.log:17"
+  - type: compte
+    valeur: administrateur
+    origines:
+      - "security.json:15"
+      - "security.json:16"
+      - "security.json:17"
+      - "security.json:18"
+      - "security.json:19"
+      - "security.json:20"
+      - "security.json:21"
+      - "security.json:24"
+      - "security.json:25"
+      - "security.json:27"
+      - "security.json:32"
+      - "system.json:7"
+  - type: compte
+    valeur: deploy
+    origines:
+      - "auth.log:19"
+      - "auth.log:21"
+  - type: compte
+    valeur: maintenance
+    origines:
+      - "auth.log:20"
+  - type: compte
+    valeur: root
+    origines:
+      - "auth.log:22"
+  - type: compte
+    valeur: svc-maj
+    origines:
+      - "security.json:24"
+  - type: executable
+    valeur: "c:\\programdata\\maj\\maj.exe"
+    origines:
+      - "system.json:3"
+  - type: executable
+    valeur: "c:\\programdata\\maj\\outil.exe"
+    origines:
+      - "sysmon.csv:11"
+      - "sysmon.csv:12"
+  - type: executable
+    valeur: "c:\\windows\\system32\\windowspowershell\\v1.0\\powershell.exe"
+    origines:
+      - "sysmon.csv:10"
+  - type: hachage
+    valeur: a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4
+    origines:
+      - "sysmon.csv:11"
+  - type: hachage
+    valeur: a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4
+    origines:
+      - "sysmon.csv:11"
+  - type: hote
+    valeur: bastion01
+    origines:
+      - "auth.log:10"
+      - "auth.log:11"
+      - "auth.log:12"
+      - "auth.log:13"
+      - "auth.log:14"
+      - "auth.log:15"
+      - "auth.log:16"
+      - "auth.log:17"
+      - "auth.log:19"
+      - "auth.log:20"
+      - "auth.log:21"
+      - "auth.log:22"
+  - type: hote
+    valeur: pc-compta07
+    origines:
+      - "sysmon.csv:10"
+      - "sysmon.csv:11"
+      - "sysmon.csv:12"
+      - "system.json:7"
+  - type: hote
+    valeur: srv-fichiers
+    origines:
+      - "security.json:15"
+      - "security.json:16"
+      - "security.json:17"
+      - "security.json:18"
+      - "security.json:19"
+      - "security.json:20"
+      - "security.json:21"
+      - "security.json:24"
+      - "security.json:25"
+      - "security.json:27"
+      - "security.json:32"
+      - "system.json:3"
+  - type: ip
+    valeur: 192.0.2.10
+    origines:
+      - "security.json:15"
+      - "security.json:16"
+      - "security.json:17"
+      - "security.json:18"
+      - "security.json:19"
+      - "security.json:20"
+      - "security.json:21"
+  - type: ip
+    valeur: 203.0.113.45
+    origines:
+      - "auth.log:10"
+      - "auth.log:11"
+      - "auth.log:12"
+      - "auth.log:13"
+      - "auth.log:14"
+      - "auth.log:15"
+      - "auth.log:16"
+      - "auth.log:17"
+      - "auth.log:22"
+
+# Lignes volontairement illisibles, hors des lignes d'attaque (ordre de lecture des fichiers,
+# tri casefold : auth.log, security.json, syslog, sysmon.csv, system.json).
+ignorees:
+  - fichier: auth.log
+    ligne: 6
+  - fichier: security.json
+    ligne: 3
