@@ -28,7 +28,9 @@ Orchestrateur : une session principale neuve (`/clear`), qui lit seulement ce fi
 1. `agent-cost-kit:dev-story` (modèle de la table) dans un worktree, à partir de `main` à jour. Prompt : l'id et le titre de la story, les 4 documents du contrat, le texte `invoke_dev_with`, et ces règles :
    - ne pas modifier les fichiers du socle (AD-0) ; s'arrêter et signaler en cas de manque ;
    - tests ciblés verts, puis `uv run ruff check` et `uv run ruff format --check` ;
-   - un commit en français, sans fusion.
+   - un commit en français, sans fusion ;
+   - pour un scénario de faux moteur autre que nominal : `fm = faux_moteur("<scenario>")`, puis `config = config_test.model_copy(update={"moteur": config_test.moteur.model_copy(update={"base_url": fm.base_url})})` ;
+   - le socle est plus strict que le contrat : au moins une référence par `ConstatType` ; `Note.fichier` sans chemin ; `Note.corps` vide lève `ValidationError` (l'adaptateur la convertit en `NoteInvalide`) ; `Fiche` refuse un statut `a_revoir` qui ne correspond pas à des motifs non vides ; `EvenementLot.horodatage` doit être aware (`datetime.now().astimezone()`) ; le script CLI pointe sur `cli:main`.
 2. `agent-cost-kit:second-avis` (Haiku) sur le diff de la branche.
 3. `agent-cost-kit:reviewer` (Opus) avec la liste du second avis : il corrige les constats moyens ou élevés réels et consigne la revue dans `_bmad-output/implementation-artifacts/revues/story-<id>.md`.
 4. Intégration par la session principale : fusion sans fast-forward dans `main`, puis `git log -1`. Lancer `uv run pytest -q --tb=line -p no:warnings` sur `main` si la vague le prévoit, sinon les tests de la story. Mettre à jour la ligne de la story dans `etat-de-nuit.md`, puis, si les tests sont verts, `git push origin main` (autorisé par Anaël le 2026-10-17, après chaque story revue et testée).

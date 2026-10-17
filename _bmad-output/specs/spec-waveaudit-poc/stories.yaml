@@ -9,7 +9,7 @@
     Transcrire contrats.md §1 à §5, §11 (artefacts.toml complet avec tailles et
     SHA-256 de la table Stack), §12 (addopts), §13 (faux moteur et fixtures) et
     §2 (waveaudit.toml) à l'identique. pyproject : package src/waveaudit,
-    script `waveaudit = "waveaudit.interfaces.cli:app"`, Python ==3.12.*,
+    script `waveaudit = "waveaudit.interfaces.cli:main"` (main reconfigure la console en UTF-8 puis lance app), Python ==3.12.*,
     dépendances épinglées de la table Stack (dev : pytest, pytest-socket,
     ruff, cyclonedx-bom), marqueur `slow` déclaré. Créer cli.py avec une app
     typer vide (commande `version`) pour que le script existe.

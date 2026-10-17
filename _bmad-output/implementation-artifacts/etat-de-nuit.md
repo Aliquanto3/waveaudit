@@ -2,7 +2,7 @@
 
 | Story | Titre | État |
 |---|---|---|
-| 1 | Socle commun | à faire |
+| 1 | Socle commun | intégrée 080d53e (revue : revues/story-1.md, validée par Anaël) |
 | 2 | Recherche BM25 | à faire |
 | 3 | CVSS 3.1 et garde-fous | à faire |
 | 4 | Catalogue de constats types | à faire |
