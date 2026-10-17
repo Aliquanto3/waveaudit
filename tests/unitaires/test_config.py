@@ -158,3 +158,38 @@ def test_chemin_relatif_resolu_contre_la_racine(fausse_racine, tmp_path, monkeyp
     (autre / "surcharge.toml").write_text("[moteur]\nseed = 1\n", encoding="utf-8")
     monkeypatch.chdir(autre)
     assert charger_configuration(Path("surcharge.toml")).moteur.seed == 9
+
+
+def test_section_incident_et_chemin_regles(fausse_racine):
+    config = charger_configuration()
+    assert config.chemins.regles == fausse_racine / "donnees" / "regles"
+    assert config.incident.decalage_syslog == "+02:00"
+    assert config.incident.max_preuves == 10
+    assert config.incident.longueur_max_recit == 800
+    assert config.incident.max_tokens == 1000
+
+
+@pytest.mark.parametrize(
+    "contenu",
+    [
+        '[incident]\ndecalage_syslog = "+2:00"\n',
+        '[incident]\ndecalage_syslog = "Europe/Paris"\n',
+        "[incident]\nmax_preuves = 0\n",
+        "[incident]\nlongueur_max_recit = 99\n",
+        "[incident]\nmax_tokens = 99\n",
+        "[incident]\ninconnue = 1\n",
+    ],
+)
+def test_section_incident_invalide(fausse_racine, tmp_path, contenu):
+    fichier = tmp_path / "mauvais.toml"
+    fichier.write_text(contenu, encoding="utf-8")
+    with pytest.raises(ConfigurationInvalide):
+        charger_configuration(fichier)
+
+
+def test_section_incident_surchargee(fausse_racine, tmp_path):
+    fichier = tmp_path / "incident.toml"
+    fichier.write_text('[incident]\ndecalage_syslog = "-05:30"\n', encoding="utf-8")
+    config = charger_configuration(fichier)
+    assert config.incident.decalage_syslog == "-05:30"
+    assert config.incident.max_preuves == 10

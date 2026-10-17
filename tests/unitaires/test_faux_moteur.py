@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from tests.faux_moteur import REFERENCES_INVENTEES, SANS_CONSTAT
+from tests.faux_moteur import REFERENCES_INVENTEES, REFERENCES_INVENTEES_INCIDENT, SANS_CONSTAT
 
 CONSTAT = {
     "id": "WEB-XSS-REFLECHI",
@@ -145,3 +145,77 @@ def test_nominal_sans_balise_constat_renvoie_du_non_json(faux_moteur):
     assert contenu == SANS_CONSTAT
     with pytest.raises(json.JSONDecodeError):
         json.loads(contenu)
+
+
+# --- Mode incident (contrats §21) : balise <regle>, sans <constat> ----------------------------
+
+REGLE = {
+    "id": "INC-LIN-SSH-FORCE-BRUTE",
+    "titre": "Force brute SSH",
+    "description": "Description type de la règle.",
+    "impact": "Impact type.",
+    "recommandation": "Recommandation type.",
+}
+CORPS_INCIDENT = {
+    "model": "m",
+    "messages": [
+        {"role": "system", "content": "consigne"},
+        {
+            "role": "user",
+            "content": f"<regle>{json.dumps(REGLE, ensure_ascii=False)}</regle>"
+            "<preuves>2026-10-14T08:02:10+02:00 BASTION01 Failed password</preuves>",
+        },
+    ],
+}
+RECIT_NOMINAL = {
+    "titre": "[adapté] Force brute SSH",
+    "recit": "[adapté] Description type de la règle.",
+    "impact": "[adapté] Impact type.",
+    "recommandation": "[adapté] Recommandation type.",
+}
+
+
+def _contenu_incident(base_url: str) -> str:
+    with _client() as client:
+        reponse = client.post(f"{base_url}/chat/completions", json=CORPS_INCIDENT)
+    assert reponse.status_code == 200
+    return reponse.json()["choices"][0]["message"]["content"]
+
+
+@pytest.mark.parametrize("scenario", ["nominal", "vecteur_invalide"])
+def test_incident_nominal(faux_moteur, scenario):
+    moteur = faux_moteur(scenario)
+    sortie = json.loads(_contenu_incident(moteur.base_url))
+    assert sortie == RECIT_NOMINAL
+    assert "cvss" not in sortie
+    assert moteur.requetes == [CORPS_INCIDENT]
+
+
+def test_incident_references_inventees(faux_moteur):
+    sortie = json.loads(_contenu_incident(faux_moteur("references_inventees").base_url))
+    assert REFERENCES_INVENTEES_INCIDENT == " T9999 T1110.999 203.0.113.254 " + "0f" * 32
+    assert sortie == RECIT_NOMINAL | {
+        "recit": RECIT_NOMINAL["recit"] + REFERENCES_INVENTEES_INCIDENT
+    }
+
+
+def test_incident_json_invalide_une_fois(faux_moteur):
+    moteur = faux_moteur("json_invalide_une_fois")
+    assert _contenu_incident(moteur.base_url) == "pas du json"
+    assert json.loads(_contenu_incident(moteur.base_url)) == RECIT_NOMINAL
+
+
+def test_incident_constat_prioritaire_sur_regle(faux_moteur):
+    """<constat> présente : mode fiches, même si une balise <regle> apparaît aussi."""
+    corps = json.loads(json.dumps(CORPS))
+    corps["messages"][-1]["content"] += f"<regle>{json.dumps(REGLE)}</regle>"
+    with _client() as client:
+        reponse = client.post(f"{faux_moteur().base_url}/chat/completions", json=corps)
+    assert json.loads(reponse.json()["choices"][0]["message"]["content"]) == _sortie_attendue()
+
+
+def test_sans_balise_regle_ni_constat(faux_moteur):
+    corps = {"model": "m", "messages": [{"role": "user", "content": "<preuves>x</preuves>"}]}
+    with _client() as client:
+        reponse = client.post(f"{faux_moteur().base_url}/chat/completions", json=corps)
+    assert reponse.json()["choices"][0]["message"]["content"] == SANS_CONSTAT

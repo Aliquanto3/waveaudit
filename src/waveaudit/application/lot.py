@@ -1,7 +1,7 @@
 """Service de lot unique pour la CLI et l'UI (contrats §9, AD-2, AD-6, AD-8).
 
-Seul émetteur d'`EvenementLot` et seul écrivain de `journal.jsonl`, qui est écrit avant
-l'appel de l'abonné.
+Émet les `EvenementLot` des fiches ; `journal.jsonl` est écrit par `journal.JournalLot`
+(seul écrivain), avant l'appel de l'abonné.
 """
 
 import json
@@ -12,9 +12,9 @@ import time
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import IO
 
 from waveaudit.application import composition
+from waveaudit.application.journal import JournalLot
 from waveaudit.domaine.configuration import Configuration
 from waveaudit.domaine.erreurs import EntreeInvalide
 from waveaudit.domaine.modeles import (
@@ -77,7 +77,7 @@ def nouvel_id_lot(var: Path) -> str:
 class _Emetteur:
     """Écrit chaque événement dans `journal.jsonl` (une ligne, flush), puis appelle l'abonné."""
 
-    def __init__(self, journal: IO[str], abonne: Abonne | None) -> None:
+    def __init__(self, journal: JournalLot, abonne: Abonne | None) -> None:
         self._journal = journal
         self._abonne = abonne
         self.total = 0
@@ -102,8 +102,7 @@ class _Emetteur:
             duree_s=duree_s,
             details=details or {},
         )
-        self._journal.write(evenement.model_dump_json() + "\n")
-        self._journal.flush()
+        self._journal.ecrire(evenement)
         if self._abonne is not None:
             try:
                 self._abonne(evenement)
@@ -143,7 +142,7 @@ def executer_lot(
             raise EntreeInvalide(f"identifiant de lot inutilisable : {id_lot!r}")
     dossier_sortie = _sorties(config) / id_lot
 
-    with (dossier_sortie / JOURNAL).open("a", encoding="utf-8") as journal:
+    with JournalLot(dossier_sortie / JOURNAL) as journal:
         emetteur = _Emetteur(journal, abonne)
         try:
             with composition.ouvrir(config, requete.modele, id_lot=id_lot) as (ports, info):

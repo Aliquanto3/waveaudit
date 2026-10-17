@@ -1,0 +1,650 @@
+# Événements canoniques du workflow incident (C1, contrats §21, formats-incident.md).
+#
+# Traduction testable de formats-incident.md, où C2 (lecture), C3 (règles) et C4 (indicateurs)
+# se rencontrent sans se lire. Chaque entrée :
+#   id        identifiant stable de l'entrée
+#   fichier   nom routable du fichier minimal (security.json, system.json, sysmon.csv, auth.log)
+#   brut      contenu complet de ce fichier : tableau JSON d'un objet, en-tête CSV + un
+#             enregistrement, ou une ligne syslog
+#   ligne     1 (JSON, syslog) ; 2 (CSV : l'en-tête est la ligne 1)
+#   evenement Evenement attendu, sans fichier ni ligne, lu avec annee=2026 et +02:00
+#   regles    ids des règles du catalogue minimal dont la CONDITION est vraie (agrégation à
+#             part : un 4625 isolé vérifie la condition de INC-WIN-FORCE-BRUTE) ; peut être vide
+#
+# Entrées chrono-* : une par ligne de la « Chronologie d'attaque normative » (17) ; pour les
+# lignes répétées (force brute), la première occurrence. Entrées benin-* : voisines bénignes.
+# Entrées norm-* : cas de normalisation des champs et de la lecture.
+
+# --- Chronologie d'attaque normative (2026-10-14, +02:00) ---------------------------------
+
+- id: chrono-01-ssh-force-brute
+  fichier: auth.log
+  brut: |
+    Oct 14 08:02:10 BASTION01 sshd[811]: Failed password for invalid user admin from 203.0.113.45 port 41001 ssh2
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T08:02:10+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: sshd
+    message: Failed password for invalid user admin from 203.0.113.45 port 41001 ssh2
+    champs: {utilisateur: admin, ip: 203.0.113.45, port: "41001"}
+  regles: [INC-LIN-SSH-FORCE-BRUTE]
+
+- id: chrono-02-ssh-connexion-deploy
+  fichier: auth.log
+  brut: |
+    Oct 14 08:03:41 BASTION01 sshd[812]: Accepted password for deploy from 203.0.113.45 port 41022 ssh2
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T08:03:41+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: sshd
+    message: Accepted password for deploy from 203.0.113.45 port 41022 ssh2
+    champs: {utilisateur: deploy, ip: 203.0.113.45, port: "41022"}
+  regles: []
+
+- id: chrono-03-sudo-shell
+  fichier: auth.log
+  brut: |
+    Oct 14 08:05:02 BASTION01 sudo:   deploy : TTY=pts/0 ; PWD=/home/deploy ; USER=root ; COMMAND=/bin/bash
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T08:05:02+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: sudo
+    message: "deploy : TTY=pts/0 ; PWD=/home/deploy ; USER=root ; COMMAND=/bin/bash"
+    champs: {utilisateur: deploy, commande: /bin/bash}
+  regles: [INC-LIN-SUDO-SHELL]
+
+- id: chrono-04-useradd
+  fichier: auth.log
+  brut: |
+    Oct 14 08:07:15 BASTION01 useradd[2311]: new user: name=maintenance, UID=1002, GID=1002, home=/home/maintenance, shell=/bin/bash
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T08:07:15+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: useradd
+    message: "new user: name=maintenance, UID=1002, GID=1002, home=/home/maintenance, shell=/bin/bash"
+    champs: {nouvel_utilisateur: maintenance}
+  regles: [INC-LIN-COMPTE-CREE]
+
+- id: chrono-05-cle-ssh-ajoutee
+  fichier: auth.log
+  brut: |
+    Oct 14 08:09:40 BASTION01 sudo:   deploy : TTY=pts/0 ; PWD=/home/deploy ; USER=root ; COMMAND=/usr/bin/tee -a /root/.ssh/authorized_keys
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T08:09:40+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: sudo
+    message: "deploy : TTY=pts/0 ; PWD=/home/deploy ; USER=root ; COMMAND=/usr/bin/tee -a /root/.ssh/authorized_keys"
+    champs:
+      utilisateur: deploy
+      commande: /usr/bin/tee -a /root/.ssh/authorized_keys
+      fichier_cible: /root/.ssh/authorized_keys
+  regles: [INC-LIN-CLE-SSH-AJOUTEE]
+
+- id: chrono-06-ssh-connexion-root
+  fichier: auth.log
+  brut: |
+    Oct 14 08:12:03 BASTION01 sshd[2402]: Accepted publickey for root from 203.0.113.45 port 41100 ssh2
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T08:12:03+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: sshd
+    message: Accepted publickey for root from 203.0.113.45 port 41100 ssh2
+    champs: {utilisateur: root, ip: 203.0.113.45, port: "41100"}
+  regles: [INC-LIN-SSH-CONNEXION-ROOT]
+
+- id: chrono-07-win-force-brute
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T09:14:00+02:00", "Id": 4625, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Échec d'ouverture de session d'un compte.", "Data": {"TargetUserName": "administrateur", "TargetDomainName": "SRV-FICHIERS", "IpAddress": "192.0.2.10", "IpPort": "50110", "LogonType": "10", "WorkstationName": "POSTE-EXT"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:14:00+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4625
+    log_name: Security
+    programme: null
+    message: Échec d'ouverture de session d'un compte.
+    champs:
+      TargetUserName: administrateur
+      TargetDomainName: SRV-FICHIERS
+      IpAddress: 192.0.2.10
+      IpPort: "50110"
+      LogonType: "10"
+      WorkstationName: POSTE-EXT
+  regles: [INC-WIN-FORCE-BRUTE]
+
+- id: chrono-08-win-connexion-rdp
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T09:15:40+02:00", "Id": 4624, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Ouverture de session d'un compte réussie.", "Data": {"TargetUserName": "administrateur", "TargetDomainName": "SRV-FICHIERS", "IpAddress": "192.0.2.10", "IpPort": "50133", "LogonType": "10", "WorkstationName": "POSTE-EXT"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:15:40+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4624
+    log_name: Security
+    programme: null
+    message: Ouverture de session d'un compte réussie.
+    champs:
+      TargetUserName: administrateur
+      TargetDomainName: SRV-FICHIERS
+      IpAddress: 192.0.2.10
+      IpPort: "50133"
+      LogonType: "10"
+      WorkstationName: POSTE-EXT
+  regles: [INC-WIN-CONNEXION-RDP]
+
+- id: chrono-09-win-compte-cree
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T09:20:11+02:00", "Id": 4720, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Un compte d'utilisateur a été créé.", "Data": {"TargetUserName": "svc-maj", "SubjectUserName": "administrateur"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:20:11+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4720
+    log_name: Security
+    programme: null
+    message: Un compte d'utilisateur a été créé.
+    champs: {TargetUserName: svc-maj, SubjectUserName: administrateur}
+  regles: [INC-WIN-COMPTE-CREE]
+
+- id: chrono-10-win-ajout-groupe-admin
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T09:20:45+02:00", "Id": 4732, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Un membre a été ajouté à un groupe local dont la sécurité est activée.", "Data": {"TargetUserName": "Administrateurs", "MemberName": "CN=svc-maj,CN=Users,DC=corp,DC=exemple,DC=test", "SubjectUserName": "administrateur"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:20:45+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4732
+    log_name: Security
+    programme: null
+    message: Un membre a été ajouté à un groupe local dont la sécurité est activée.
+    champs:
+      TargetUserName: Administrateurs
+      MemberName: CN=svc-maj,CN=Users,DC=corp,DC=exemple,DC=test
+      SubjectUserName: administrateur
+  regles: [INC-WIN-AJOUT-GROUPE-ADMIN]
+
+- id: chrono-11-win-service-installe
+  fichier: system.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T09:23:10+02:00", "Id": 7045, "LogName": "System", "ProviderName": "Service Control Manager", "MachineName": "SRV-FICHIERS", "Message": "Un service a été installé dans le système.", "Data": {"ServiceName": "MajCorp", "ImagePath": "C:\\ProgramData\\maj\\maj.exe", "AccountName": "LocalSystem"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:23:10+02:00"
+    hote: SRV-FICHIERS
+    event_id: 7045
+    log_name: System
+    programme: null
+    message: Un service a été installé dans le système.
+    champs:
+      ServiceName: MajCorp
+      ImagePath: 'C:\ProgramData\maj\maj.exe'
+      AccountName: LocalSystem
+  regles: [INC-WIN-SERVICE-INSTALLE]
+
+- id: chrono-12-win-tache-planifiee
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T09:24:30+02:00", "Id": 4698, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Une tâche planifiée a été créée.", "Data": {"TaskName": "\\MiseAJourCorp", "SubjectUserName": "administrateur"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:24:30+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4698
+    log_name: Security
+    programme: null
+    message: Une tâche planifiée a été créée.
+    champs: {TaskName: '\MiseAJourCorp', SubjectUserName: administrateur}
+  regles: [INC-WIN-TACHE-PLANIFIEE]
+
+- id: chrono-13-win-powershell-encode
+  fichier: sysmon.csv
+  brut: |
+    TimeCreated,Id,LogName,ProviderName,MachineName,Message,Image,CommandLine,ParentImage,User
+    2026-10-14T09:41:02+02:00,1,Microsoft-Windows-Sysmon/Operational,Microsoft-Windows-Sysmon,PC-COMPTA07,Process Create,C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe,powershell.exe -nop -w hidden -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQA,C:\Windows\explorer.exe,CORP\c.martin
+  ligne: 2
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:41:02+02:00"
+    hote: PC-COMPTA07
+    event_id: 1
+    log_name: Microsoft-Windows-Sysmon/Operational
+    programme: null
+    message: Process Create
+    champs:
+      Image: 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+      CommandLine: powershell.exe -nop -w hidden -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQA
+      ParentImage: 'C:\Windows\explorer.exe'
+      User: 'CORP\c.martin'
+  regles: [INC-WIN-POWERSHELL-ENCODE]
+
+- id: chrono-14-win-outil-offensif
+  fichier: sysmon.csv
+  brut: |
+    TimeCreated,Id,LogName,ProviderName,MachineName,Message,Image,CommandLine,ParentImage,User,Hashes
+    2026-10-14T09:44:20+02:00,1,Microsoft-Windows-Sysmon/Operational,Microsoft-Windows-Sysmon,PC-COMPTA07,Process Create,C:\ProgramData\maj\outil.exe,C:\ProgramData\maj\outil.exe,C:\Windows\System32\cmd.exe,CORP\administrateur,"MD5=A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4,SHA256=A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4"
+  ligne: 2
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:44:20+02:00"
+    hote: PC-COMPTA07
+    event_id: 1
+    log_name: Microsoft-Windows-Sysmon/Operational
+    programme: null
+    message: Process Create
+    champs:
+      Image: 'C:\ProgramData\maj\outil.exe'
+      CommandLine: 'C:\ProgramData\maj\outil.exe'
+      ParentImage: 'C:\Windows\System32\cmd.exe'
+      User: 'CORP\administrateur'
+      Hashes: MD5=A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4,SHA256=A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4
+  regles: [INC-WIN-OUTIL-OFFENSIF]
+
+- id: chrono-15-win-acces-lsass
+  fichier: sysmon.csv
+  brut: |
+    TimeCreated,Id,LogName,ProviderName,MachineName,Message,SourceImage,TargetImage,GrantedAccess,SourceUser
+    2026-10-14T09:44:31+02:00,10,Microsoft-Windows-Sysmon/Operational,Microsoft-Windows-Sysmon,PC-COMPTA07,Process accessed,C:\ProgramData\maj\outil.exe,C:\Windows\system32\lsass.exe,0x1010,CORP\administrateur
+  ligne: 2
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:44:31+02:00"
+    hote: PC-COMPTA07
+    event_id: 10
+    log_name: Microsoft-Windows-Sysmon/Operational
+    programme: null
+    message: Process accessed
+    champs:
+      SourceImage: 'C:\ProgramData\maj\outil.exe'
+      TargetImage: 'C:\Windows\system32\lsass.exe'
+      GrantedAccess: "0x1010"
+      SourceUser: 'CORP\administrateur'
+  regles: [INC-WIN-ACCES-LSASS]
+
+- id: chrono-16-win-journal-efface-security
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T10:05:00+02:00", "Id": 1102, "LogName": "Security", "ProviderName": "Microsoft-Windows-Eventlog", "MachineName": "SRV-FICHIERS", "Message": "Le journal d'audit a été effacé.", "Data": {"SubjectUserName": "administrateur"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T10:05:00+02:00"
+    hote: SRV-FICHIERS
+    event_id: 1102
+    log_name: Security
+    programme: null
+    message: Le journal d'audit a été effacé.
+    champs: {SubjectUserName: administrateur}
+  regles: [INC-WIN-JOURNAL-EFFACE]
+
+- id: chrono-17-win-journal-efface-system
+  fichier: system.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T10:06:30+02:00", "Id": 104, "LogName": "System", "ProviderName": "Microsoft-Windows-Eventlog", "MachineName": "PC-COMPTA07", "Message": "Le fichier journal Security a été effacé.", "Data": {"SubjectUserName": "administrateur", "Channel": "Security"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T10:06:30+02:00"
+    hote: PC-COMPTA07
+    event_id: 104
+    log_name: System
+    programme: null
+    message: Le fichier journal Security a été effacé.
+    champs: {SubjectUserName: administrateur, Channel: Security}
+  regles: [INC-WIN-JOURNAL-EFFACE]
+
+# --- Voisines bénignes ---------------------------------------------------------------------
+
+- id: benin-01-connexion-reseau-type-3
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T08:30:00+02:00", "Id": 4624, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Ouverture de session d'un compte réussie.", "Data": {"TargetUserName": "c.martin", "TargetDomainName": "CORP", "IpAddress": "192.0.2.50", "IpPort": "51000", "LogonType": "3", "WorkstationName": "PC-COMPTA07"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T08:30:00+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4624
+    log_name: Security
+    programme: null
+    message: Ouverture de session d'un compte réussie.
+    champs:
+      TargetUserName: c.martin
+      TargetDomainName: CORP
+      IpAddress: 192.0.2.50
+      IpPort: "51000"
+      LogonType: "3"
+      WorkstationName: PC-COMPTA07
+  regles: []
+
+- id: benin-02-echec-isole
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T08:31:12+02:00", "Id": 4625, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Échec d'ouverture de session d'un compte.", "Data": {"TargetUserName": "j.dupont", "TargetDomainName": "CORP", "IpAddress": "192.0.2.51", "IpPort": "51022", "LogonType": "3", "WorkstationName": "PC-RH02"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T08:31:12+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4625
+    log_name: Security
+    programme: null
+    message: Échec d'ouverture de session d'un compte.
+    champs:
+      TargetUserName: j.dupont
+      TargetDomainName: CORP
+      IpAddress: 192.0.2.51
+      IpPort: "51022"
+      LogonType: "3"
+      WorkstationName: PC-RH02
+  regles: [INC-WIN-FORCE-BRUTE]   # condition vraie ; isolé, l'agrégation ne déclenche pas
+
+- id: benin-03-ajout-groupe-non-admin
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T08:40:00+02:00", "Id": 4732, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Un membre a été ajouté à un groupe local dont la sécurité est activée.", "Data": {"TargetUserName": "Utilisateurs du Bureau à distance", "MemberName": "CN=j.dupont,CN=Users,DC=corp,DC=exemple,DC=test", "SubjectUserName": "admin-it"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T08:40:00+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4732
+    log_name: Security
+    programme: null
+    message: Un membre a été ajouté à un groupe local dont la sécurité est activée.
+    champs:
+      TargetUserName: Utilisateurs du Bureau à distance
+      MemberName: CN=j.dupont,CN=Users,DC=corp,DC=exemple,DC=test
+      SubjectUserName: admin-it
+  regles: []
+
+- id: benin-04-powershell-sans-enc
+  fichier: sysmon.csv
+  brut: |
+    TimeCreated,Id,LogName,ProviderName,MachineName,Message,Image,CommandLine,ParentImage,User
+    2026-10-14T08:45:00+02:00,1,Microsoft-Windows-Sysmon/Operational,Microsoft-Windows-Sysmon,PC-COMPTA07,Process Create,C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe,powershell.exe -NoProfile -File C:\Scripts\inventaire.ps1,C:\Windows\System32\svchost.exe,CORP\svc-inventaire
+  ligne: 2
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T08:45:00+02:00"
+    hote: PC-COMPTA07
+    event_id: 1
+    log_name: Microsoft-Windows-Sysmon/Operational
+    programme: null
+    message: Process Create
+    champs:
+      Image: 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+      CommandLine: 'powershell.exe -NoProfile -File C:\Scripts\inventaire.ps1'
+      ParentImage: 'C:\Windows\System32\svchost.exe'
+      User: 'CORP\svc-inventaire'
+  regles: []
+
+- id: benin-05-acces-autre-processus
+  fichier: sysmon.csv
+  brut: |
+    TimeCreated,Id,LogName,ProviderName,MachineName,Message,SourceImage,TargetImage,GrantedAccess,SourceUser
+    2026-10-14T08:50:00+02:00,10,Microsoft-Windows-Sysmon/Operational,Microsoft-Windows-Sysmon,PC-COMPTA07,Process accessed,C:\Windows\System32\taskmgr.exe,C:\Windows\explorer.exe,0x1400,CORP\c.martin
+  ligne: 2
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T08:50:00+02:00"
+    hote: PC-COMPTA07
+    event_id: 10
+    log_name: Microsoft-Windows-Sysmon/Operational
+    programme: null
+    message: Process accessed
+    champs:
+      SourceImage: 'C:\Windows\System32\taskmgr.exe'
+      TargetImage: 'C:\Windows\explorer.exe'
+      GrantedAccess: "0x1400"
+      SourceUser: 'CORP\c.martin'
+  regles: []
+
+- id: benin-06-processus-ep-bypass
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T08:55:00+02:00", "Id": 4688, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Un nouveau processus a été créé.", "Data": {"NewProcessName": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "CommandLine": "powershell.exe -ep bypass -File C:\\Scripts\\sauvegarde.ps1", "SubjectUserName": "svc-sauvegarde"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T08:55:00+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4688
+    log_name: Security
+    programme: null
+    message: Un nouveau processus a été créé.
+    champs:
+      NewProcessName: 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+      CommandLine: 'powershell.exe -ep bypass -File C:\Scripts\sauvegarde.ps1'
+      SubjectUserName: svc-sauvegarde
+  regles: []
+
+- id: benin-07-cle-publique-deploy
+  fichier: auth.log
+  brut: |
+    Oct 14 07:30:12 BASTION01 sshd[640]: Accepted publickey for deploy from 198.51.100.20 port 50122 ssh2
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T07:30:12+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: sshd
+    message: Accepted publickey for deploy from 198.51.100.20 port 50122 ssh2
+    champs: {utilisateur: deploy, ip: 198.51.100.20, port: "50122"}
+  regles: []
+
+- id: benin-08-utilisateur-invalide
+  fichier: auth.log
+  brut: |
+    Oct 14 07:45:03 BASTION01 sshd[655]: Invalid user test from 198.51.100.77 port 52000
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T07:45:03+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: sshd
+    message: Invalid user test from 198.51.100.77 port 52000
+    champs: {utilisateur: test, ip: 198.51.100.77, port: "52000"}
+  regles: []
+
+- id: benin-09-sudo-apt-update
+  fichier: auth.log
+  brut: |
+    Oct 14 07:50:00 BASTION01 sudo:   deploy : TTY=pts/1 ; PWD=/home/deploy ; USER=root ; COMMAND=/usr/bin/apt update
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T07:50:00+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: sudo
+    message: "deploy : TTY=pts/1 ; PWD=/home/deploy ; USER=root ; COMMAND=/usr/bin/apt update"
+    champs: {utilisateur: deploy, commande: /usr/bin/apt update}
+  regles: []
+
+- id: benin-10-cron
+  fichier: auth.log
+  brut: |
+    Oct 14 08:00:01 BASTION01 CRON[3301]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T08:00:01+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: CRON
+    message: "pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)"
+    champs: {}
+  regles: []
+
+- id: benin-11-service-etat
+  fichier: system.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T09:00:00+02:00", "Id": 7036, "LogName": "System", "ProviderName": "Service Control Manager", "MachineName": "SRV-FICHIERS", "Message": "Le service Windows Update est entré dans l'état : en cours d'exécution.", "Data": {"param1": "Windows Update", "param2": "en cours d'exécution"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:00:00+02:00"
+    hote: SRV-FICHIERS
+    event_id: 7036
+    log_name: System
+    programme: null
+    message: "Le service Windows Update est entré dans l'état : en cours d'exécution."
+    champs: {param1: Windows Update, param2: en cours d'exécution}
+  regles: []
+
+# --- Cas de normalisation -------------------------------------------------------------------
+
+- id: norm-01-entiers-json
+  # LogonType et IpPort entiers en JSON -> "10", "50200"
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T09:16:10+02:00", "Id": 4624, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Ouverture de session d'un compte réussie.", "Data": {"TargetUserName": "administrateur", "IpAddress": "192.0.2.10", "IpPort": 50200, "LogonType": 10}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T09:16:10+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4624
+    log_name: Security
+    programme: null
+    message: Ouverture de session d'un compte réussie.
+    champs: {TargetUserName: administrateur, IpAddress: 192.0.2.10, IpPort: "50200", LogonType: "10"}
+  regles: [INC-WIN-CONNEXION-RDP]
+
+- id: norm-02-cellules-csv-vides
+  # cellules ParentImage et Hashes vides -> clés absentes
+  fichier: sysmon.csv
+  brut: |
+    TimeCreated,Id,LogName,ProviderName,MachineName,Message,Image,CommandLine,ParentImage,User,Hashes
+    2026-10-14T08:46:00+02:00,1,Microsoft-Windows-Sysmon/Operational,Microsoft-Windows-Sysmon,PC-COMPTA07,Process Create,C:\Windows\System32\notepad.exe,notepad.exe,,CORP\c.martin,
+  ligne: 2
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T08:46:00+02:00"
+    hote: PC-COMPTA07
+    event_id: 1
+    log_name: Microsoft-Windows-Sysmon/Operational
+    programme: null
+    message: Process Create
+    champs:
+      Image: 'C:\Windows\System32\notepad.exe'
+      CommandLine: notepad.exe
+      User: 'CORP\c.martin'
+  regles: []
+
+- id: norm-03-ipv4-mappee-verbatim
+  # IpAddress recopiée telle quelle (la normalisation en IPv4 relève des indicateurs, C4)
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T08:32:00+02:00", "Id": 4625, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Échec d'ouverture de session d'un compte.", "Data": {"TargetUserName": "j.dupont", "IpAddress": "::ffff:192.0.2.10", "LogonType": "3"}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T08:32:00+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4625
+    log_name: Security
+    programme: null
+    message: Échec d'ouverture de session d'un compte.
+    champs: {TargetUserName: j.dupont, IpAddress: "::ffff:192.0.2.10", LogonType: "3"}
+  regles: [INC-WIN-FORCE-BRUTE]   # condition vraie ; isolé, l'agrégation ne déclenche pas
+
+- id: norm-04-valeurs-nulles-ou-blanches
+  # null, "" et blanc -> clés absentes ; booléen -> "true" ; objet -> json.dumps trié
+  fichier: security.json
+  brut: |
+    [{"TimeCreated": "2026-10-14T08:33:00+02:00", "Id": 4624, "LogName": "Security", "ProviderName": "Microsoft-Windows-Security-Auditing", "MachineName": "SRV-FICHIERS", "Message": "Ouverture de session d'un compte réussie.", "Data": {"TargetUserName": "c.martin", "TargetDomainName": "  ", "WorkstationName": null, "IpAddress": "", "LogonType": "2", "ElevatedToken": true, "Extra": {"b": 2, "a": "é"}}}]
+  ligne: 1
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T08:33:00+02:00"
+    hote: SRV-FICHIERS
+    event_id: 4624
+    log_name: Security
+    programme: null
+    message: Ouverture de session d'un compte réussie.
+    champs:
+      TargetUserName: c.martin
+      LogonType: "2"
+      ElevatedToken: "true"
+      Extra: '{"a": "é", "b": 2}'
+  regles: []
+
+- id: norm-05-csv-point-virgule
+  # séparateur ";" détecté (plus de ";" que de "," dans l'en-tête)
+  fichier: sysmon.csv
+  brut: |
+    TimeCreated;Id;LogName;ProviderName;MachineName;Message;Image;CommandLine;ParentImage;User
+    2026-10-14T08:47:00+02:00;1;Microsoft-Windows-Sysmon/Operational;Microsoft-Windows-Sysmon;PC-COMPTA07;Process Create;C:\Windows\System32\calc.exe;calc.exe;C:\Windows\explorer.exe;CORP\c.martin
+  ligne: 2
+  evenement:
+    source: windows
+    horodatage: "2026-10-14T08:47:00+02:00"
+    hote: PC-COMPTA07
+    event_id: 1
+    log_name: Microsoft-Windows-Sysmon/Operational
+    programme: null
+    message: Process Create
+    champs:
+      Image: 'C:\Windows\System32\calc.exe'
+      CommandLine: calc.exe
+      ParentImage: 'C:\Windows\explorer.exe'
+      User: 'CORP\c.martin'
+  regles: []
+
+- id: norm-06-syslog-iso
+  # rsyslog moderne : horodatage ISO 8601 avec fuseau, année et fuseau de la ligne
+  fichier: auth.log
+  brut: |
+    2026-10-14T07:55:00+02:00 BASTION01 sshd[700]: Accepted publickey for deploy from 198.51.100.20 port 50300 ssh2
+  ligne: 1
+  evenement:
+    source: linux
+    horodatage: "2026-10-14T07:55:00+02:00"
+    hote: BASTION01
+    event_id: null
+    log_name: null
+    programme: sshd
+    message: Accepted publickey for deploy from 198.51.100.20 port 50300 ssh2
+    champs: {utilisateur: deploy, ip: 198.51.100.20, port: "50300"}
+  regles: []

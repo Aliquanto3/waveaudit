@@ -7,7 +7,7 @@ contre `racine_projet()` par le chargement, jamais contre le dossier courant.
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 _CONFIG = ConfigDict(extra="forbid")
 
@@ -53,6 +53,7 @@ class ConfigChemins(BaseModel):
     catalogue: Path = Path("donnees/catalogue")
     theme_prive: Path = Path("theme-prive")
     manifeste: Path = Path("config/artefacts.toml")
+    regles: Path = Path("donnees/regles")  # règles de détection du workflow incident
 
 
 class ConfigUi(BaseModel):
@@ -60,6 +61,17 @@ class ConfigUi(BaseModel):
 
     hote: str = "127.0.0.1"
     port: int = 8765
+
+
+class ConfigIncident(BaseModel):
+    """Workflow incident (contrats §21)."""
+
+    model_config = _CONFIG
+
+    decalage_syslog: str = Field("+02:00", pattern=r"^[+-]\d{2}:\d{2}$")  # fixe, sans heure d'été
+    max_preuves: int = Field(10, ge=1)  # preuves citées dans le prompt et le rapport
+    longueur_max_recit: int = Field(800, ge=100)  # maxLength de chaque rubrique du récit
+    max_tokens: int = Field(1000, ge=100)  # passé à generer_json pour le récit
 
 
 class Configuration(BaseModel):
@@ -70,3 +82,4 @@ class Configuration(BaseModel):
     recherche: ConfigRecherche = ConfigRecherche()
     chemins: ConfigChemins = ConfigChemins()
     ui: ConfigUi = ConfigUi()
+    incident: ConfigIncident = ConfigIncident()

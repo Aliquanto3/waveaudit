@@ -134,3 +134,58 @@ def test_mesure_memoire():
 
 def test_chemins_sous_tmp(config_test, tmp_path):
     assert Path(config_test.chemins.var).is_relative_to(tmp_path)
+
+
+# --- ouvrir_moteur_incident (CERT, contrats §21) ---------------------------------------------
+
+
+def test_ouvrir_moteur_incident_externe(config_test):
+    config = config_test.model_copy(
+        update={"moteur": config_test.moteur.model_copy(update={"prefixe_systeme": "P"})}
+    )
+    with composition.ouvrir_moteur_incident(config, "mon-modele") as (moteur, prefixe, info):
+        moteur.sonder()
+        assert prefixe == "P"
+        assert info.pid is None
+        assert info.nom_modele == "mon-modele"
+        assert info.base_url == config.moteur.base_url
+    with composition.ouvrir_moteur_incident(config, None) as (_, _, info):
+        assert info.nom_modele == "externe"
+
+
+def test_ouvrir_moteur_incident_sans_port_des_fiches(config_test, monkeypatch):
+    """Ni exporteur Word ni catalogue des fiches : le CERT n'ouvre que le moteur."""
+
+    def interdit(*args, **kwargs):
+        raise AssertionError("port des fiches instancié")
+
+    monkeypatch.setattr(composition, "ExportDocx", interdit)
+    monkeypatch.setattr(composition, "CatalogueYaml", interdit)
+    with composition.ouvrir_moteur_incident(config_test, None) as (moteur, _, _):
+        moteur.sonder()
+
+
+def test_ouvrir_moteur_incident_base_url_vide(config_test):
+    config = config_test.model_copy(
+        update={"moteur": config_test.moteur.model_copy(update={"base_url": ""})}
+    )
+    with pytest.raises(ConfigurationInvalide):
+        with composition.ouvrir_moteur_incident(config, None):
+            pass
+
+
+def test_ouvrir_moteur_incident_local_gere(config_test, artefacts, monkeypatch):
+    monkeypatch.setattr(composition, "LlamaServer", _FauxServeur)
+    _FauxServeur.instances.clear()
+    config = _local(config_test)
+    _installer(config, artefacts, "llama-server-b11714", "granite-4.0-1b-q4km")
+    with composition.ouvrir_moteur_incident(
+        config, "granite-4.0-1b-q4km", id_lot="20261017-130000"
+    ) as (moteur, prefixe, info):
+        (serveur,) = _FauxServeur.instances
+        assert serveur.ouvert
+        assert info.pid == 4242 and info.nom_modele == "granite-4.0-1b-q4km"
+        assert moteur._modele_api == "granite-4.0-1b-q4km"
+        assert prefixe == manifeste.par_nom(artefacts, "granite-4.0-1b-q4km").prefixe_systeme
+        assert serveur.args[-1].name == "llama-server-20261017-130000.log"
+    assert not serveur.ouvert
