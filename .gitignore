@@ -1,0 +1,26 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Poids des modèles et artefacts lourds, hors git
+/models/
+*.gguf
+*.safetensors
+*.bin
+
+# Charte visuelle propriétaire, gardée hors du dépôt public
+/theme-prive/
+
+# Réglages Claude Code personnels et état du contrôle rapide
+.claude/settings.local.json
+.claude/cost-kit/.blocages
+.claude/worktrees/

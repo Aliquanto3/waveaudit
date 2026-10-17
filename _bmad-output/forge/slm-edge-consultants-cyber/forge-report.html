@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forge Assistant Audit</title>
+<style>
+:root{--bg:#f7f3ec;--card:#fffdf8;--ink:#2a2420;--muted:#6b6058;--line:#e3d9cc;--seal:#9b1c1c;--seal2:#c53030;--ok:#2f6f4f;--warn:#a16207;--kill:#7f1d1d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1816;--card:#25211e;--ink:#ece6df;--muted:#a89d93;--line:#3a332e;--seal:#c53030;--seal2:#e05252;--ok:#6fbf95;--warn:#e0b04a;--kill:#f08080}}
+:root[data-theme="dark"]{--bg:#1b1816;--card:#25211e;--ink:#ece6df;--muted:#a89d93;--line:#3a332e;--seal:#c53030;--seal2:#e05252;--ok:#6fbf95;--warn:#e0b04a;--kill:#f08080}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Georgia,"Times New Roman",serif}
+main{max-width:880px;margin:0 auto;padding:32px 16px 64px}
+header{display:flex;gap:24px;align-items:center;flex-wrap:wrap;border-bottom:2px solid var(--line);padding-bottom:20px}
+header .t{flex:1;min-width:240px}
+h1{font-size:1.7rem;margin:0 0 6px}
+h2{font-size:1.15rem;margin:32px 0 10px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.sub{color:var(--muted);margin:0}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px 20px 16px;margin-top:20px}
+ul{padding-left:20px;margin:8px 0}
+li{margin:6px 0}
+.lock::marker{content:"🔒 "}
+.rej::marker{content:"✗ ";color:var(--kill)}
+.open::marker{content:"◇ ";color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:normal}
+.cast{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:10px}
+.p{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.p b{display:block}
+.p i{color:var(--muted);font-size:.92rem}
+.seal{flex:0 0 auto}
+footer{color:var(--muted);font-size:.85rem;margin-top:32px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="t">
+    <h1>Assistant d'audit local pour consultants cyber</h1>
+    <p class="sub">Session Forge Idea · 2026-10-17 · Anaël</p>
+    <p class="sub">Idée de départ : un SLM on-edge (16 Go, sans GPU, sans cloud) pour le pool audit de Wavestone.</p>
+  </div>
+  <svg class="seal" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Sceau HARDENED">
+    <defs><radialGradient id="g" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="var(--seal2)"/><stop offset="1" stop-color="var(--seal)"/></radialGradient></defs>
+    <path fill="url(#g)" d="M80 6c9 0 12 8 20 10s15-3 21 4 1 14 5 21 12 9 12 18-8 12-10 20 3 15-4 21-14 1-21 5-9 12-18 12-12-8-20-10-15 3-21-4-1-14-5-21-12-9-12-18 8-12 10-20-3-15 4-21 14-1 21-5 9-12 18-12z" transform="translate(-2 -2) scale(1.02)"/>
+    <circle cx="80" cy="80" r="52" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2"/>
+    <circle cx="80" cy="80" r="45" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="80" y="76" text-anchor="middle" fill="#fff" font-family="Georgia,serif" font-size="17" font-weight="bold" letter-spacing="1.5">HARDENED</text>
+    <text x="80" y="96" text-anchor="middle" fill="#fff" fill-opacity=".85" font-family="Georgia,serif" font-size="10" letter-spacing="2">FORGE · 2026</text>
+  </svg>
+</header>
+
+<section>
+<h2>Verdict</h2>
+<p>L'idée tient, mais <b>reformulée</b>. Le produit n'est pas « un SLM bureautique ». C'est <b>une application d'assistance à l'audit au moteur interchangeable</b>, qui commence par les <b>fiches de vulnérabilité</b> : on retrouve le constat type dans un catalogue, puis on l'adapte aux notes du consultant. La justification du local est l'interdiction de sortir les données client (PASSI, contrats). L'absence d'Internet n'en est pas une.</p>
+</section>
+
+<section>
+<h2>Décisions verrouillées</h2>
+<ul>
+<li class="lock">Le moteur passe par un endpoint compatible OpenAI : un SLM local aujourd'hui, un LLM interne Wavestone demain s'il est construit.</li>
+<li class="lock">Le fine-tuning est une R&amp;D personnelle séparée, hors chemin critique.</li>
+<li class="lock">Filtre : uniquement les tâches portant sur des données client.</li>
+<li class="lock">Cas n°1 : fiches de vulnérabilité, traitées par lot et non en chat. Cas n°2 : scripts d'analyse des sorties d'outils.</li>
+<li class="lock">POC sur un gabarit générique et des données publiques, puis entrants des collègues et sponsor, puis pilote réel.</li>
+<li class="lock">POC vérifiablement hors ligne (test, SBOM, SHA-256 des poids), données synthétiques seulement, périmètre figé (FR, sortie Word).</li>
+<li class="lock">Distribution par un dépôt GitHub et <code>uv sync</code>. Charte visuelle Wavestone ; format générique Description / Impact / Recommandation / CVSS 3.1 / Références.</li>
+<li class="lock">Extension n°2 : CERT et réponse à incident, prévue dans l'architecture.</li>
+</ul>
+<table>
+<tr><th>Axe</th><th>Critère de réussite du POC</th></tr>
+<tr><td>Qualité</td><td>≥ 70 % de fiches utilisables après retouches légères</td></tr>
+<tr><td>Fiabilité</td><td>0 référence inventée</td></tr>
+<tr><td>Vitesse</td><td>&lt; 3 min par fiche sur l'EliteBook, Office ouvert</td></tr>
+<tr><td>Mémoire</td><td>Pic ≤ 6 Go</td></tr>
+<tr><td>Installation</td><td>&lt; 10 min</td></tr>
+<tr><td>Hors ligne</td><td>Aucun appel sortant</td></tr>
+<tr><td>Effet</td><td>≥ 3 testeurs avec un entrant chacun, 1 sponsor identifié</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Rejeté, et pourquoi</h2>
+<ul>
+<li class="rej">Assistant bureautique générique : il existe déjà un contournement (ChatGPT sur le téléphone), et Copilot le rendra caduc.</li>
+<li class="rej">Chat interactif : inutilisable à 1,3 token/s (mesure sur l'EliteBook).</li>
+<li class="rej">SLM fine-tuné au cœur du produit : coûteux, et périssable face à un LLM interne de 30 à 70 milliards de paramètres.</li>
+<li class="rej">Génération d'exploits : les SLM alignés refusent, et les modèles débridés posent un risque de supply chain.</li>
+</ul>
+</section>
+
+<section>
+<h2>Points faibles qui ont survécu</h2>
+<ul>
+<li class="open">Le besoin est connu par ouï-dire. Il reste trois questions d'entretien : la frontière exacte, le poids des fiches dans une mission, la chaîne de rédaction et l'existence d'un catalogue.</li>
+<li class="open">Un LLM interne cloisonné reste possible : l'avantage du local a peut-être une durée de vie limitée.</li>
+<li class="open">Installation : accès à PyPI, GitHub et HF depuis le poste ; moteur Windows sans compilateur.</li>
+<li class="open">Charte Wavestone dans un dépôt public : il faut un accord de la communication.</li>
+<li class="open">Risque de dispersion avec six dépôts actifs.</li>
+</ul>
+</section>
+
+<section>
+<h2>Distribution</h2>
+<div class="cast">
+<div class="p"><b>🔒 Vex · Security Engineer</b><i>« Les droits admin n'autorisent pas à installer un LLM. Le hors-ligne doit être prouvé, pas promis. »</i></div>
+<div class="p"><b>😤 Grumbal · The Adversary</b><i>« Six dépôts commités aujourd'hui. Le POC "en attendant", c'est celui qui meurt à 70 %. »</i></div>
+<div class="p"><b>📊 Mary · Business Analyst</b><i>« Si c'est une politique, ton marché est la donnée, et tu as un concurrent. »</i></div>
+<div class="p"><b>📋 John · Product Manager</b><i>« À quoi reconnaîtras-tu le succès ? Démo et adoption ne sont pas le même projet. »</i></div>
+<div class="p"><b>🏗️ Winston · System Architect</b><i>« Le serveur interne est une prochaine étape : le moteur devient un réglage. »</i></div>
+<div class="p"><b>🎨 Sally · UX Designer</b><i>« Le consultant clique "rédiger la fiche", il ne copie-colle pas d'une fenêtre à l'autre. »</i></div>
+<div class="p"><b>🖥️ Hugo · DSI (invitée)</b><i>« Un serveur GPU à 30 tokens/s contre ton portable à 1,3 token/s. »</i></div>
+<div class="p"><b>👔 Claire · Manager audit (invitée)</b><i>« Sur quel poste, au juste ? »</i></div>
+<div class="p"><b>🕵️ Léa · Consultante pentest (invitée)</b><i>« Ce qui me manque, c'est l'aide sur ce que je ne peux pas sortir de mon poste. »</i></div>
+<div class="p"><b>🧾 Marc · Qualité des rapports (invité)</b><i>« Ce n'est pas de la création, c'est de l'adaptation. »</i></div>
+<div class="p"><b>💰 Sophie · Contrôle de gestion (invitée)</b><i>« Un gain mesuré avant toute heure de LoRA. »</i></div>
+</div>
+</section>
+<footer>Forge Idea · BMAD · forged-idea.md dans le même dossier</footer>
+</main>
+</body>
+</html>
