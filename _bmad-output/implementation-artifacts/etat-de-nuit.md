@@ -22,7 +22,7 @@
 | V2 | Banc des 4 modèles et réglage du prompt | à faire |
 | D1 | Catalogue élargi et notes difficiles | intégrée 1d4f448 (revue : revues/story-D1.md ; 50 constats ; notes 21-30 : 8/10 top 1, 10/10 top 3) |
 | D2 | Intégration continue GitHub Actions | intégrée 79abdfd (revue : revues/story-D2.md ; badge README fait par la story 16 ; premier run CI 39070885639 vert sur windows-latest) |
-| D3 | Guide des testeurs et formulaire de retour | en cours |
+| D3 | Guide des testeurs et formulaire de retour | intégrée e93367d (revue : revues/story-D3.md ; suite complète de vague L : 283 verte ; durées du guide estimées, installer non exécuté) |
 | C1 | Extension du socle pour le CERT | en cours |
 | C2 | Lecture des journaux et jeu de démo | à faire |
 | C3 | Règles et moteur de détection | à faire |
