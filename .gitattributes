@@ -1,0 +1,5 @@
+# Fins de ligne LF partout : les empreintes SHA-256 ne doivent pas dépendre de core.autocrlf
+* text=auto eol=lf
+*.gguf binary
+*.docx binary
+*.xlsx binary
