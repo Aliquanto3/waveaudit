@@ -1,0 +1,88 @@
+- id: CRYPTO-TLS-OBSOLETE
+  titre: Versions ou suites TLS obsolètes acceptées
+  famille: crypto
+  mots_cles:
+    - tls obsolète
+    - ssl v3
+    - tls 1.0 1.1
+    - suite de chiffrement faible
+    - testssl.sh
+    - cipher export
+    - sweet32
+  description: >-
+    Le service accepte des versions anciennes du protocole TLS (voire SSL)
+    ou des suites de chiffrement faibles, considérées comme non sûres par
+    les référentiels actuels.
+  impact: >-
+    Affaiblissement de la confidentialité et de l'intégrité des échanges
+    chiffrés, facilitant leur interception ou leur altération.
+  recommandation: >-
+    N'accepter que TLS 1.2 et 1.3 avec des suites de chiffrement
+    recommandées, et désactiver les versions et algorithmes obsolètes.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N
+  references:
+    - id: CWE-326
+      titre: Inadequate Encryption Strength
+      url: https://cwe.mitre.org/data/definitions/326.html
+  source: "Rédaction WaveAudit d'après CWE-326, licence du dépôt"
+
+- id: CRYPTO-CERTIFICAT-INVALIDE
+  titre: Certificat TLS invalide ou mal validé
+  famille: crypto
+  mots_cles:
+    - certificat invalide
+    - certificat auto-signé
+    - certificat expiré
+    - validation de certificat désactivée
+    - nom de domaine non correspondant
+    - chaîne de confiance rompue
+    - self-signed certificate
+    - expired certificate
+    - certificate validation disabled
+  description: >-
+    Le certificat présenté par le service est expiré, auto-signé, ne
+    correspond pas au nom de domaine, ou sa validation est désactivée côté
+    client, rompant la chaîne de confiance TLS.
+  impact: >-
+    Facilite une interception active (homme du milieu) puisque le client ne
+    peut plus vérifier l'identité du serveur.
+  recommandation: >-
+    Déployer un certificat valide émis par une autorité reconnue, le
+    renouveler avant expiration et ne jamais désactiver sa validation côté
+    client.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:N
+  references:
+    - id: CWE-295
+      titre: Improper Certificate Validation
+      url: https://cwe.mitre.org/data/definitions/295.html
+  source: "Rédaction WaveAudit d'après CWE-295, licence du dépôt"
+
+- id: CRYPTO-HACHAGE-FAIBLE
+  titre: Algorithme de hachage faible pour les mots de passe
+  famille: crypto
+  mots_cles:
+    - hachage faible
+    - md5
+    - sha1 mot de passe
+    - absence de sel
+    - fonction de dérivation de clé absente
+    - hashcat
+    - table arc-en-ciel
+    - weak password hashing
+    - unsalted hash
+  description: >-
+    Les mots de passe sont stockés avec un algorithme de hachage rapide
+    (MD5, SHA-1) sans sel ni fonction de dérivation adaptée, facilitant leur
+    recherche hors ligne.
+  impact: >-
+    Récupération rapide des mots de passe en clair à partir d'une fuite de
+    la base, par table précalculée ou force brute accélérée.
+  recommandation: >-
+    Utiliser une fonction de hachage de mots de passe dédiée (Argon2id,
+    bcrypt, scrypt) avec un sel unique par compte.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N
+  references:
+    - id: CWE-327
+      titre: Use of a Broken or Risky Cryptographic Algorithm
+      url: https://cwe.mitre.org/data/definitions/327.html
+  source: "Rédaction WaveAudit d'après CWE-327, licence du dépôt"

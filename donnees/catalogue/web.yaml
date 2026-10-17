@@ -1,0 +1,501 @@
+- id: WEB-XSS-REFLECHI
+  titre: Injection de script réfléchie (XSS réfléchi)
+  famille: web
+  mots_cles:
+    - xss réfléchi
+    - injection de script
+    - cross-site scripting
+    - reflected xss
+    - payload html encodé
+    - burp repeater
+    - paramètre non échappé
+    - alert(1)
+  description: >-
+    Un paramètre de requête est renvoyé dans la page sans encodage adapté au
+    contexte HTML, ce qui permet d'y injecter du script exécuté par le
+    navigateur de la victime au moment où elle ouvre un lien forgé.
+  impact: >-
+    Vol de session, actions effectuées à l'insu de l'utilisateur ou
+    redirection vers un site malveillant, dans le contexte de la page
+    vulnérable.
+  recommandation: >-
+    Encoder toute donnée réinjectée selon son contexte de sortie (HTML,
+    attribut, JavaScript), appliquer une politique de sécurité du contenu
+    (CSP) stricte et valider les entrées côté serveur.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N
+  references:
+    - id: CWE-79
+      titre: Improper Neutralization of Input During Web Page Generation (XSS)
+      url: https://cwe.mitre.org/data/definitions/79.html
+    - id: "A03:2021"
+      titre: Injection
+      url: https://owasp.org/Top10/A03_2021-Injection/
+  source: "Rédaction WaveAudit d'après CWE-79 et OWASP Top 10 A03:2021, licence du dépôt"
+
+- id: WEB-XSS-STOCKE
+  titre: Injection de script persistante (XSS stocké)
+  famille: web
+  mots_cles:
+    - xss stocké
+    - stored xss
+    - injection persistante
+    - commentaire malveillant
+    - champ de formulaire non filtré
+    - csp manquante
+    - sanitisation html
+    - dompurify
+  description: >-
+    Une donnée saisie par un utilisateur est enregistrée puis restituée sans
+    encodage à d'autres visiteurs, ce qui exécute du script arbitraire dans
+    leur navigateur dès l'affichage de la page.
+  impact: >-
+    Compromission de comptes à grande échelle, l'attaque touchant chaque
+    visiteur de la page infectée sans action supplémentaire de sa part.
+  recommandation: >-
+    Encoder systématiquement les données affichées, filtrer ou assainir le
+    contenu enrichi autorisé et mettre en place une CSP restrictive.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:H/A:N
+  references:
+    - id: CWE-79
+      titre: Improper Neutralization of Input During Web Page Generation (XSS)
+      url: https://cwe.mitre.org/data/definitions/79.html
+    - id: "A03:2021"
+      titre: Injection
+      url: https://owasp.org/Top10/A03_2021-Injection/
+  source: "Rédaction WaveAudit d'après CWE-79 et OWASP Top 10 A03:2021, licence du dépôt"
+
+- id: WEB-INJECTION-SQL
+  titre: Injection SQL dans les requêtes applicatives
+  famille: web
+  mots_cles:
+    - injection sql
+    - sql injection
+    - sqlmap
+    - requête préparée absente
+    - concatenation de requete
+    - union select
+    - blind sqli
+    - time-based injection
+  description: >-
+    Une entrée utilisateur est concatenée directement dans une requête SQL,
+    ce qui permet à un attaquant d'altérer la logique de la requête exécutée
+    par la base de données.
+  impact: >-
+    Lecture, modification ou suppression de données, contournement
+    d'authentification, voire exécution de commandes selon les privilèges du
+    compte applicatif.
+  recommandation: >-
+    Utiliser systématiquement des requêtes préparées ou un ORM paramétré, et
+    appliquer le principe de moindre privilège au compte de base de données.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  references:
+    - id: CWE-89
+      titre: Improper Neutralization of Special Elements used in an SQL Command
+      url: https://cwe.mitre.org/data/definitions/89.html
+    - id: "A03:2021"
+      titre: Injection
+      url: https://owasp.org/Top10/A03_2021-Injection/
+  source: "Rédaction WaveAudit d'après CWE-89 et OWASP Top 10 A03:2021, licence du dépôt"
+
+- id: WEB-CSRF
+  titre: Falsification de requête inter-site (CSRF)
+  famille: web
+  mots_cles:
+    - csrf
+    - cross-site request forgery
+    - jeton anti-csrf absent
+    - samesite cookie
+    - formulaire forgé
+    - requête non sollicitée
+    - double submit cookie
+  description: >-
+    Une action sensible côté serveur est déclenchée par une simple requête
+    HTTP sans jeton de vérification propre à la session, ce qui permet à un
+    site tiers de la rejouer à l'insu de la victime authentifiée.
+  impact: >-
+    Exécution d'actions non désirées au nom de la victime : changement de
+    mot de passe, virement, modification de droits.
+  recommandation: >-
+    Associer un jeton anti-CSRF imprévisible à chaque action sensible et
+    positionner les cookies de session en SameSite=Lax ou Strict.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:H/A:N
+  references:
+    - id: CWE-352
+      titre: Cross-Site Request Forgery (CSRF)
+      url: https://cwe.mitre.org/data/definitions/352.html
+    - id: "A01:2021"
+      titre: Broken Access Control
+      url: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+  source: "Rédaction WaveAudit d'après CWE-352 et OWASP Top 10 A01:2021, licence du dépôt"
+
+- id: WEB-IDOR
+  titre: Référence directe à un objet non vérifiée (IDOR)
+  famille: web
+  mots_cles:
+    - idor
+    - insecure direct object reference
+    - identifiant séquentiel
+    - contrôle d'autorisation manquant
+    - accès horizontal
+    - broken object level authorization
+    - bola
+  description: >-
+    Un identifiant transmis par le client (numéro de compte, de document) est
+    utilisé pour accéder à une ressource sans vérifier que l'utilisateur
+    authentifié y a droit.
+  impact: >-
+    Accès ou modification de données appartenant à d'autres utilisateurs en
+    modifiant simplement un identifiant dans la requête.
+  recommandation: >-
+    Vérifier côté serveur, à chaque accès, que l'utilisateur courant est
+    autorisé sur la ressource demandée, indépendamment de l'identifiant
+    fourni.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:L/A:N
+  references:
+    - id: CWE-639
+      titre: Authorization Bypass Through User-Controlled Key
+      url: https://cwe.mitre.org/data/definitions/639.html
+    - id: "A01:2021"
+      titre: Broken Access Control
+      url: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+  source: "Rédaction WaveAudit d'après CWE-639 et OWASP Top 10 A01:2021, licence du dépôt"
+
+- id: WEB-SSRF
+  titre: Falsification de requête côté serveur (SSRF)
+  famille: web
+  mots_cles:
+    - ssrf
+    - server-side request forgery
+    - métadonnées cloud
+    - 169.254.169.254
+    - requête sortante forgée
+    - webhook non validé
+    - pivot réseau interne
+  description: >-
+    Le serveur effectue une requête HTTP vers une URL fournie par
+    l'utilisateur sans restreindre les destinations possibles, ce qui permet
+    d'atteindre des ressources internes normalement inaccessibles.
+  impact: >-
+    Accès à des services internes, aux métadonnées d'instance cloud ou
+    rebond vers d'autres systèmes du réseau interne.
+  recommandation: >-
+    Restreindre les destinations autorisées par liste blanche, bloquer les
+    plages d'adresses privées et de métadonnées, et désactiver les
+    redirections automatiques non contrôlées.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:L/A:N
+  references:
+    - id: CWE-918
+      titre: Server-Side Request Forgery (SSRF)
+      url: https://cwe.mitre.org/data/definitions/918.html
+    - id: "A10:2021"
+      titre: Server-Side Request Forgery (SSRF)
+      url: https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/
+  source: "Rédaction WaveAudit d'après CWE-918 et OWASP Top 10 A10:2021, licence du dépôt"
+
+- id: WEB-TRAVERSEE-CHEMIN
+  titre: Traversée de répertoire (path traversal)
+  famille: web
+  mots_cles:
+    - traversée de répertoire
+    - path traversal
+    - directory traversal
+    - "../"
+    - lecture de fichier arbitraire
+    - local file inclusion
+    - encodage de chemin
+  description: >-
+    Un nom de fichier fourni par l'utilisateur est utilisé pour construire un
+    chemin d'accès disque sans neutraliser les séquences de remontée de
+    répertoire, ce qui permet de sortir du dossier prévu.
+  impact: >-
+    Lecture de fichiers sensibles hors du périmètre attendu (configuration,
+    secrets, code source) voire écriture si la fonction le permet.
+  recommandation: >-
+    Résoudre le chemin final et vérifier qu'il reste sous le répertoire
+    autorisé, ou utiliser un identifiant indirect plutôt qu'un chemin brut.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+  references:
+    - id: CWE-22
+      titre: Improper Limitation of a Pathname to a Restricted Directory
+      url: https://cwe.mitre.org/data/definitions/22.html
+    - id: "A01:2021"
+      titre: Broken Access Control
+      url: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+  source: "Rédaction WaveAudit d'après CWE-22 et OWASP Top 10 A01:2021, licence du dépôt"
+
+- id: WEB-UPLOAD-NON-RESTREINT
+  titre: Téléversement de fichier non restreint
+  famille: web
+  mots_cles:
+    - upload non restreint
+    - unrestricted file upload
+    - webshell
+    - extension non vérifiée
+    - type mime falsifié
+    - double extension
+    - dossier d'upload exécutable
+  description: >-
+    Le service de téléversement accepte des fichiers sans vérifier leur type
+    réel ni les stocker hors de portée d'exécution, ce qui permet de déposer
+    un script exécutable par le serveur web.
+  impact: >-
+    Exécution de code arbitraire sur le serveur via un webshell déposé puis
+    appelé directement.
+  recommandation: >-
+    Contrôler le contenu réel du fichier, renommer et stocker les fichiers
+    téléversés hors des répertoires exécutables, et limiter les extensions
+    acceptées.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  references:
+    - id: CWE-434
+      titre: Unrestricted Upload of File with Dangerous Type
+      url: https://cwe.mitre.org/data/definitions/434.html
+    - id: "A04:2021"
+      titre: Insecure Design
+      url: https://owasp.org/Top10/A04_2021-Insecure_Design/
+  source: "Rédaction WaveAudit d'après CWE-434 et OWASP Top 10 A04:2021, licence du dépôt"
+
+- id: WEB-SESSION-FIXATION
+  titre: Fixation de session utilisateur
+  famille: web
+  mots_cles:
+    - fixation de session
+    - session fixation
+    - identifiant de session prévisible
+    - cookie non régénéré
+    - session id dans l'url
+    - rotation de session
+  description: >-
+    L'identifiant de session n'est pas régénéré après authentification, ce
+    qui permet à un attaquant d'imposer une valeur connue avant la connexion
+    puis de l'utiliser une fois la victime authentifiée.
+  impact: >-
+    Usurpation de la session d'un utilisateur légitime sans en connaître le
+    mot de passe.
+  recommandation: >-
+    Régénérer l'identifiant de session à chaque changement de niveau de
+    privilège (connexion, élévation) et refuser les identifiants fournis par
+    le client.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:L/A:N
+  references:
+    - id: CWE-384
+      titre: Session Fixation
+      url: https://cwe.mitre.org/data/definitions/384.html
+    - id: "A07:2021"
+      titre: Identification and Authentication Failures
+      url: https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/
+  source: "Rédaction WaveAudit d'après CWE-384 et OWASP Top 10 A07:2021, licence du dépôt"
+
+- id: WEB-ENTETES-SECURITE
+  titre: En-têtes de sécurité HTTP absents
+  famille: web
+  mots_cles:
+    - en-têtes de sécurité
+    - security headers
+    - content-security-policy
+    - x-frame-options
+    - hsts manquant
+    - x-content-type-options
+    - clickjacking
+  description: >-
+    Les réponses HTTP ne portent pas les en-têtes qui durcissent le
+    comportement du navigateur (CSP, HSTS, X-Frame-Options,
+    X-Content-Type-Options), laissant le client sans protection par défaut.
+  impact: >-
+    Facilite d'autres attaques telles que le détournement de clic
+    (clickjacking), l'exécution de script injecté ou le dégradé en HTTP.
+  recommandation: >-
+    Ajouter les en-têtes CSP, HSTS, X-Frame-Options et
+    X-Content-Type-Options adaptés à l'application via le serveur ou le
+    reverse proxy.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:N/A:N
+  references:
+    - id: CWE-693
+      titre: Protection Mechanism Failure
+      url: https://cwe.mitre.org/data/definitions/693.html
+    - id: "A05:2021"
+      titre: Security Misconfiguration
+      url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+  source: "Rédaction WaveAudit d'après CWE-693 et OWASP Top 10 A05:2021, licence du dépôt"
+
+- id: WEB-CORS-PERMISSIF
+  titre: Partage de ressources inter-origines permissif (CORS)
+  famille: web
+  mots_cles:
+    - cors permissif
+    - cross-origin resource sharing
+    - access-control-allow-origin *
+    - origine reflétée
+    - credentials true
+    - preflight cors
+  description: >-
+    La politique CORS reflète dynamiquement l'origine du demandeur ou
+    autorise toute origine tout en acceptant les identifiants, ce qui permet
+    à un site tiers de lire des réponses destinées à l'utilisateur.
+  impact: >-
+    Exfiltration de données sensibles vers un site attaquant via une requête
+    cross-origin authentifiée.
+  recommandation: >-
+    Restreindre `Access-Control-Allow-Origin` à une liste explicite d'origines
+    de confiance et n'autoriser les identifiants que pour celles-ci.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N
+  references:
+    - id: CWE-942
+      titre: Permissive Cross-domain Policy with Untrusted Domains
+      url: https://cwe.mitre.org/data/definitions/942.html
+    - id: "A05:2021"
+      titre: Security Misconfiguration
+      url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+  source: "Rédaction WaveAudit d'après CWE-942 et OWASP Top 10 A05:2021, licence du dépôt"
+
+- id: WEB-REDIRECTION-OUVERTE
+  titre: Redirection ouverte non contrôlée
+  famille: web
+  mots_cles:
+    - redirection ouverte
+    - open redirect
+    - paramètre return_url
+    - hameçonnage
+    - phishing via redirection
+    - location non validée
+  description: >-
+    Un paramètre contrôlé par l'utilisateur détermine l'URL de redirection
+    sans vérifier qu'elle appartient au périmètre de l'application.
+  impact: >-
+    Détournement vers un site de phishing en s'appuyant sur la confiance
+    portée au domaine légitime.
+  recommandation: >-
+    Limiter les redirections à une liste de chemins ou de domaines connus,
+    ou afficher une page d'avertissement avant toute redirection externe.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:N/A:N
+  references:
+    - id: CWE-601
+      titre: URL Redirection to Untrusted Site (Open Redirect)
+      url: https://cwe.mitre.org/data/definitions/601.html
+    - id: "A01:2021"
+      titre: Broken Access Control
+      url: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+  source: "Rédaction WaveAudit d'après CWE-601 et OWASP Top 10 A01:2021, licence du dépôt"
+
+- id: WEB-DIVULGATION-ERREURS
+  titre: Divulgation d'informations par les messages d'erreur
+  famille: web
+  mots_cles:
+    - divulgation d'erreur
+    - stack trace exposée
+    - verbose error
+    - message de debug
+    - chemin serveur révélé
+    - version de framework exposée
+  description: >-
+    Les erreurs applicatives renvoient la trace complète ou des détails
+    techniques (chemins, requêtes, versions) directement au client au lieu
+    d'un message générique.
+  impact: >-
+    Fournit à un attaquant des informations qui facilitent la préparation
+    d'attaques ciblées (versions vulnérables, structure interne).
+  recommandation: >-
+    Afficher des messages d'erreur génériques côté client et journaliser le
+    détail uniquement côté serveur.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
+  references:
+    - id: CWE-209
+      titre: Generation of Error Message Containing Sensitive Information
+      url: https://cwe.mitre.org/data/definitions/209.html
+    - id: "A05:2021"
+      titre: Security Misconfiguration
+      url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+  source: "Rédaction WaveAudit d'après CWE-209 et OWASP Top 10 A05:2021, licence du dépôt"
+
+- id: WEB-AUTH-FORCE-BRUTE
+  titre: Authentification sans protection contre les essais répétés
+  famille: web
+  mots_cles:
+    - force brute
+    - brute force
+    - absence de verrouillage de compte
+    - credential stuffing
+    - rate limiting absent
+    - captcha absent
+    - bourrage d'identifiants
+  description: >-
+    Le formulaire d'authentification accepte un nombre illimité de tentatives
+    sans délai, verrouillage ni limitation de débit, ce qui permet de tester
+    massivement des couples identifiant/mot de passe.
+  impact: >-
+    Compromission de comptes par essais automatisés, en particulier via des
+    listes d'identifiants issues de fuites tierces.
+  recommandation: >-
+    Introduire une limitation de débit par compte et par source, un
+    verrouillage temporaire progressif et une détection des essais massifs.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N
+  references:
+    - id: CWE-307
+      titre: Improper Restriction of Excessive Authentication Attempts
+      url: https://cwe.mitre.org/data/definitions/307.html
+    - id: "A07:2021"
+      titre: Identification and Authentication Failures
+      url: https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/
+  source: "Rédaction WaveAudit d'après CWE-307 et OWASP Top 10 A07:2021, licence du dépôt"
+
+- id: WEB-XXE
+  titre: Injection d'entité externe XML (XXE)
+  famille: web
+  mots_cles:
+    - xxe
+    - xml external entity
+    - entité externe xml
+    - doctype non désactivé
+    - parseur xml vulnérable
+    - lecture de fichier via xml
+    - ssrf via xml
+  description: >-
+    Le parseur XML résout les entités externes déclarées dans un document
+    fourni par l'utilisateur, ce qui permet de lire des fichiers locaux ou
+    de déclencher des requêtes réseau depuis le serveur.
+  impact: >-
+    Divulgation de fichiers locaux, déni de service ou SSRF selon la
+    configuration du parseur.
+  recommandation: >-
+    Désactiver la résolution des entités externes et des DTD dans la
+    configuration du parseur XML utilisé par l'application.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:L
+  references:
+    - id: CWE-611
+      titre: Improper Restriction of XML External Entity Reference
+      url: https://cwe.mitre.org/data/definitions/611.html
+    - id: "A05:2021"
+      titre: Security Misconfiguration
+      url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+  source: "Rédaction WaveAudit d'après CWE-611 et OWASP Top 10 A05:2021, licence du dépôt"
+
+- id: WEB-DESERIALISATION
+  titre: Désérialisation de données non fiables
+  famille: web
+  mots_cles:
+    - désérialisation non fiable
+    - insecure deserialization
+    - gadget chain
+    - objet sérialisé manipulé
+    - pickle non sûr
+    - viewstate
+    - remote code execution via désérialisation
+  description: >-
+    L'application désérialise une structure fournie par le client sans en
+    vérifier l'origine ni l'intégrité, ce qui permet de reconstruire des
+    objets détournant la logique applicative.
+  impact: >-
+    Exécution de code arbitraire sur le serveur selon les classes
+    disponibles dans l'application, ou altération profonde de son état.
+  recommandation: >-
+    Éviter de désérialiser des données non fiables, préférer des formats
+    simples (JSON) et signer ou chiffrer les objets sérialisés sensibles.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
+  references:
+    - id: CWE-502
+      titre: Deserialization of Untrusted Data
+      url: https://cwe.mitre.org/data/definitions/502.html
+    - id: "A08:2021"
+      titre: Software and Data Integrity Failures
+      url: https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/
+  source: "Rédaction WaveAudit d'après CWE-502 et OWASP Top 10 A08:2021, licence du dépôt"
