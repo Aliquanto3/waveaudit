@@ -11,7 +11,7 @@
 | 7 | Garde réseau | intégrée 8be7a3e (revue : section « Revue » de stories/story-7-garde-reseau.md) |
 | 8 | Installation vérifiée et SBOM | intégrée 7769749 (revue : revues/story-8.md) |
 | 9 | Export Word et thèmes | intégrée 28b7a07 (revue : revues/story-9.md ; suite complète de vague C : 196 verte, lint OK) |
-| 10 | Pipeline fiches et prompt | en cours |
+| 10 | Pipeline fiches et prompt | intégrée 50e52b1 (revue : revues/story-10.md) |
 | 11 | Calibrage du rattachement | en cours |
 | 12 | Composition, lot, llama-server | à faire |
 | 13 | CLI complète | à faire |
@@ -44,4 +44,5 @@
 - Story 5 (reporté) : notes de démo en prose, peu de jargon ; BM25 seul classe le bon constat 1er pour 15/20, top 3 pour 19/20 (05-idor raté). À revoir après le premier banc.
 - Story 8 (reporté) : première installation réelle à vérifier (proxy, empreintes du manifeste, présence de llama-server.exe dans le zip) ; la CLI devra traduire les erreurs httpx en message clair.
 - Story 9 : le §17 ne prévoit pas de thème privé invalide (couleur hors #RRGGBB, TOML mal formé, modele.docx illisible) ; la revue lève `ConfigurationInvalide` (code 2) dès la construction de l’export, plutôt qu’un repli silencieux. Logo du thème privé validé mais pas encore inséré dans le document.
+- Story 10 (à arbitrer) : (a) la nouvelle tentative sur SortieInvalide rejoue les mêmes messages, seed 42 et température 0,2 : sur le vrai modèle, elle reproduira sans doute la même sortie ; varier la seed touche le port `Moteur` du socle, donc amender le §5 après le banc. (b) Un `</note>` dans le corps ou l’actif d’une note n’est pas échappé et sort du bloc délimité (forme figée par le §8 ; risque faible, les notes viennent du consultant). (c) Moteur tombé en cours de lot : repli note par note, avec 180 s de délai chacune, sans coupure du lot (conforme au §5, à revoir avec la story 12).
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
