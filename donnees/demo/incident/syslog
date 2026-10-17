@@ -1,0 +1,8 @@
+Oct 14 10:10:00 WEB01 systemd[1]: Started Daily apt download activities.
+Oct 14 10:15:00 WEB01 kernel: [12345.678901] eth0: link up
+Oct 14 10:20:00 WEB01 NetworkManager[812]: <info> device (eth0): link connected
+Oct 14 10:25:00 WEB01 systemd[1]: Started Cleanup of Temporary Directories.
+Oct 14 10:30:00 WEB01 cron[901]: (root) CMD (/usr/local/bin/backup.sh)
+Oct 14 10:35:00 WEB01 kernel: [12360.123456] CPU0: Package temperature above threshold
+Oct 14 10:40:00 WEB01 systemd[1]: Reloading.
+Oct 14 10:45:00 WEB01 NetworkManager[812]: <info> dhcp4 (eth0): address obtained

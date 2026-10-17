@@ -1,0 +1,438 @@
+[
+  {
+    "TimeCreated": "2026-10-14T08:10:00+02:00",
+    "Id": 4624,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Ouverture de session d'un compte réussie.",
+    "Data": {
+      "TargetUserName": "svc-sauvegarde",
+      "TargetDomainName": "SRV-FICHIERS",
+      "LogonType": "2",
+      "WorkstationName": "SRV-FICHIERS"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T08:15:00+02:00",
+    "Id": 4634,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Une session a été fermée.",
+    "Data": {
+      "TargetUserName": "c.martin",
+      "LogonType": "3"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T08:20:00",
+    "Id": 4624,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Ouverture de session d'un compte réussie.",
+    "Data": {
+      "TargetUserName": "c.martin",
+      "LogonType": "3"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T08:25:00+02:00",
+    "Id": 4672,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Des privilèges spéciaux ont été attribués à la nouvelle ouverture de session.",
+    "Data": {
+      "SubjectUserName": "administrateur"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T08:30:00+02:00",
+    "Id": 4624,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Ouverture de session d'un compte réussie.",
+    "Data": {
+      "TargetUserName": "c.martin",
+      "TargetDomainName": "CORP",
+      "IpAddress": "192.0.2.50",
+      "IpPort": "51000",
+      "LogonType": "3",
+      "WorkstationName": "PC-COMPTA07"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T08:31:12+02:00",
+    "Id": 4625,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Échec d'ouverture de session d'un compte.",
+    "Data": {
+      "TargetUserName": "j.dupont",
+      "TargetDomainName": "CORP",
+      "IpAddress": "192.0.2.51",
+      "IpPort": "51022",
+      "LogonType": "3",
+      "WorkstationName": "PC-RH02"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T08:35:00+02:00",
+    "Id": 4624,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Ouverture de session d'un compte réussie.",
+    "Data": {
+      "TargetUserName": "svc-backup",
+      "LogonType": "5"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T08:40:00+02:00",
+    "Id": 4732,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Un membre a été ajouté à un groupe local dont la sécurité est activée.",
+    "Data": {
+      "TargetUserName": "Utilisateurs du Bureau à distance",
+      "MemberName": "CN=j.dupont,CN=Users,DC=corp,DC=exemple,DC=test",
+      "SubjectUserName": "admin-it"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T08:45:00+02:00",
+    "Id": 4634,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Une session a été fermée.",
+    "Data": {
+      "TargetUserName": "j.dupont",
+      "LogonType": "3"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T08:50:00+02:00",
+    "Id": 4672,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Des privilèges spéciaux ont été attribués à la nouvelle ouverture de session.",
+    "Data": {
+      "SubjectUserName": "c.martin"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T08:55:00+02:00",
+    "Id": 4688,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Un nouveau processus a été créé.",
+    "Data": {
+      "NewProcessName": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "CommandLine": "powershell.exe -ep bypass -File C:\\Scripts\\sauvegarde.ps1",
+      "SubjectUserName": "svc-sauvegarde"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:00:00+02:00",
+    "Id": 4624,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Ouverture de session d'un compte réussie.",
+    "Data": {
+      "TargetUserName": "j.dupont",
+      "TargetDomainName": "CORP",
+      "IpAddress": "192.0.2.60",
+      "IpPort": "51100",
+      "LogonType": "3",
+      "WorkstationName": "PC-RH02"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:05:00+02:00",
+    "Id": 4625,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Échec d'ouverture de session d'un compte.",
+    "Data": {
+      "TargetUserName": "a.leroy",
+      "TargetDomainName": "CORP",
+      "IpAddress": "198.51.100.30",
+      "IpPort": "51200",
+      "LogonType": "3",
+      "WorkstationName": "PC-COMPTA07"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:10:00+02:00",
+    "Id": 4634,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Une session a été fermée.",
+    "Data": {
+      "TargetUserName": "administrateur",
+      "LogonType": "3"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:14:00+02:00",
+    "Id": 4625,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Échec d'ouverture de session d'un compte.",
+    "Data": {
+      "TargetUserName": "administrateur",
+      "TargetDomainName": "SRV-FICHIERS",
+      "IpAddress": "192.0.2.10",
+      "IpPort": "50110",
+      "LogonType": "10",
+      "WorkstationName": "POSTE-EXT"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:14:15+02:00",
+    "Id": 4625,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Échec d'ouverture de session d'un compte.",
+    "Data": {
+      "TargetUserName": "administrateur",
+      "TargetDomainName": "SRV-FICHIERS",
+      "IpAddress": "192.0.2.10",
+      "IpPort": "50111",
+      "LogonType": "10",
+      "WorkstationName": "POSTE-EXT"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:14:30+02:00",
+    "Id": 4625,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Échec d'ouverture de session d'un compte.",
+    "Data": {
+      "TargetUserName": "administrateur",
+      "TargetDomainName": "SRV-FICHIERS",
+      "IpAddress": "192.0.2.10",
+      "IpPort": "50112",
+      "LogonType": "10",
+      "WorkstationName": "POSTE-EXT"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:14:45+02:00",
+    "Id": 4625,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Échec d'ouverture de session d'un compte.",
+    "Data": {
+      "TargetUserName": "administrateur",
+      "TargetDomainName": "SRV-FICHIERS",
+      "IpAddress": "192.0.2.10",
+      "IpPort": "50113",
+      "LogonType": "10",
+      "WorkstationName": "POSTE-EXT"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:15:00+02:00",
+    "Id": 4625,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Échec d'ouverture de session d'un compte.",
+    "Data": {
+      "TargetUserName": "administrateur",
+      "TargetDomainName": "SRV-FICHIERS",
+      "IpAddress": "192.0.2.10",
+      "IpPort": "50114",
+      "LogonType": "10",
+      "WorkstationName": "POSTE-EXT"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:15:15+02:00",
+    "Id": 4625,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Échec d'ouverture de session d'un compte.",
+    "Data": {
+      "TargetUserName": "administrateur",
+      "TargetDomainName": "SRV-FICHIERS",
+      "IpAddress": "192.0.2.10",
+      "IpPort": "50115",
+      "LogonType": "10",
+      "WorkstationName": "POSTE-EXT"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:15:40+02:00",
+    "Id": 4624,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Ouverture de session d'un compte réussie.",
+    "Data": {
+      "TargetUserName": "administrateur",
+      "TargetDomainName": "SRV-FICHIERS",
+      "IpAddress": "192.0.2.10",
+      "IpPort": "50133",
+      "LogonType": "10",
+      "WorkstationName": "POSTE-EXT"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:16:30+02:00",
+    "Id": 4624,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Ouverture de session d'un compte réussie.",
+    "Data": {
+      "TargetUserName": "c.martin",
+      "TargetDomainName": "CORP",
+      "IpAddress": "192.0.2.61",
+      "IpPort": "51300",
+      "LogonType": "3",
+      "WorkstationName": "PC-COMPTA07"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:18:00+02:00",
+    "Id": 4672,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Des privilèges spéciaux ont été attribués à la nouvelle ouverture de session.",
+    "Data": {
+      "SubjectUserName": "administrateur"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:20:11+02:00",
+    "Id": 4720,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Un compte d'utilisateur a été créé.",
+    "Data": {
+      "TargetUserName": "svc-maj",
+      "SubjectUserName": "administrateur"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:20:45+02:00",
+    "Id": 4732,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Un membre a été ajouté à un groupe local dont la sécurité est activée.",
+    "Data": {
+      "TargetUserName": "Administrateurs",
+      "MemberName": "CN=svc-maj,CN=Users,DC=corp,DC=exemple,DC=test",
+      "SubjectUserName": "administrateur"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:22:00+02:00",
+    "Id": 4634,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Une session a été fermée.",
+    "Data": {
+      "TargetUserName": "svc-maj",
+      "LogonType": "5"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:24:30+02:00",
+    "Id": 4698,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Une tâche planifiée a été créée.",
+    "Data": {
+      "TaskName": "\\MiseAJourCorp",
+      "SubjectUserName": "administrateur"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:26:00+02:00",
+    "Id": 4624,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Ouverture de session d'un compte réussie.",
+    "Data": {
+      "TargetUserName": "svc-maj",
+      "LogonType": "5"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:30:00+02:00",
+    "Id": 4672,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Des privilèges spéciaux ont été attribués à la nouvelle ouverture de session.",
+    "Data": {
+      "SubjectUserName": "administrateur"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:35:00+02:00",
+    "Id": 4624,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Ouverture de session d'un compte réussie.",
+    "Data": {
+      "TargetUserName": "j.dupont",
+      "TargetDomainName": "CORP",
+      "IpAddress": "192.0.2.62",
+      "IpPort": "51400",
+      "LogonType": "3",
+      "WorkstationName": "PC-RH02"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T09:50:00+02:00",
+    "Id": 4634,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Security-Auditing",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Une session a été fermée.",
+    "Data": {
+      "TargetUserName": "administrateur",
+      "LogonType": "3"
+    }
+  },
+  {
+    "TimeCreated": "2026-10-14T10:05:00+02:00",
+    "Id": 1102,
+    "LogName": "Security",
+    "ProviderName": "Microsoft-Windows-Eventlog",
+    "MachineName": "SRV-FICHIERS",
+    "Message": "Le journal d'audit a été effacé.",
+    "Data": {
+      "SubjectUserName": "administrateur"
+    }
+  }
+]
