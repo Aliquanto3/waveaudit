@@ -18,7 +18,7 @@
 | 14 | UI web locale | intégrée 41b03c8 (revue : revues/story-14.md) |
 | 15 | Banc de mesure | intégrée b8022b2 (revue : revues/story-15.md) |
 | 16 | Preuve hors ligne, test réel, README | intégrée 612457c (revue : revues/story-16.md ; suite complète de fin de MVP : 283 verte, lint OK) |
-| V1 | Validation sur le vrai moteur | à faire |
+| V1 | Validation sur le vrai moteur | en cours |
 | V2 | Banc des 4 modèles et réglage du prompt | à faire |
 | D1 | Catalogue élargi et notes difficiles | intégrée 1d4f448 (revue : revues/story-D1.md ; 50 constats ; notes 21-30 : 8/10 top 1, 10/10 top 3) |
 | D2 | Intégration continue GitHub Actions | intégrée 79abdfd (revue : revues/story-D2.md ; badge README fait par la story 16 ; premier run CI 39070885639 vert sur windows-latest) |
@@ -29,7 +29,7 @@
 | C4 | Indicateurs et garde-fous du récit | intégrée b9180c2 (revue : revues/story-C4.md) |
 | C5 | Workflow incident, service, calibrage | intégrée b619497 (revue : revues/story-C5.md ; démo = oracle, 16 détections) |
 | C6a | Rapport d'incident Word | intégrée 6b45695 (revue : revues/story-C6a.md) |
-| C6b | CLI incident, hors ligne, README | en cours |
+| C6b | CLI incident, hors ligne, README | intégrée cc219e1 (revue : revues/story-C6b.md ; suite complète finale du CERT : 640 verte, lint OK) |
 
 ## Arbitrages d'Anaël (2026-10-17, soir)
 
@@ -56,4 +56,5 @@
 - Story C6a : `ExporteurIncidentDocx(max_preuves=…)` prend la borne au constructeur (C5 la passe depuis `[incident]`) ; la mention « ligne = rang d’objet » (JSON) est un paragraphe sous le tableau, faute de précision dans formats-incident.md. Pour C5 : `-o` sur un fichier verrouillé doit sortir en code 4.
 - Story C4 : neutralisation du point final élargie (point suivi d’un blanc, d’une ponctuation fermante ou séparatrice, ou de la fin ; jamais devant un chiffre), même longueur de texte. Conforme à la lettre du §21 mais à noter : des séquences de prose comme « A::B » sont des IPv6 valides et sont retirées (motif INDICATEUR_RETIRE). Reporté : fragments résiduels après retrait (« (.) », « :443 », « /24 »), le §21 étape 4 ne prévoit rien.
 - Story C5 : `assembler_rapport(lecture, recits, regles)` prend 3 arguments (le §21 en donne 2), car `Recit` ne porte pas la recommandation type. Dette : `application/incident.py` importe des noms privés de `lot.py` (`_ID_LOT`, `_Emetteur`, `_sans_chemin`, `_sorties`) ; des tests figent leur comportement ; à rendre publics dans une story de socle. Pas de coupe-circuit si le moteur tombe en cours de lot (conforme à AD-6).
+- Story C6b : `--modele` inconnu vérifié contre le manifeste dans la CLI, même sans détection (code 2) ; `_codes_retour` retire aussi les chemins absolus des messages EntreeInvalide et ConfigurationInvalide pour toutes les commandes (les messages de `fiches` changent un peu) ; `fiches` affiche toujours le chemin complet du rapport, alors que `incident` n’affiche que le nom. Le relecteur a réécrit le script PowerShell d’export du README, qui produisait un fichier que le lecteur ignorait en entier, et l’a validé sur le journal System de cette machine (aucune donnée commitée).
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
