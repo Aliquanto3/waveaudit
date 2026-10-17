@@ -1,0 +1,167 @@
+- id: AD-KERBEROASTING
+  titre: Exposition aux attaques de Kerberoasting
+  famille: ad
+  mots_cles:
+    - kerberoasting
+    - ticket de service kerberos
+    - spn
+    - compte de service mot de passe faible
+    - rubeus
+    - impacket getuserspns
+    - hachage rc4
+  description: >-
+    Des comptes de service portant un SPN utilisent un mot de passe faible
+    ou ancien, ce qui permet à tout utilisateur du domaine d'obtenir un
+    ticket de service et de le casser hors ligne.
+  impact: >-
+    Récupération du mot de passe en clair d'un compte de service, souvent
+    disposant de privilèges élevés sur plusieurs systèmes.
+  recommandation: >-
+    Affecter des mots de passe longs et aléatoires aux comptes de service,
+    privilégier les comptes de service gérés (gMSA) et surveiller les
+    demandes de tickets anormales.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  references:
+    - id: CWE-521
+      titre: Weak Password Requirements
+      url: https://cwe.mitre.org/data/definitions/521.html
+  source: "Rédaction WaveAudit d'après CWE-521, licence du dépôt"
+
+- id: AD-ASREP-ROASTING
+  titre: Exposition aux attaques AS-REP Roasting
+  famille: ad
+  mots_cles:
+    - as-rep roasting
+    - préauthentification kerberos désactivée
+    - don't require preauth
+    - impacket getnpusers
+    - hachage as-rep
+    - compte vulnérable sans mot de passe fort
+  description: >-
+    Un ou plusieurs comptes ont la préauthentification Kerberos désactivée,
+    ce qui permet d'obtenir sans aucune authentification un élément chiffré
+    avec leur mot de passe et de le casser hors ligne.
+  impact: >-
+    Récupération du mot de passe d'un compte de domaine sans avoir à
+    s'authentifier au préalable.
+  recommandation: >-
+    Réactiver la préauthentification Kerberos pour tous les comptes
+    concernés et renforcer les mots de passe des comptes restants.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+  references:
+    - id: CWE-522
+      titre: Insufficiently Protected Credentials
+      url: https://cwe.mitre.org/data/definitions/522.html
+  source: "Rédaction WaveAudit d'après CWE-522, licence du dépôt"
+
+- id: AD-DELEGATION-NON-CONTRAINTE
+  titre: Délégation Kerberos non contrainte
+  famille: ad
+  mots_cles:
+    - délégation non contrainte
+    - unconstrained delegation
+    - trusted for delegation
+    - vol de ticket tgt
+    - rubeus monitor
+    - compromission de contrôleur de domaine
+  description: >-
+    Un compte ou un serveur est configuré en délégation Kerberos non
+    contrainte, ce qui lui permet de recevoir et de réutiliser le ticket
+    d'accès complet (TGT) de tout utilisateur qui s'y connecte.
+  impact: >-
+    Vol du TGT d'un administrateur de domaine connecté, menant à une
+    compromission totale du domaine.
+  recommandation: >-
+    Remplacer la délégation non contrainte par une délégation contrainte ou
+    basée sur les ressources, limitée aux services qui en ont réellement
+    besoin.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  references:
+    - id: CWE-269
+      titre: Improper Privilege Management
+      url: https://cwe.mitre.org/data/definitions/269.html
+  source: "Rédaction WaveAudit d'après CWE-269, licence du dépôt"
+
+- id: AD-LAPS-ABSENT
+  titre: Absence de gestion des mots de passe administrateur local (LAPS)
+  famille: ad
+  mots_cles:
+    - laps absent
+    - mot de passe administrateur local partagé
+    - local administrator password solution
+    - pass-the-hash latéral
+    - rotation de mot de passe local
+    - compte admin local identique
+  description: >-
+    Le mot de passe du compte administrateur local est identique sur
+    plusieurs postes ou serveurs et n'est pas renouvelé automatiquement,
+    faute de solution de gestion dédiée (LAPS).
+  impact: >-
+    Un attaquant qui obtient ce mot de passe sur une machine peut
+    l'utiliser pour rebondir sur l'ensemble du parc partageant le même
+    secret.
+  recommandation: >-
+    Déployer une solution de rotation automatique des mots de passe
+    administrateur locaux (LAPS ou équivalent), unique par machine.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  references:
+    - id: CWE-521
+      titre: Weak Password Requirements
+      url: https://cwe.mitre.org/data/definitions/521.html
+  source: "Rédaction WaveAudit d'après CWE-521, licence du dépôt"
+
+- id: AD-ADMINS-EXCESSIFS
+  titre: Nombre excessif de comptes à privilèges d'administration du domaine
+  famille: ad
+  mots_cles:
+    - admins excessifs
+    - domain admins surpeuplé
+    - privilège excessif
+    - surface d'attaque administrative
+    - bloodhound
+    - chemin d'attaque vers domain admin
+  description: >-
+    Un nombre élevé de comptes appartiennent à des groupes à privilèges
+    (Admins du domaine, Administrateurs de l'entreprise) sans justification
+    opérationnelle claire, élargissant la surface d'attaque.
+  impact: >-
+    Multiplication des chemins de compromission vers le contrôle total du
+    domaine, chaque compte privilégié étant une cible potentielle.
+  recommandation: >-
+    Réduire les groupes à privilèges au strict nécessaire, mettre en place
+    des comptes d'administration dédiés et temporaires, et revoir
+    périodiquement les appartenances.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  references:
+    - id: CWE-269
+      titre: Improper Privilege Management
+      url: https://cwe.mitre.org/data/definitions/269.html
+  source: "Rédaction WaveAudit d'après CWE-269, licence du dépôt"
+
+- id: AD-GPP-MOT-DE-PASSE
+  titre: Mot de passe exposé dans une préférence de stratégie de groupe (GPP)
+  famille: ad
+  mots_cles:
+    - gpp password
+    - group policy preferences
+    - mot de passe chiffré sysvol
+    - clé aes publique microsoft
+    - get-gpppassword
+    - sysvol lisible par tous
+  description: >-
+    Un mot de passe est stocké dans une préférence de stratégie de groupe
+    (compte local, tâche planifiée) sous forme chiffrée avec une clé AES
+    publiée publiquement par l'éditeur, et reste lisible par tout utilisateur
+    du domaine via SYSVOL.
+  impact: >-
+    Déchiffrement immédiat du mot de passe par quiconque peut lire SYSVOL,
+    exposant souvent un compte à privilèges.
+  recommandation: >-
+    Supprimer les mots de passe stockés dans les préférences de stratégie
+    de groupe existantes et changer les secrets concernés.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  references:
+    - id: CWE-798
+      titre: Use of Hard-coded Credentials
+      url: https://cwe.mitre.org/data/definitions/798.html
+  source: "Rédaction WaveAudit d'après CWE-798, licence du dépôt"

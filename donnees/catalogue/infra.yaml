@@ -1,0 +1,139 @@
+- id: INFRA-SMB-SIGNATURE
+  titre: Signature SMB non exigée
+  famille: infra
+  mots_cles:
+    - signature smb
+    - smb signing
+    - relais ntlm
+    - ntlm relay
+    - responder
+    - man-in-the-middle smb
+    - impacket ntlmrelayx
+  description: >-
+    Un serveur accepte des sessions SMB sans exiger la signature des
+    messages, ce qui permet à un attaquant positionné sur le réseau de
+    relayer une authentification NTLM interceptée vers ce serveur.
+  impact: >-
+    Exécution de commandes ou accès à des partages avec les privilèges du
+    compte dont l'authentification a été relayée.
+  recommandation: >-
+    Exiger la signature SMB sur les serveurs et les postes sensibles,
+    particulièrement les contrôleurs de domaine, et limiter les protocoles
+    de résolution de noms vulnérables au relais.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N
+  references:
+    - id: CWE-300
+      titre: Channel Accessible by Non-Endpoint
+      url: https://cwe.mitre.org/data/definitions/300.html
+  source: "Rédaction WaveAudit d'après CWE-300, licence du dépôt"
+
+- id: INFRA-SERVICE-OBSOLETE
+  titre: Service réseau obsolète ou non maintenu
+  famille: infra
+  mots_cles:
+    - service obsolète
+    - version non supportée
+    - end of life
+    - correctif manquant
+    - bannière de version
+    - vulnérabilité publique connue
+    - nmap -sv
+  description: >-
+    Un service exposé exécute une version ancienne, en fin de support ou
+    connue pour des vulnérabilités publiées, faute de mise à jour ou de
+    remplacement planifié.
+  impact: >-
+    Exploitation directe de vulnérabilités publiques, souvent documentées
+    avec un code de démonstration disponible.
+  recommandation: >-
+    Mettre à jour ou remplacer le service par une version maintenue, et
+    planifier un cycle de gestion des correctifs.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  references:
+    - id: CWE-1104
+      titre: Use of Unmaintained Third Party Components
+      url: https://cwe.mitre.org/data/definitions/1104.html
+  source: "Rédaction WaveAudit d'après CWE-1104, licence du dépôt"
+
+- id: INFRA-SNMP-COMMUNAUTE
+  titre: Communauté SNMP par défaut ou faible
+  famille: infra
+  mots_cles:
+    - snmp communauté
+    - community string public
+    - snmpwalk
+    - snmp v1 v2c
+    - mot de passe snmp par défaut
+    - divulgation de configuration réseau
+  description: >-
+    Un équipement répond aux requêtes SNMP avec une communauté par défaut
+    (`public`, `private`) ou devinable, en version 1 ou 2c sans
+    authentification forte.
+  impact: >-
+    Divulgation de la configuration réseau, des tables de routage et parfois
+    modification de la configuration de l'équipement.
+  recommandation: >-
+    Changer les communautés par défaut, migrer vers SNMPv3 avec
+    authentification et chiffrement, ou désactiver SNMP si inutilisé.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N
+  references:
+    - id: CWE-521
+      titre: Weak Password Requirements
+      url: https://cwe.mitre.org/data/definitions/521.html
+  source: "Rédaction WaveAudit d'après CWE-521, licence du dépôt"
+
+- id: INFRA-RDP-EXPOSE
+  titre: Bureau à distance exposé sans restriction
+  famille: infra
+  mots_cles:
+    - rdp exposé
+    - remote desktop protocol
+    - port 3389 ouvert
+    - bruteforce rdp
+    - network level authentication absente
+    - accès distant non filtré
+  description: >-
+    Le service de bureau à distance est accessible depuis un réseau non
+    maîtrisé (Internet ou un réseau interne large) sans restriction d'accès
+    ni authentification réseau préalable.
+  impact: >-
+    Exposition à des attaques par force brute et à l'exploitation de
+    vulnérabilités du protocole, pouvant conduire à une prise de contrôle du
+    poste ou serveur.
+  recommandation: >-
+    Restreindre l'accès RDP par liste blanche ou VPN, activer
+    l'authentification au niveau réseau (NLA) et imposer une politique de
+    verrouillage des comptes.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  references:
+    - id: CWE-284
+      titre: Improper Access Control
+      url: https://cwe.mitre.org/data/definitions/284.html
+  source: "Rédaction WaveAudit d'après CWE-284, licence du dépôt"
+
+- id: INFRA-LLMNR-NBTNS
+  titre: Résolution de noms LLMNR/NBT-NS non désactivée
+  famille: infra
+  mots_cles:
+    - llmnr
+    - nbt-ns
+    - responder
+    - empoisonnement de résolution de noms
+    - capture de hachage ntlm
+    - broadcast name resolution
+  description: >-
+    Les protocoles de résolution de noms de secours LLMNR et NBT-NS restent
+    actifs sur le réseau, ce qui permet à un attaquant de répondre à la
+    place d'un hôte légitime et de capturer des authentifications NTLM.
+  impact: >-
+    Capture de hachages NTLM réutilisables pour une attaque hors ligne ou un
+    relais vers d'autres services.
+  recommandation: >-
+    Désactiver LLMNR et NBT-NS lorsque la résolution DNS interne est fiable,
+    et exiger la signature SMB pour limiter l'impact d'un relais.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:L/A:N
+  references:
+    - id: CWE-300
+      titre: Channel Accessible by Non-Endpoint
+      url: https://cwe.mitre.org/data/definitions/300.html
+  source: "Rédaction WaveAudit d'après CWE-300, licence du dépôt"

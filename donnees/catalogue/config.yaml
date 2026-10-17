@@ -1,0 +1,109 @@
+- id: CONFIG-MOT-DE-PASSE-DEFAUT
+  titre: Identifiants par défaut non modifiés
+  famille: config
+  mots_cles:
+    - mot de passe par défaut
+    - default credentials
+    - admin/admin
+    - identifiant constructeur
+    - compte usine
+    - credentials par défaut non changés
+  description: >-
+    Un équipement ou une application reste accessible avec les identifiants
+    fournis par défaut par l'éditeur ou le constructeur, jamais changés
+    depuis l'installation.
+  impact: >-
+    Accès immédiat avec des privilèges complets, ces identifiants étant
+    publiquement documentés.
+  recommandation: >-
+    Changer systématiquement les identifiants par défaut lors de la mise en
+    service et interdire leur réutilisation via la politique de mots de
+    passe.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  references:
+    - id: CWE-1392
+      titre: Use of Default Credentials
+      url: https://cwe.mitre.org/data/definitions/1392.html
+  source: "Rédaction WaveAudit d'après CWE-1392, licence du dépôt"
+
+- id: CONFIG-SECRETS-EN-CLAIR
+  titre: Secrets stockés en clair
+  famille: config
+  mots_cles:
+    - secret en clair
+    - mot de passe en clair
+    - clé api en clair
+    - fichier de configuration lisible
+    - .env versionné
+    - hardcoded secret
+    - clé privée exposée
+  description: >-
+    Un mot de passe, une clé d'API ou une clé privée est stocké en texte
+    clair dans un fichier de configuration, un script ou un dépôt de code,
+    sans chiffrement ni gestionnaire de secrets.
+  impact: >-
+    Récupération immédiate du secret par quiconque accède au fichier, au
+    dépôt ou à une sauvegarde de celui-ci.
+  recommandation: >-
+    Déplacer les secrets vers un gestionnaire dédié (coffre-fort,
+    variables d'environnement protégées) et purger l'historique de
+    versionnage le cas échéant.
+  cvss_vecteur: CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  references:
+    - id: CWE-312
+      titre: Cleartext Storage of Sensitive Information
+      url: https://cwe.mitre.org/data/definitions/312.html
+  source: "Rédaction WaveAudit d'après CWE-312, licence du dépôt"
+
+- id: CONFIG-LISTAGE-REPERTOIRE
+  titre: Listage de répertoire activé
+  famille: config
+  mots_cles:
+    - listage de répertoire
+    - directory listing
+    - autoindex
+    - index automatique de dossier
+    - fichiers de sauvegarde exposés
+    - navigation de répertoire
+  description: >-
+    Le serveur web renvoie la liste des fichiers d'un répertoire lorsque
+    aucune page d'index n'est présente, exposant son contenu.
+  impact: >-
+    Découverte de fichiers non destinés à être publics (sauvegardes,
+    sources, journaux) facilitant d'autres attaques.
+  recommandation: >-
+    Désactiver le listage automatique de répertoire sur le serveur web et
+    retirer les fichiers sensibles du répertoire public.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
+  references:
+    - id: CWE-548
+      titre: Exposure of Information Through Directory Listing
+      url: https://cwe.mitre.org/data/definitions/548.html
+  source: "Rédaction WaveAudit d'après CWE-548, licence du dépôt"
+
+- id: CONFIG-DEBUG-ACTIF
+  titre: Mode de débogage actif en production
+  famille: config
+  mots_cles:
+    - mode debug
+    - debug actif en production
+    - stack trace détaillée
+    - console interactive exposée
+    - flag debug=true
+    - profiler accessible
+  description: >-
+    L'application tourne avec le mode de débogage activé en environnement
+    de production, exposant des informations internes détaillées, parfois
+    une console interactive, en cas d'erreur.
+  impact: >-
+    Divulgation d'informations internes voire exécution de code via une
+    console de débogage accessible depuis l'extérieur.
+  recommandation: >-
+    Désactiver le mode de débogage en production et vérifier la
+    configuration des environnements de déploiement.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N
+  references:
+    - id: CWE-489
+      titre: Active Debug Code
+      url: https://cwe.mitre.org/data/definitions/489.html
+  source: "Rédaction WaveAudit d'après CWE-489, licence du dépôt"
