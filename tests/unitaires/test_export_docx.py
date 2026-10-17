@@ -2,9 +2,11 @@
 
 from pathlib import Path
 
+import pytest
 from docx import Document
 
 from waveaudit.adaptateurs.export_docx import BANDEAU, ExportDocx
+from waveaudit.domaine.erreurs import ConfigurationInvalide
 from waveaudit.domaine.modeles import (
     Candidat,
     CodeMotif,
@@ -171,3 +173,82 @@ def test_theme_prive_avec_modele_et_theme_toml(tmp_path: Path):
     assert str(document.styles["Heading 1"].font.color.rgb) == "123456"
     titres = [p.text for p in document.paragraphs]
     assert "Rapport de constats" in titres
+
+
+def _modele_sans_styles_de_titre(chemin: Path, entete: str) -> None:
+    """Modèle comme Word en écrit : seuls les styles employés sont définis (ni Title ni Heading)."""
+    document = Document()
+    attribut = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}styleId"
+    for style in list(document.styles.element):
+        identifiant = style.get(attribut) or ""
+        if identifiant.startswith("Heading") or identifiant in ("Title", "TableGrid"):
+            document.styles.element.remove(style)
+    document.styles["Normal"].font.name = "Police Du Modele"
+    document.sections[0].different_first_page_header_footer = True
+    document.sections[0].header.paragraphs[0].text = entete
+    document.save(str(chemin))
+
+
+def test_theme_prive_via_config_modele_sans_styles_de_titre(tmp_path: Path, config_test):
+    theme_prive = config_test.chemins.theme_prive
+    theme_prive.mkdir(parents=True)
+    _modele_sans_styles_de_titre(theme_prive / "modele.docx", "Mention du modèle")
+
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(config_test.chemins.theme_prive).exporter(_rapport(avec_ecartees=True), chemin)
+
+    document = Document(str(chemin))
+    assert document.styles["Normal"].font.name == "Police Du Modele"
+    section = document.sections[0]
+    assert [p.text for p in section.header.paragraphs] == ["Mention du modèle", BANDEAU]
+    for conteneur in (section.footer, section.first_page_header, section.first_page_footer):
+        assert BANDEAU in [p.text for p in conteneur.paragraphs]
+    titres = [p.text for p in document.paragraphs if p.style.name.startswith("Heading")]
+    assert titres.count("Description") == 2
+    assert "Annexe — notes écartées" in titres
+
+
+def test_caracteres_interdits_en_xml_retires(tmp_path: Path):
+    fiche = _fiche_ok().model_copy(update={"description": "avant\x00\x0bapres", "titre": "T\x1f"})
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(tmp_path / "absent").exporter(Rapport(fiches=[fiche], ecartees=[]), chemin)
+
+    textes = _textes(Document(str(chemin)))
+    assert "avantapres" in textes
+    assert "1. T" in textes
+    assert [p.name for p in tmp_path.iterdir()] == ["rapport.docx"]
+
+
+@pytest.mark.parametrize(
+    "contenu",
+    ['couleur_primaire = "rouge"', 'couleur_secondaire = "#12345"', "couleur_primaire = 3", "x ="],
+)
+def test_theme_toml_invalide_leve_configuration_invalide(tmp_path: Path, contenu: str):
+    theme_prive = tmp_path / "theme-prive"
+    theme_prive.mkdir()
+    (theme_prive / "theme.toml").write_text(contenu, encoding="utf-8")
+
+    with pytest.raises(ConfigurationInvalide, match="theme.toml"):
+        ExportDocx(theme_prive)
+
+
+def test_modele_docx_illisible_leve_configuration_invalide(tmp_path: Path):
+    theme_prive = tmp_path / "theme-prive"
+    theme_prive.mkdir()
+    (theme_prive / "modele.docx").write_bytes(b"pas un docx")
+
+    with pytest.raises(ConfigurationInvalide, match="modele.docx"):
+        ExportDocx(theme_prive)
+
+
+def test_theme_toml_sans_modele_colore_le_theme_generique(tmp_path: Path):
+    theme_prive = tmp_path / "theme-prive"
+    theme_prive.mkdir()
+    (theme_prive / "theme.toml").write_text('couleur_secondaire = "#abcdef"', encoding="utf-8")
+
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(theme_prive).exporter(_rapport(avec_ecartees=False), chemin)
+
+    document = Document(str(chemin))
+    assert str(document.styles["Heading 3"].font.color.rgb) == "ABCDEF"
+    assert str(document.styles["Heading 1"].font.color.rgb) == "1F3864"

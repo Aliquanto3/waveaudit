@@ -70,3 +70,17 @@ sources:
 - Contrôle rapide (`uv run --no-sync python .claude/cost-kit/controle_rapide.py`) : aucune
   erreur.
 - Suite complète (`uv run pytest -q --tb=line -p no:warnings`) : 168 tests passés.
+
+Revue (détail : `_bmad-output/implementation-artifacts/revues/story-9.md`) :
+- medium, second avis 1 : caractères hors XML (`\x00`) faisaient échouer l'export — corrigé (`_propre`).
+- medium, second avis 2 : couleur invalide → `ValueError` — corrigé, `ConfigurationInvalide` dès `ExportDocx(...)`.
+- low, second avis 3 : couleur à 5 chiffres acceptée — corrigé (`#RRGGBB` strict).
+- medium, second avis 4 : modèle sans styles `Title`/`Heading N` → `KeyError` — corrigé (styles ajoutés).
+- low, second avis 5 : `theme.toml` mal formé, `modele.docx` illisible — corrigé, `ConfigurationInvalide`.
+- low, second avis 6 : écriture non atomique — corrigé (`.partiel` puis `os.replace`).
+- low, second avis 7 : bandeau absent en-tête de première page / pages paires — corrigé.
+- medium, revue : le bandeau écrasait l'en-tête du modèle (logo, mentions) — corrigé, paragraphe ajouté.
+- low, second avis 8 : tests manquants (`config.chemins.theme_prive`, styles du modèle) — corrigé.
+- low, dev : logo non inséré — reporté (emplacement non fixé par §17) ; câblage `lot.py` — reporté.
+- Écart consigné : thème privé invalide → `ConfigurationInvalide` (code 2) plutôt que repli silencieux.
+- Complexité : 0 constat (export linéaire, 400 fiches en 3,8 s).
