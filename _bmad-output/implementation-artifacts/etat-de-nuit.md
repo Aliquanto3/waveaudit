@@ -13,9 +13,9 @@
 | 9 | Export Word et thèmes | intégrée 28b7a07 (revue : revues/story-9.md ; suite complète de vague C : 196 verte, lint OK) |
 | 10 | Pipeline fiches et prompt | intégrée 50e52b1 (revue : revues/story-10.md) |
 | 11 | Calibrage du rattachement | intégrée 9493e69 (revue : revues/story-11.md ; CAP-3 démo : 17/20 top 1, 20/20 top 3 ; suite 212 verte) |
-| 12 | Composition, lot, llama-server | en cours |
-| 13 | CLI complète | à faire |
-| 14 | UI web locale | à faire |
+| 12 | Composition, lot, llama-server | intégrée f31117e (revue : revues/story-12.md ; suite complète de vague E : 238 verte, lint OK) |
+| 13 | CLI complète | en cours |
+| 14 | UI web locale | en cours |
 | 15 | Banc de mesure | à faire |
 | 16 | Preuve hors ligne, test réel, README | à faire |
 | V1 | Validation sur le vrai moteur | à faire |
@@ -46,4 +46,5 @@
 - Story 9 : le §17 ne prévoit pas de thème privé invalide (couleur hors #RRGGBB, TOML mal formé, modele.docx illisible) ; la revue lève `ConfigurationInvalide` (code 2) dès la construction de l’export, plutôt qu’un repli silencieux. Logo du thème privé validé mais pas encore inséré dans le document.
 - Story 10 (à arbitrer) : (a) la nouvelle tentative sur SortieInvalide rejoue les mêmes messages, seed 42 et température 0,2 : sur le vrai modèle, elle reproduira sans doute la même sortie ; varier la seed touche le port `Moteur` du socle, donc amender le §5 après le banc. (b) Un `</note>` dans le corps ou l’actif d’une note n’est pas échappé et sort du bloc délimité (forme figée par le §8 ; risque faible, les notes viennent du consultant). (c) Moteur tombé en cours de lot : repli note par note, avec 180 s de délai chacune, sans coupure du lot (conforme au §5, à revoir avec la story 12).
 - Story 11 : le score CAP-3 (17/20, 20/20) est mesuré sur le jeu de démo qui a servi au calibrage ; la revue a retiré les mots-clés recopiés des notes (sur-apprentissage). Un jeu de notes de validation non vu manque pour une mesure honnête (D1 peut le fournir).
+- Story 12 : `composition.ouvrir(config, modele, *, id_lot=None)` (mot-clé ajouté pour nommer le journal de llama-server) ; `fiches.json` écrit sans écriture atomique (non demandée par le contrat) ; une exception inattendue de `traiter` arrête le lot (code 4, §4).
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
