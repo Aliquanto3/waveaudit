@@ -1,8 +1,10 @@
 # WaveAudit
 
+[![CI](https://github.com/Aliquanto3/waveaudit/actions/workflows/ci.yml/badge.svg)](https://github.com/Aliquanto3/waveaudit/actions/workflows/ci.yml)
+
 Assistant IA **hors ligne** pour les consultants en audit de cybersécurité, sur un PC professionnel de 16 Go sans GPU. Il rédige des **fiches de vulnérabilité** à partir des notes brutes du consultant, en retrouvant le constat type dans un catalogue puis en l'adaptant au contexte. Aucune donnée ne quitte le poste.
 
-> **État : en spécification.** Ce dépôt contient pour l'instant le cadrage du POC. Le POC ne traite que des données publiques ou fictives.
+> **État : POC en développement.** Il ne traite que des données publiques ou fictives ; toute sortie porte le bandeau « Démonstration — données fictives ».
 
 ## Pourquoi en local
 
@@ -20,17 +22,133 @@ Les données de mission d'un audit de sécurité (preuves, vulnérabilités, ext
 
 | Axe | Seuil |
 |---|---|
-| Qualité | ≥ 70 % de fiches utilisables après retouches légères (20 notes fictives) |
+| Qualité | ≥ 70 % de fiches utilisables après retouches légères (notes fictives) |
 | Fiabilité | 0 référence inventée |
 | Vitesse | < 3 min par fiche sur un portable 16 Go, suite bureautique ouverte |
 | Mémoire | Pic ≤ 6 Go |
 | Installation | < 10 min |
 
+## Prérequis
+
+- Windows 11, CPU seul (pas de GPU requis), 16 Go de RAM.
+- [Python 3.12](https://www.python.org/) et [uv](https://docs.astral.sh/uv/) (aucun `python` ni `pip` global : toutes les commandes passent par `uv run`).
+- Pas de droits admin ni de compilateur nécessaires.
+
+## Installation
+
+```
+git clone https://github.com/Aliquanto3/waveaudit.git
+cd waveaudit
+uv sync
+uv run waveaudit installer
+```
+
+`uv sync` installe les dépendances Python épinglées (`uv.lock`). `waveaudit installer` télécharge
+`llama-server` et les poids épinglés du manifeste (`config/artefacts.toml`) dans `var/`, vérifie
+leur empreinte SHA-256 et refuse (en la supprimant) toute empreinte incorrecte. `--candidats`
+télécharge en plus les modèles candidats du manifeste.
+
+## Utilisation — CLI
+
+```
+uv run waveaudit fiches <dossier-de-notes> [-o FICHIER] [--modele NOM] [--config FICHIER]
+```
+
+Traite les notes `.md`/`.txt` du dossier et produit un rapport Word de fiches de vulnérabilité
+dans `var/sorties/<id-du-lot>/rapport.docx` (et, avec `-o`, une copie supplémentaire). `--modele`
+choisit un modèle du manifeste (mode `local-gere`) ou surcharge le nom envoyé à l'API (mode
+`externe`). `--config` ajoute un fichier TOML de configuration supplémentaire.
+
+Autres commandes (`uv run waveaudit --help` pour le détail) :
+
+| Commande | Rôle |
+|---|---|
+| `installer [--candidats]` | Télécharge et vérifie les artefacts du manifeste |
+| `fiches DOSSIER [...]` | Lot CLI décrit ci-dessus |
+| `ui [--port N] [--config F]` | Démarre l'interface web locale |
+| `banc DOSSIER [--modele NOM]` | Lot instrumenté (temps par fiche, pic mémoire) |
+| `catalogue verifier [--config F]` | Contrôle le catalogue de constats types |
+| `sbom` | Écrit le SBOM (CycloneDX) de l'environnement installé |
+| `version` | Affiche la version installée |
+
+## Utilisation — interface web
+
+```
+uv run waveaudit ui
+```
+
+Démarre une interface web strictement locale (`http://127.0.0.1:8765` par défaut, `--port` pour
+changer). Elle n'accepte que les requêtes dont l'en-tête `Host` et `Origin` visent la boucle
+locale. On y dépose un dossier de notes, on suit la progression du lot en direct, puis on
+télécharge le rapport Word une fois le lot terminé.
+
+## Preuve hors ligne
+
+- **Aucun appel réseau sortant à l'exécution** (hors `uv sync` et `waveaudit installer`, qui
+  n'ont lieu qu'à l'installation) : un garde réseau (`securite/garde_reseau.py`) remplace les
+  fonctions de connexion du module `socket` pendant les commandes `fiches`, `ui` et `banc`, et
+  lève une erreur avant toute connexion vers un hôte hors boucle locale.
+  `tests/e2e/test_hors_ligne.py` exécute un lot CLI et un lot UI complets sous ce garde et vérifie
+  qu'aucune tentative n'a été refusée, puis prouve, à l'inverse, que le garde détecte et bloque
+  une tentative de connexion sortante faite par un abonné du lot.
+- **SHA-256** : chaque artefact téléchargé par `waveaudit installer` (moteur, modèles) est vérifié
+  contre l'empreinte du manifeste (`config/artefacts.toml`), qui documente aussi sa source et sa
+  licence ; une empreinte incorrecte est refusée et le fichier supprimé.
+- **SBOM** : `uv run waveaudit sbom` écrit un inventaire CycloneDX des dépendances installées
+  dans `var/`, pour l'audit.
+- **Suite de tests** : `uv run pytest -q` n'utilise jamais le vrai modèle ni le réseau (faux
+  moteur HTTP local). Seuls les tests marqués `slow` (`tests/e2e/test_reel.py`, lot de bout en
+  bout sur 2 notes de démonstration, et `tests/e2e/test_llama_reel.py`) lancent le vrai
+  `llama-server` ; ils sont exclus par défaut (`-m 'not slow'`), et sautés tant que
+  `waveaudit installer` n'a pas été lancé.
+
+## Choix et licences des modèles
+
+Les artefacts installés sont épinglés par version et empreinte dans `config/artefacts.toml` :
+
+| Rôle | Modèle | Licence | Source |
+|---|---|---|---|
+| Moteur | llama-server (llama.cpp) | MIT | github.com/ggml-org/llama.cpp |
+| Modèle par défaut | Granite 4.0 1B (GGUF Q4_K_M) | Apache-2.0 | huggingface.co/ibm-granite |
+| Modèle de repli (RAM basse) | MiniCPM5 1B (GGUF Q4_K_M) | Apache-2.0 | huggingface.co/openbmb |
+| Candidats (`--candidats`) | Qwen3 1.7B, Qwen3.5 0.8B (GGUF Q4_K_M) | Apache-2.0 | huggingface.co/unsloth |
+
+Tous sous licence permissive. Le choix final entre candidats se fait hors nuit, avec
+`slm-quality-bench`.
+
+## Banc
+
+```
+uv run waveaudit banc <dossier-de-notes> [--modele NOM]
+```
+
+Exécute un lot instrumenté (contrats §20) : il échantillonne, toutes les 0,5 s, le pic de mémoire
+RSS de l'application et du moteur pendant le lot, et écrit `var/sorties/<id>/banc.json` (durée
+médiane et maximale par fiche, pics mémoire, top des constats et de leurs étiquettes) ainsi qu'un
+résumé lisible en console. Avec le faux moteur (tests), il s'exécute en test rapide ; les seuils
+réels (< 3 min/fiche, pic ≤ 6 Go) se vérifient hors nuit, sur le poste cible.
+
+## Limites du POC
+
+- Français uniquement, sortie Word, par lot (jamais en chat ni édition dans l'UI : la retouche se
+  fait dans Word).
+- Jamais de génération ex nihilo : toute fiche part d'un constat type du catalogue ; aucune
+  référence absente du catalogue.
+- Données publiques ou fictives seulement ; le bandeau « Démonstration — données fictives »
+  figure sur toute sortie.
+- Pas de chat interactif, pas d'assistant bureautique générique, pas de fine-tuning, pas de
+  génération d'exploits, pas d'import des formats d'outils (Burp, Nessus), pas d'usage
+  multi-utilisateur ni serveur.
+- Toute donnée client réelle est hors périmètre.
+
 ## Contenu du dépôt
 
 - `_bmad-output/forge/slm-edge-consultants-cyber/` : cadrage de l'idée (`forged-idea.md`) et rapport de la session (`forge-report.html`).
+- `_bmad-output/specs/`, `_bmad-output/planning-artifacts/` : spécifications et architecture du POC.
 - `_bmad/`, `.claude/skills/` : méthode [BMAD](https://github.com/bmad-code-org/BMAD-METHOD) pour la spécification et le développement.
 - `.claude/cost-kit/` : contrôle rapide de [agent-cost-kit](https://github.com/Aliquanto3/agent-cost-kit).
+- `theme-prive/` (ignoré par git, absent du dépôt public) : charte et logo Wavestone pour le
+  thème du rapport Word ; le dépôt fonctionne sans lui (thème générique).
 
 ## Licence
 
