@@ -20,7 +20,8 @@ uv sync                     # installe les dépendances Python (~1 min)
 uv run waveaudit installer  # télécharge moteur + modèles, vérifie leur empreinte (~5-8 min)
 ```
 
-`uv sync` lit `uv.lock` : les versions sont figées, rien d'autre n'est appelé sur le réseau.
+`uv sync` lit `uv.lock` et télécharge les paquets Python figés (dépôt PyPI) : pas d'autre dépôt,
+pas de télémétrie.
 `waveaudit installer` télécharge `llama-server` et les poids épinglés du manifeste
 (`config/artefacts.toml`) dans `var/`, vérifie leur empreinte SHA-256 et refuse (en la
 supprimant) toute empreinte incorrecte. Si une empreinte est refusée, relancez la commande ;
@@ -28,17 +29,18 @@ si l'échec persiste, c'est un retour à nous signaler (voir plus bas).
 
 ## Premier lot, sur les notes de démonstration (estimation : moins de 3 min par fiche)
 
-Le dépôt contient 30 notes fictives dans `donnees/demo/notes/`. Pour un premier essai rapide,
-traitez-en quelques-unes seulement (copiez-les dans un dossier à part) avant un lot complet :
+Le dépôt contient 30 notes fictives dans `donnees/demo/notes/`. La commande ci-dessous traite le
+dossier complet ; pour un premier essai plus court, copiez-en quelques-unes dans un dossier à part
+et pointez la commande sur ce dossier à la place :
 
 ```
 uv run waveaudit fiches donnees/demo/notes
 ```
 
-La commande affiche l'avancement note par note, puis le chemin du rapport Word produit
-(`var/sorties/<id-du-lot>/rapport.docx`). Sur CPU, chaque fiche se génère en arrière-plan : la
-première fiche d'un lot est plus lente (chargement du modèle en mémoire), les suivantes sont
-plus régulières.
+La commande traite les notes l'une après l'autre dans le terminal (synchrone) et affiche
+l'avancement note par note, puis le chemin du rapport Word produit
+(`var/sorties/<id-du-lot>/rapport.docx`). Sur CPU, la première fiche d'un lot est plus lente
+(chargement du modèle en mémoire), les suivantes sont plus régulières.
 
 ## Ouvrir le rapport
 
@@ -62,8 +64,8 @@ severite_pressentie: elevee   # critique / elevee / moyenne / faible / info
 Corps de la note : ce que vous avez observé, les preuves (requêtes, sorties d'outils).
 ```
 
-Seul le corps est obligatoire ; une note sans corps est invalide et ressort en « entrée
-écartée ». N'utilisez que des données publiques ou fictives.
+Seul le corps est obligatoire ; une note sans corps est invalide et ressort dans l'annexe
+« Notes écartées » du rapport. N'utilisez que des données publiques ou fictives.
 
 ## Lancer l'interface web
 
@@ -72,9 +74,10 @@ uv run waveaudit ui
 ```
 
 Démarre une interface strictement locale sur `http://127.0.0.1:8765` (changez de port avec
-`--port` en cas de conflit). On y dépose un dossier de notes, on suit la progression du lot en
-direct, puis on télécharge le rapport une fois terminé. Elle n'accepte que les requêtes dont
-l'en-tête `Host`/`Origin` vise la boucle locale.
+`--port` en cas de conflit). On y dépose un ou plusieurs fichiers `.md`/`.txt` (pas un dossier),
+le lot se traite en arrière-plan, on suit sa progression en direct puis on télécharge le rapport
+une fois terminé. Elle n'accepte que les requêtes dont l'en-tête `Host`/`Origin` vise la boucle
+locale.
 
 ## Si c'est lent ou bloqué
 
@@ -89,10 +92,12 @@ l'en-tête `Host`/`Origin` vise la boucle locale.
 ## Ce qui sort, ou non, du poste
 
 Aucun appel réseau sortant n'a lieu pendant `fiches`, `ui` ou `banc` : un garde réseau bloque
-toute connexion hors boucle locale (vérifié par un test automatisé du dépôt). Seules `uv sync`
-et `waveaudit installer`, à l'installation, appellent l'extérieur (dépôts de paquets et de
-modèles). Vos notes, fictives, et les rapports générés restent dans votre dossier et dans
-`var/` : rien n'est envoyé ailleurs.
+toute connexion hors boucle locale (vérifié par un test automatisé du dépôt). `sbom`
+(`uv run waveaudit sbom`) liste les paquets installés dans `var/sbom.cdx.json` en lisant
+uniquement votre venv local, sans appel réseau non plus. Seules `uv sync` et `waveaudit
+installer`, à l'installation, appellent l'extérieur (dépôts de paquets et de modèles). Vos
+notes, fictives, et les rapports générés restent dans votre dossier et dans `var/` : rien n'est
+envoyé ailleurs.
 
 ## Votre retour
 
