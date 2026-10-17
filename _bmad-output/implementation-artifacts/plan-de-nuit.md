@@ -31,14 +31,14 @@ Orchestrateur : une session principale neuve (`/clear`), qui lit seulement ce fi
    - un commit en français, sans fusion.
 2. `agent-cost-kit:second-avis` (Haiku) sur le diff de la branche.
 3. `agent-cost-kit:reviewer` (Opus) avec la liste du second avis : il corrige les constats moyens ou élevés réels et consigne la revue dans `_bmad-output/implementation-artifacts/revues/story-<id>.md`.
-4. Intégration par la session principale : fusion sans fast-forward dans `main`, puis `git log -1`. Lancer `uv run pytest -q --tb=line -p no:warnings` sur `main` si la vague le prévoit, sinon les tests de la story. Mettre à jour la ligne de la story dans `etat-de-nuit.md`.
+4. Intégration par la session principale : fusion sans fast-forward dans `main`, puis `git log -1`. Lancer `uv run pytest -q --tb=line -p no:warnings` sur `main` si la vague le prévoit, sinon les tests de la story. Mettre à jour la ligne de la story dans `etat-de-nuit.md`, puis, si les tests sont verts, `git push origin main` (autorisé par Anaël le 2026-10-17, après chaque story revue et testée).
 - Dans une vague parallèle, les dev-story partent ensemble, puis chaque story suit ses étapes 2 à 4. On intègre l'une après l'autre ; un conflit sur un fichier partagé est un défaut de la story fautive.
 
 ## Règles d'arrêt et de reprise
 
 - Si une story échoue deux fois (tests rouges après la revue, ou fichier du socle à modifier) : la marquer `bloquée` dans `etat-de-nuit.md` avec la raison et passer aux stories qui ne dépendent pas d'elle. Ne jamais contourner une règle d'AD pour faire passer un test.
 - Si la suite complète est rouge sur `main` après une vague : un dev-story de correction (Sonnet) dont le prompt nomme les tests en échec, avant la vague suivante.
-- Aucun `git push`, aucune PR, aucun appel réseau sortant hors `uv sync` ; aucun téléchargement de modèles (`installer` n'est jamais lancé la nuit).
+- Push de `main` seulement après une story revue, intégrée et verte ; jamais de `--force`, aucune PR, aucune autre branche poussée. Aucun autre appel réseau sortant hors `uv sync` ; aucun téléchargement de modèles (`installer` n'est jamais lancé la nuit).
 - Ne pas modifier SPEC, spine ni `contrats.md`. Un écart nécessaire est consigné dans `etat-de-nuit.md` (section « Écarts à arbitrer »).
 
 ## État
