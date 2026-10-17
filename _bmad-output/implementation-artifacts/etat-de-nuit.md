@@ -14,14 +14,14 @@
 | 10 | Pipeline fiches et prompt | intégrée 50e52b1 (revue : revues/story-10.md) |
 | 11 | Calibrage du rattachement | intégrée 9493e69 (revue : revues/story-11.md ; CAP-3 démo : 17/20 top 1, 20/20 top 3 ; suite 212 verte) |
 | 12 | Composition, lot, llama-server | intégrée f31117e (revue : revues/story-12.md ; suite complète de vague E : 238 verte, lint OK) |
-| 13 | CLI complète | en cours |
+| 13 | CLI complète | intégrée 5f3a388 (revue : revues/story-13.md ; suite 271 verte) |
 | 14 | UI web locale | intégrée 41b03c8 (revue : revues/story-14.md) |
-| 15 | Banc de mesure | à faire |
-| 16 | Preuve hors ligne, test réel, README | à faire |
+| 15 | Banc de mesure | en cours |
+| 16 | Preuve hors ligne, test réel, README | en cours |
 | V1 | Validation sur le vrai moteur | à faire |
 | V2 | Banc des 4 modèles et réglage du prompt | à faire |
-| D1 | Catalogue élargi et notes difficiles | à faire |
-| D2 | Intégration continue GitHub Actions | à faire |
+| D1 | Catalogue élargi et notes difficiles | en cours |
+| D2 | Intégration continue GitHub Actions | en cours |
 | D3 | Guide des testeurs et formulaire de retour | à faire |
 | C1 | Extension du socle pour le CERT | à faire |
 | C2 | Lecture des journaux et jeu de démo | à faire |
@@ -34,6 +34,7 @@
 ## Arbitrages d'Anaël (2026-10-17, soir)
 
 - Ordre modifié : V1 et V2 passent en tout dernier, après K à P, et seulement si tout le reste est réalisé. C1 démarre donc avec V1 « non faite, reportée ». Le téléchargement de V1 (`installer --candidats`) reste autorisé à ce moment-là.
+- Parallélisation autorisée si le risque est très faible : D1 et D2 partent pendant la vague G (D2 sans badge README, ajouté par la story 16) ; 15 et 16 partent ensemble après l'intégration de 13. Le CERT reste séquentiel (C1 exige 1 à 16).
 
 ## Écarts à arbitrer
 
@@ -48,4 +49,5 @@
 - Story 11 : le score CAP-3 (17/20, 20/20) est mesuré sur le jeu de démo qui a servi au calibrage ; la revue a retiré les mots-clés recopiés des notes (sur-apprentissage). Un jeu de notes de validation non vu manque pour une mesure honnête (D1 peut le fournir).
 - Story 12 : `composition.ouvrir(config, modele, *, id_lot=None)` (mot-clé ajouté pour nommer le journal de llama-server) ; `fiches.json` écrit sans écriture atomique (non demandée par le contrat) ; une exception inattendue de `traiter` arrête le lot (code 4, §4).
 - Story 14 : l’UI accepte `Host: [::1]:<port>` (écart au §18, nécessaire puisque le §18 autorise `ui.hote = "::1"`) ; `/etat?depuis=N` facultatif ajouté (réponse par défaut inchangée). Reporté : le champ `erreur` d’un lot peut afficher un chemin absolu.
+- Story 13 (reporté) : vérifier à la main qu’un second `waveaudit ui` sur un port occupé sort en code 4.
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
