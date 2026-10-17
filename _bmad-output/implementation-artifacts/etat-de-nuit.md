@@ -7,7 +7,7 @@
 | 3 | CVSS 3.1 et garde-fous | intégrée c980c3f (revue : revues/story-3.md) |
 | 4 | Catalogue de constats types | intégrée 2fef712 (revue : revues/story-4.md ; suite 106 verte) |
 | 5 | Notes brutes et jeu de démonstration | en cours |
-| 6 | Adaptateur moteur OpenAI | en cours |
+| 6 | Adaptateur moteur OpenAI | intégrée 2277976 (revue : revues/story-6.md) |
 | 7 | Garde réseau | en cours |
 | 8 | Installation vérifiée et SBOM | à faire |
 | 9 | Export Word et thèmes | à faire |
@@ -31,8 +31,13 @@
 | C6a | Rapport d'incident Word | à faire |
 | C6b | CLI incident, hors ligne, README | à faire |
 
+## Arbitrages d'Anaël (2026-10-17, soir)
+
+- Ordre modifié : V1 et V2 passent en tout dernier, après K à P, et seulement si tout le reste est réalisé. C1 démarre donc avec V1 « non faite, reportée ». Le téléchargement de V1 (`installer --candidats`) reste autorisé à ce moment-là.
+
 ## Écarts à arbitrer
 
 - Story 2 : la tokenisation remplace œ, æ, ß (oe, ae, ss) avant NFKD ; le §7 ne cite que NFKD (sans cela « œuvre » donne « uvre »). Écart mineur, à entériner dans contrats.md.
 - Story 3 (reporté par la revue) : conformément au §6, un titre de moins de 20 caractères (ex. « Injection SQL ») est remplacé par celui du constat type et la fiche passe `a_revoir` ; seuil probablement trop strict, à vérifier au banc.
 - Story 4 (reporté, réseau requis) : vérifier que les 41 URL du catalogue répondent, et ajouter des références ANSSI vérifiées en ligne (le catalogue n'en cite aucune).
+- Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
