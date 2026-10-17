@@ -226,6 +226,16 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
   - Les modèles, ports, erreurs, codes retour, format de manifeste, faux moteur, API web et CLI sont ceux de `contrats.md`. Les identifiants de constat et de notes sont ceux de contrats §16.
   - Toute divergence nécessaire passe par une mise à jour de `contrats.md` dans une story dédiée, jamais par une variante locale.
 
+### AD-17 — Workflow incident (CERT), service dédié
+
+- **Binds:** SPEC-waveaudit-cert CAP-1 à CAP-7
+- **Prevents:** une généralisation forcée du protocole `Workflow` des fiches, ou un second moteur, un second garde réseau ou un second format d'événements pour le CERT.
+- **Rule:**
+  - Le CERT a ses propres formes, ports et service (contrats §21) : `domaine/incident.py`, `workflows/incident/` et `application/incident.executer_incident`. Il n'est pas inscrit dans `REGISTRE`.
+  - Il réutilise sans les dupliquer : le port `Moteur`, la composition (`ouvrir_incident`), le garde réseau, `EvenementLot`, `nouvel_id_lot` et les conventions.
+  - Seule la story C1 modifie les fichiers du socle pour ce workflow.
+  - La détection, les indicateurs et la chronologie sont déterministes ; le SLM ne rédige que le récit.
+
 ## Consistency Conventions
 
 | Concern | Convention |
@@ -354,7 +364,7 @@ CLI, routes UI, banc et leurs formats : contrats §18 à §20.
 
 - Choix final du modèle et réglage du prompt : sur l'EliteBook, hors nuit, avec la méthode de `slm-quality-bench`. Le manifeste et la configuration suffisent à en changer.
 - Valeurs fines de `-c`, `-t` et du seuil RAM : réglées au banc réel (CAP-12). Défauts de départ : `ctx` 4096, 4 threads, `ram_min_defaut_go` 4,5.
-- Workflow CERT / réponse à incident : seul le protocole `Workflow` (AD-15) est figé.
+- Workflow CERT : spécifié dans SPEC-waveaudit-cert et AD-17, développé après le MVP.
 - Installateur Windows packagé (Inno Setup), variante archive hors ligne des poids : après les retours des testeurs.
 - Authentification vers un LLM interne Wavestone : à définir quand l'endpoint existera ; `Configuration.moteur.cle_api` est seulement prévue.
 - Contenu de la charte Wavestone : hors dépôt (AD-14).

@@ -388,3 +388,115 @@ API de `installation/manifeste.py` :
 - **Fonctionnement :** le banc est un abonné du lot. Il lit `pid_moteur` dans `lot_demarre`, puis échantillonne toutes les 0,5 s, dans son propre thread, `MesureMemoire.rss_octets` de l'application (`os.getpid()`) et du moteur, jusqu'à `lot_termine` ou `lot_echoue`.
 - **`var/sorties/<id>/banc.json` :** `{"id_lot", "modele", "fiches": [{"note", "duree_s"}], "duree_mediane_s", "duree_max_s", "pic_rss_app_o", "pic_rss_moteur_o", "pic_rss_total_o", "top1", "top3", "etiquetees"}`. `top1` et `top3` sont calculés depuis `tracabilite` et `EntreeEcartee`.
 - **Affichage :** un résumé lisible en console.
+
+## 21. Workflow incident (CERT) — `domaine/incident.py`, `workflows/incident/`, `application/incident.py`
+
+Ajouté le 2026-10-17 (SPEC-waveaudit-cert). La story C1 crée les formes ; les stories C2 à C6 les appliquent.
+
+```python
+class Evenement(BaseModel):          # frozen, extra=forbid
+    source: Literal["windows","linux"]; fichier: str; ligne: int   # ligne 1-based (index 1-based pour le JSON)
+    horodatage: AwareDatetime; hote: str
+    event_id: int | None; log_name: str | None; programme: str | None
+    message: str; champs: dict[str, str]
+class LigneIgnoree(BaseModel): fichier: str; ligne: int; raison: str
+class LectureJournaux(BaseModel):
+    evenements: list[Evenement]; ignorees: list[LigneIgnoree]; fichiers: dict[str, int]  # lignes lues par fichier
+class Condition(BaseModel):
+    event_id: list[int] | None = None; log_name: str | None = None; programme: str | None = None
+    champs: dict[str, str] = {}; champs_regex: dict[str, str] = {}; message_regex: str | None = None
+class Agregation(BaseModel): seuil: int; fenetre_s: int; par: list[str]
+class Regle(BaseModel):
+    id: str; titre: str; description: str; impact: str; recommandation: str
+    severite: Literal["critique","elevee","moyenne","faible"]; references: list[Reference]  # au moins 1
+    source: Literal["windows","linux"]; condition: Condition; agregation: Agregation | None = None
+class Indicateur(BaseModel):
+    type: Literal["ip","compte","hote","hachage","executable"]; valeur: str; origines: list[str]  # "fichier:ligne"
+class Detection(BaseModel):
+    regle_id: str; debut: AwareDatetime; fin: AwareDatetime; hotes: list[str]
+    evenements: list[Evenement]      # tous les déclencheurs, triés par horodatage
+    indicateurs: list[Indicateur]
+class Recit(BaseModel):
+    detection: Detection; titre: str; recit: str; impact: str; recommandation: str
+    severite: Literal["critique","elevee","moyenne","faible"]; references: list[Reference]
+    statut: Literal[Statut.OK, Statut.A_REVOIR]; motifs: list[Motif]
+class RapportIncident(BaseModel):
+    debut: AwareDatetime | None; fin: AwareDatetime | None; recits: list[Recit]
+    indicateurs: list[Indicateur]; actifs: list[str]; recommandations: list[str]
+    sources: dict[str, int]; ignorees: list[LigneIgnoree]
+class RequeteIncident(BaseModel): dossier: Path; annee: int; modele: str | None = None; id_lot: str | None = None; copie_rapport: Path | None = None
+class ResultatIncident(BaseModel): id_lot: str; dossier_sortie: Path; rapport: RapportIncident; chemin_rapport: Path; duree_s: float
+def schema_recit(longueur_max: int) -> dict   # {titre, recit, impact, recommandation} : string, minLength 1, maxLength, required, additionalProperties false
+```
+
+C1 ajoute à `CodeMotif` (socle) la valeur `INDICATEUR_RETIRE = "indicateur_retire"` ; les autres codes de motif sont réutilisés.
+
+Configuration (C1 ajoute la section, `extra="forbid"`, dans `domaine/configuration.py` et `config/waveaudit.toml`) :
+
+```toml
+[incident]
+regles = "donnees/regles"     # relatif à racine_projet()
+decalage_syslog = "+02:00"    # fuseau des horodatages syslog sans fuseau
+max_preuves = 10              # événements cités par détection dans le prompt et le rapport
+longueur_max_recit = 1500
+```
+
+Ports ajoutés à `domaine/ports.py` par C1 :
+
+```python
+class SourceJournaux(Protocol):
+    def lire(self, dossier: Path, *, annee: int) -> LectureJournaux: ...  # EntreeInvalide si dossier absent ou sans journal reconnu
+class CatalogueRegles(Protocol):
+    def regles(self) -> list[Regle]: ...    # triées par id
+class ExporteurIncident(Protocol):
+    def exporter(self, rapport: RapportIncident, chemin: Path) -> None: ...
+@dataclass(frozen=True)
+class PortsIncident:
+    moteur: Moteur; source_journaux: SourceJournaux; regles: CatalogueRegles; exporteur: ExporteurIncident; prefixe_systeme: str
+```
+
+Règles de traitement :
+
+- **Lecture** : `adaptateurs/journaux_windows.py` et `journaux_linux.py`, combinés par `journaux.py` (`SourceJournauxFichiers`).
+  - Un fichier est routé par son extension (`.json` et `.csv` vers Windows) ou par son nom (`auth.log*`, `syslog*`, `secure*`, `*.log` vers Linux).
+  - Windows : `TimeCreated` sans fuseau donne une `LigneIgnoree`.
+  - Linux : l'année vient d'`annee`, le fuseau de `decalage_syslog`. Un passage de décembre à janvier dans un même fichier incrémente l'année.
+  - Toute ligne non reconnue donne une `LigneIgnoree`, jamais une exception.
+  - Les événements sont triés par `(horodatage, fichier, ligne)`.
+  - Champs Linux extraits par motif : `utilisateur`, `ip`, `port`, `commande`, `nouvel_utilisateur`, `fichier_cible`.
+- **Détection** : `domaine/detection.py`, `detecter(regles, evenements) -> list[Detection]`.
+  - Sans `agregation`, une détection par événement correspondant.
+  - Avec `agregation`, on groupe par les valeurs des champs `par`. La fenêtre est glissante. Une détection couvre la rafale maximale ; la rafale suivante ne commence qu'après la fin de la précédente.
+  - Tri par `(debut, regle_id)`. Comparaisons de `champs` insensibles à la casse. Expressions régulières en `re.IGNORECASE`.
+  - `indicateurs` est rempli par `domaine/indicateurs.py`.
+- **Indicateurs** : `domaine/indicateurs.py`.
+  - `extraire(evenements) -> list[Indicateur]`. On l'applique aux événements de chaque détection, puis à l'union de toutes les détections pour le rapport.
+  - Sources : les champs `IpAddress`, `ip`, `TargetUserName`, `SubjectUserName`, `utilisateur`, `nouvel_utilisateur`, `Image`, `Hashes` (découpé en MD5, SHA1 et SHA256), l'hôte, et les IPv4 trouvées dans `message`.
+  - Valeurs exclues : vide, `-`, `::1`, `127.0.0.1`, `SYSTEM`, `LOCAL SERVICE`, `NETWORK SERVICE`.
+  - Normalisation : minuscules, sauf pour les comptes. Dédoublonnage et tri par `(type, valeur)`.
+- **Garde-fous** : `domaine/garde_fous_incident.py`, `appliquer_recit(sortie_brute, regle, detection, longueur_max, motifs_initiaux=()) -> Recit`.
+  - Les références sont celles de la règle. Tout jeton `T\d{4}(\.\d{3})?` absent de la règle est retiré (`reference_retiree`).
+  - Tout jeton IPv4, IPv6, MD5, SHA1 ou SHA256 absent des indicateurs de la détection est retiré (`indicateur_retire`).
+  - Une rubrique vide ou de moins de 20 caractères est remplacée par le texte type (`rubrique_completee`).
+  - Le statut est `a_revoir` si et seulement si `motifs` n'est pas vide.
+- **Prompt** : `workflows/incident/prompt.py`.
+  - Dans le dernier message `user` : `<regle>` + `json.dumps({id, titre, description, impact, recommandation})` + `</regle>`, puis `<preuves>` + au plus `max_preuves` lignes `horodatage hote message` + `</preuves>`.
+  - C1 étend le faux moteur. Si `<regle>` est présent et `<constat>` absent, le scénario nominal renvoie `{titre, recit: "[adapté] " + description, impact: "[adapté] " + impact, recommandation: "[adapté] " + recommandation}` (titre lui aussi préfixé). Les autres scénarios s'appliquent de la même façon.
+- **Service** : `application/incident.py`, `executer_incident(requete: RequeteIncident, config, abonne) -> ResultatIncident`.
+  - Il réutilise `nouvel_id_lot`, `EvenementLot` (un élément = une détection ; `note` = `regle_id`) et l'écrivain unique de `journal.jsonl`.
+  - Il écrit `incident.json` et `rapport-incident.docx` dans `var/sorties/<id_lot>/`.
+  - Le moteur est ouvert par `composition.ouvrir_incident(config, modele) -> ContextManager[tuple[PortsIncident, InfoMoteur]]`.
+  - Sans aucune détection, il produit le rapport avec la mention « Aucun fait détecté », sans appel au modèle ni ouverture du moteur.
+  - `SortieInvalide` déclenche un nouvel essai puis un repli ; `MoteurInjoignable` un repli immédiat, comme pour les fiches.
+- **Rapport Word** : `adaptateurs/export_incident_docx.py`, sections et intitulés de `formats-incident.md`, même bandeau.
+- **CLI** : `waveaudit incident DOSSIER [-o FICHIER] [--annee N] [--modele NOM] [--config F]`, sous le garde réseau, avec les mêmes codes retour et la même forme de sortie console que `fiches`.
+
+## 22. Mode JSON du moteur (validation sur le vrai SLM)
+
+Ajouté le 2026-10-17.
+
+Si le test réel montre que `response_format` en `json_schema` échoue avec un modèle (grammaire refusée, sortie vide ou non conforme), la story V1 ajoute deux réglages :
+- `moteur.mode_json` à la configuration, qui vaut `"json_schema"` (défaut) ou `"json_object"` ;
+- un champ facultatif `mode_json` à chaque entrée du manifeste, qui prime sur la configuration.
+
+En `json_object`, l'adaptateur envoie `response_format = {"type": "json_object"}` et ajoute le schéma, en texte, à la fin du message système. Le reste du contrat ne change pas.

@@ -18,6 +18,17 @@
 | 14 | UI web locale | à faire |
 | 15 | Banc de mesure | à faire |
 | 16 | Preuve hors ligne, test réel, README | à faire |
+| V1 | Validation sur le vrai moteur | à faire |
+| V2 | Banc des 4 modèles et réglage du prompt | à faire |
+| D1 | Catalogue élargi et notes difficiles | à faire |
+| D2 | Intégration continue GitHub Actions | à faire |
+| D3 | Guide des testeurs et formulaire de retour | à faire |
+| C1 | Extension du socle pour le CERT | à faire |
+| C2 | Lecture des journaux et jeu de démo | à faire |
+| C3 | Règles et moteur de détection | à faire |
+| C4 | Indicateurs et garde-fous du récit | à faire |
+| C5 | Workflow incident, service, calibrage | à faire |
+| C6 | Rapport d'incident, CLI, hors ligne | à faire |
 
 ## Écarts à arbitrer
 

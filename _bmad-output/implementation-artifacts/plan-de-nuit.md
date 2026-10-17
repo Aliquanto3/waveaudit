@@ -8,6 +8,7 @@ Orchestrateur : une session principale neuve (`/clear`), qui lit seulement ce fi
 - `_bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/ARCHITECTURE-SPINE.md`
 - `_bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/contrats.md` (normatif)
 - L'entrée de la story dans `_bmad-output/specs/spec-waveaudit-poc/stories.yaml` (`description` et `invoke_dev_with`)
+- Stories C1 à C6 : en plus, `_bmad-output/specs/spec-waveaudit-cert/SPEC.md` et `formats-incident.md` ; leurs entrées sont dans `_bmad-output/specs/spec-waveaudit-cert/stories.yaml` ; AD-17 et contrats §21.
 
 ## Vagues
 
@@ -21,7 +22,15 @@ Orchestrateur : une session principale neuve (`/clear`), qui lit seulement ce fi
 | E | 12 | Opus | seule ; puis **suite complète** |
 | F | 13, 14 | Sonnet | en parallèle |
 | G | 15 | Sonnet | après 13 (même fichier `cli.py`) |
-| H | 16 | Sonnet | puis **suite complète finale** |
+| H | 16 | Sonnet | puis **suite complète** : fin du MVP |
+| I | V1 | Opus | seule ; seule story autorisée à télécharger (`installer --candidats`) |
+| J | V2 | Opus | seule ; longue (bancs réels) |
+| K | D1, D2 | Sonnet | en parallèle ; après intégration de D2 et push, vérifier le run CI (`gh run watch`) |
+| L | D3 | Sonnet | seule (README partagé avec D2) ; puis **suite complète** |
+| M | C1 | Opus | seule ; modifie le socle (AD-17) |
+| N | C2, C3, C4 | Sonnet | en parallèle |
+| O | C5 | Opus | seule |
+| P | C6 | Sonnet | puis **suite complète finale** et bilan |
 
 ## Boucle par story (appels bloquants, une passe de revue)
 
@@ -41,11 +50,22 @@ Orchestrateur : une session principale neuve (`/clear`), qui lit seulement ce fi
 - Si une story échoue deux fois (tests rouges après la revue, ou fichier du socle à modifier) : la marquer `bloquée` dans `etat-de-nuit.md` avec la raison et passer aux stories qui ne dépendent pas d'elle. Ne jamais contourner une règle d'AD pour faire passer un test.
 - Si la suite complète est rouge sur `main` après une vague : un dev-story de correction (Sonnet) dont le prompt nomme les tests en échec, avant la vague suivante.
 - Push de `main` seulement après une story revue, intégrée et verte ; jamais de `--force`, aucune PR, aucune autre branche poussée. Aucun autre appel réseau sortant hors `uv sync` ; aucun téléchargement de modèles (`installer` n'est jamais lancé la nuit).
+- Phases après le MVP : la vague I ne démarre que si les stories 1 à 16 sont toutes intégrées et la suite verte. Si une story du MVP est bloquée, faire quand même K et L (indépendantes du vrai moteur), puis M à P si 12 et 13 sont intégrées.
+- V1 et V2 lancent de vrais processus longs : commandes en tâche de fond ou découpées en runs de moins de 10 min ; jamais plus d'un llama-server à la fois (attendre la fin d'une story V avant d'en lancer une autre).
+- Les tests `slow` restent hors de la suite par défaut ; la suite complète n'appelle jamais le vrai moteur.
+- Si un push sur `.github/workflows/` est refusé (droit `workflow` du jeton), marquer D2 `bloquée : push refusé` et continuer.
 - Ne pas modifier SPEC, spine ni `contrats.md`. Un écart nécessaire est consigné dans `etat-de-nuit.md` (section « Écarts à arbitrer »).
 
 ## État
 
 `_bmad-output/implementation-artifacts/etat-de-nuit.md` : une ligne par story (`à faire`, `en cours`, `intégrée <sha>`, `bloquée : raison`), avec le coût si `/agent-cost-kit:mesurer-couts` est disponible en fin de nuit, et la section « Écarts à arbitrer ».
+
+## Fin de nuit (orchestrateur)
+
+Après la vague P, ou quand plus aucune story n'est exécutable :
+1. Suite complète, lint, et `git log --oneline` depuis `f1da6dd`.
+2. Section « Bilan » dans `etat-de-nuit.md` : stories intégrées et bloquées, mesures clés de `bilan-modeles.md`, écarts à arbitrer, et coût (`/agent-cost-kit:mesurer-couts` s'il est disponible).
+3. Ne pas créer de tag ni de release : proposer la version 0.1.0 dans le bilan.
 
 ## Au réveil (Anaël)
 

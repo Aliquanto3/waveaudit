@@ -243,3 +243,99 @@
     et UI, preuve hors ligne (tests, SBOM, SHA-256), choix et licences des
     modèles, banc, limites du POC, bandeau démonstration. Lancer la suite
     complète, ruff check et format.
+- id: "V1"
+  title: Validation sur le vrai moteur et compatibilité JSON
+  description: >-
+    Installe réellement llama-server et les modèles, fait passer les tests
+    slow sur le vrai moteur, et corrige la compatibilité de la sortie JSON
+    contrainte (contrats §22).
+  invoke_dev_with: >-
+    Seule story autorisée à télécharger : `uv run waveaudit installer
+    --candidats` (environ 3,4 Go, en tâche de fond si besoin, timeout Bash
+    600000 ms et relance si interrompu ; l'installation reprend les fichiers
+    déjà valides). Si le zip de llama-server n'a pas `llama-server.exe` à la
+    racine, corriger `executable` dans config/artefacts.toml. Lancer
+    `uv run pytest -m slow -q --tb=short` pour le modèle par défaut, puis,
+    pour chacun des 4 modèles, un lot réel de 2 notes de démo
+    (`uv run waveaudit fiches <dossier de 2 notes> --modele <nom>`).
+    Observer : JSON valide, rubriques en français, temps par fiche, fiches
+    `a_revoir` et leurs motifs. Si json_schema échoue pour un modèle,
+    implémenter §22 (socle modifiable pour ce seul point : configuration,
+    waveaudit.toml, manifeste, moteur_openai, tests) et régler `mode_json`
+    dans l'entrée du manifeste concernée. Consigner les mesures brutes dans
+    _bmad-output/implementation-artifacts/validation-moteur.md (machine :
+    processeur, RAM, via psutil ; ce n'est pas l'EliteBook). Aucun autre
+    téléchargement. Les tests non slow restent verts.
+- id: "V2"
+  title: Banc des 4 modèles et réglage du prompt
+  description: >-
+    Mesure les 4 modèles sur des notes de démo, règle le prompt et les
+    paramètres d'échantillonnage du modèle par défaut, et rédige le bilan.
+  invoke_dev_with: >-
+    Pour chaque modèle : `waveaudit banc` sur un sous-dossier de 6 notes de
+    démo variées (copiées sous var/banc-sous-ensemble/, un run de moins de
+    10 min, sinon 4 notes). Puis, sur le modèle par défaut, au plus
+    3 itérations de réglage : prompt.py (consigne système, exemples
+    éventuels), temperature, max_tokens. Mesurer à chaque itération : taux
+    de fiches ok, motifs, durée médiane. Relire soi-même 6 fiches
+    (fidélité aux notes, français professionnel, absence d'invention) et
+    noter chaque fiche « utilisable / retouches légères / à refaire ». Ne
+    garder un réglage que s'il améliore les mesures sans casser les tests ;
+    seuls workflows/fiches/prompt.py, les défauts [moteur] temperature et
+    max_tokens de config/waveaudit.toml (exception autorisée au socle) et
+    leurs tests peuvent changer. Si un autre modèle est nettement meilleur,
+    ne pas changer les rôles : le recommander dans le bilan.
+    Bilan : _bmad-output/implementation-artifacts/bilan-modeles.md (tableau
+    par modèle : durée médiane et maximale par fiche, pic RSS app, moteur et
+    total, taux ok, top1 et top3, appréciation qualitative ; réglages
+    retenus ; recommandation pour l'EliteBook).
+- id: "D1"
+  title: Catalogue élargi et notes difficiles
+  description: >-
+    Porte le catalogue à au moins 50 constats et ajoute 10 notes de
+    démonstration plus difficiles (21 à 30), avec mesure du rattachement.
+  invoke_dev_with: >-
+    Ajouts seulement (ne pas réécrire les 35 constats existants ni les
+    notes 01 à 20) : 15 constats ou plus dans les familles existantes
+    (web : JWT faible, clickjacking, SSTI, GraphQL introspection ; ad :
+    ACL dangereuses, ADCS ESC1, comptes inactifs privilégiés ; infra :
+    IPMI, NFS exporté, services de gestion exposés ; config : sauvegardes
+    exposées, CORS de debug ; crypto : secrets dans le code, chiffrement
+    faible au repos ; autre : absence de MFA), mêmes règles que la story 4.
+    Notes 21 à 30 : formulations ambiguës, plusieurs vulnérabilités voisines,
+    sorties d'outils brutes (nmap, BloodHound, testssl), fautes de frappe.
+    Étendre test_rattachement_demo : seuils inchangés sur 01 à 20 ; sur
+    21 à 30, mesurer et afficher top1 et top3 (test non bloquant, marqué
+    xfail strict=False si le score est sous 7 sur 10 en top 3). Les
+    contraintes de la story 11 s'appliquent.
+- id: "D2"
+  title: Intégration continue GitHub Actions
+  description: >-
+    Ajoute une CI Windows qui lance le lint et les tests non slow à chaque
+    push sur main, et vérifie qu'elle passe.
+  invoke_dev_with: >-
+    Fichier .github/workflows/ci.yml : runs-on windows-latest, checkout,
+    astral-sh/setup-uv épinglé sur un tag de version vérifié avec `gh api`
+    (repos/astral-sh/setup-uv/releases/latest), `uv sync --locked`,
+    `uv run ruff check`, `uv run ruff format --check`,
+    `uv run pytest -q --tb=short -p no:warnings`. Déclencheurs : push sur
+    main et workflow_dispatch. Permissions `contents: read`. Après
+    intégration et push par l'orchestrateur, celui-ci vérifie le run avec
+    `gh run list --limit 1` puis `gh run watch` ; en cas d'échec, une
+    story de correction. Ajouter le badge CI en tête du README.
+- id: "D3"
+  title: Guide des testeurs et formulaire de retour
+  description: >-
+    Rédige le guide d'installation et de test pour les collègues, et un
+    formulaire de retour qui alimente le critère de qualité de la spec.
+  invoke_dev_with: >-
+    docs/guide-testeurs.md (français, une page et demie au plus) : prérequis,
+    installation pas à pas avec durées, premier lot sur les notes de démo,
+    ouverture du rapport, écriture de ses propres notes fictives (format),
+    lancement de l'UI, que faire si c'est lent ou bloqué, ce qui sort ou
+    non du poste. .github/ISSUE_TEMPLATE/retour-testeur.md : machine,
+    temps d'installation, temps par fiche, pour chaque fiche jugée la note
+    « utilisable / retouches légères / à refaire », un entrant (besoin,
+    idée, constat type manquant). Lien vers le guide dans le README.
+    Vérifier chaque commande du guide sur cette machine (sauf installer si
+    V1 ne l'a pas fait).

@@ -8,7 +8,7 @@ Cadrage : `_bmad-output/forge/slm-edge-consultants-cyber/forged-idea.md` (décis
 - Pas de charte ni de logo Wavestone dans le dépôt public : ils vont dans `theme-prive/` (ignoré par git).
 
 ## Contrat de développement
-Spec : `_bmad-output/specs/spec-waveaudit-poc/` (SPEC.md, formats.md, stories.yaml). Architecture : `_bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/` (ARCHITECTURE-SPINE.md, contrats.md normatif). Exécution : `_bmad-output/implementation-artifacts/plan-de-nuit.md`.
+Spec : `_bmad-output/specs/spec-waveaudit-poc/` (SPEC.md, formats.md, stories.yaml) ; CERT : `_bmad-output/specs/spec-waveaudit-cert/`. Architecture : `_bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/` (ARCHITECTURE-SPINE.md, contrats.md normatif). Exécution : `_bmad-output/implementation-artifacts/plan-de-nuit.md`.
 Ne pas modifier les fichiers du socle (AD-0) hors story dédiée ; aucun test sur le vrai modèle ni le réseau hors marqueur `slow`.
 
 ## Commandes
