@@ -61,7 +61,9 @@ def _retirer_references_inventees(
     nettoye = _REGEX_REFERENCES.sub(_remplacer, texte)
     nettoye = re.sub(r"\(\s*\)", "", nettoye)
     nettoye = re.sub(r"\[\s*\]", "", nettoye)
-    nettoye = re.sub(r"\s+", " ", nettoye).strip()
+    # Espaces horizontaux normalisés ; les sauts de ligne (listes, paragraphes) sont conservés.
+    nettoye = re.sub(r"[^\S\n]+", " ", nettoye)
+    nettoye = re.sub(r" *\n *", "\n", nettoye).strip()
     return nettoye, jetons_retires
 
 
@@ -120,10 +122,9 @@ def appliquer(
     for nom in RUBRIQUES:
         texte = rubriques[nom]
         if len(texte) < _LONGUEUR_MIN_RUBRIQUE:
-            rubriques[nom] = textes_constat[nom]
+            texte = textes_constat[nom]
             motifs.append(Motif(code=CodeMotif.RUBRIQUE_COMPLETEE, detail=nom))
-        elif len(texte) > longueur_max:
-            rubriques[nom] = texte[:longueur_max]
+        rubriques[nom] = texte[:longueur_max]
 
     statut = Statut.A_REVOIR if motifs else Statut.OK
 

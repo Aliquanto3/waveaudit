@@ -194,3 +194,25 @@ def test_constat_attendu_transmis_dans_la_tracabilite():
         1200,
     )
     assert fiche.tracabilite.constat_attendu == "WEB-XSS-REFLECHI"
+
+
+def test_texte_du_constat_tronque_a_longueur_max():
+    sortie = _sortie_nominale()
+    sortie["impact"] = "court"
+    fiche = appliquer(sortie, _constat(), _note(), _candidats(), 30)
+    assert fiche.impact == _constat().impact[:30]
+    assert all(
+        len(getattr(fiche, nom)) <= 30
+        for nom in ("titre", "description", "impact", "recommandation")
+    )
+
+
+def test_sauts_de_ligne_conserves_apres_nettoyage():
+    sortie = _sortie_nominale()
+    sortie["recommandation"] = (
+        "Mesures :\n- échapper la sortie   HTML (CWE-80) ;\n- poser une CSP stricte."
+    )
+    fiche = appliquer(sortie, _constat(), _note(), _candidats(), 1200)
+    assert (
+        fiche.recommandation == "Mesures :\n- échapper la sortie HTML ;\n- poser une CSP stricte."
+    )
