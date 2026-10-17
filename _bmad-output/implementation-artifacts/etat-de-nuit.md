@@ -27,9 +27,9 @@
 | C2 | Lecture des journaux et jeu de démo | intégrée 3d08938 (revue : revues/story-C2.md ; oracle vérifié contre le vrai moteur : 16 détections, 16 indicateurs ; suite complète de vague N : 601 verte, lint OK) |
 | C3 | Règles et moteur de détection | intégrée bcbd3d7 (revue : revues/story-C3.md ; fenêtre glissante O(n), 50 000 événements en ~1,3 s) |
 | C4 | Indicateurs et garde-fous du récit | intégrée b9180c2 (revue : revues/story-C4.md) |
-| C5 | Workflow incident, service, calibrage | en cours |
+| C5 | Workflow incident, service, calibrage | intégrée b619497 (revue : revues/story-C5.md ; démo = oracle, 16 détections) |
 | C6a | Rapport d'incident Word | intégrée 6b45695 (revue : revues/story-C6a.md) |
-| C6b | CLI incident, hors ligne, README | à faire |
+| C6b | CLI incident, hors ligne, README | en cours |
 
 ## Arbitrages d'Anaël (2026-10-17, soir)
 
@@ -55,4 +55,5 @@
 - Story C1 (à trancher dans le §21) : les motifs normatifs MOTIF_TECHNIQUE, MOTIF_IPV4 et MOTIF_HACHAGE (lookahead `(?![d.])`) ratent un jeton suivi d’un point final, et MOTIF_IPV6 avale ce point. Une technique ou une IP inventée en fin de phrase passerait donc les garde-fous du récit (CAP-5). Motifs inchangés. Décision de nuit (orchestrateur) : C4 applique les motifs sur une copie du texte de même longueur où chaque « . » suivi d’un blanc ou de la fin est remplacé par une espace (traitement proposé par la revue C1), et le consigne. Autre point : `ouvrir_moteur_incident(..., *, id_lot=None)` (mot-clé ajouté, comme `ouvrir`).
 - Story C6a : `ExporteurIncidentDocx(max_preuves=…)` prend la borne au constructeur (C5 la passe depuis `[incident]`) ; la mention « ligne = rang d’objet » (JSON) est un paragraphe sous le tableau, faute de précision dans formats-incident.md. Pour C5 : `-o` sur un fichier verrouillé doit sortir en code 4.
 - Story C4 : neutralisation du point final élargie (point suivi d’un blanc, d’une ponctuation fermante ou séparatrice, ou de la fin ; jamais devant un chiffre), même longueur de texte. Conforme à la lettre du §21 mais à noter : des séquences de prose comme « A::B » sont des IPv6 valides et sont retirées (motif INDICATEUR_RETIRE). Reporté : fragments résiduels après retrait (« (.) », « :443 », « /24 »), le §21 étape 4 ne prévoit rien.
+- Story C5 : `assembler_rapport(lecture, recits, regles)` prend 3 arguments (le §21 en donne 2), car `Recit` ne porte pas la recommandation type. Dette : `application/incident.py` importe des noms privés de `lot.py` (`_ID_LOT`, `_Emetteur`, `_sans_chemin`, `_sorties`) ; des tests figent leur comportement ; à rendre publics dans une story de socle. Pas de coupe-circuit si le moteur tombe en cours de lot (conforme à AD-6).
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
