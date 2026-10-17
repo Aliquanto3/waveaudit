@@ -31,7 +31,7 @@ def _journal(resultat_ou_dossier) -> list[dict]:
     return [json.loads(ligne) for ligne in texte.splitlines()]
 
 
-def test_lot_nominal_20_notes(config_test, tmp_path):
+def test_lot_nominal_30_notes(config_test, tmp_path):
     recus = []
     copie = tmp_path / "copie.docx"
     resultat = executer_lot(
@@ -42,7 +42,7 @@ def test_lot_nominal_20_notes(config_test, tmp_path):
     assert sortie == config_test.chemins.var / "sorties" / resultat.id_lot
     rapport = Rapport.model_validate_json((sortie / "fiches.json").read_text(encoding="utf-8"))
     assert rapport == resultat.rapport
-    assert len(rapport.fiches) + len(rapport.ecartees) == 20
+    assert len(rapport.fiches) + len(rapport.ecartees) == 30
     assert resultat.chemin_rapport == sortie / "rapport.docx"
     Document(str(resultat.chemin_rapport))
     assert copie.read_bytes() == resultat.chemin_rapport.read_bytes()
@@ -52,15 +52,15 @@ def test_lot_nominal_20_notes(config_test, tmp_path):
     types = [e["type"] for e in evenements]
     assert types[0] == T.LOT_DEMARRE and types[-1] == T.LOT_TERMINE
     demarre = evenements[0]
-    assert demarre["total"] == 20
+    assert demarre["total"] == 30
     assert demarre["details"] == {
         "id_lot": resultat.id_lot,
         "modele": "externe",
         "pid_moteur": None,
     }
     fiches = evenements[1:-1]
-    assert len(fiches) == 40
-    for i in range(20):
+    assert len(fiches) == 60
+    for i in range(30):
         debut, fin = fiches[2 * i], fiches[2 * i + 1]
         assert debut["type"] == T.FICHE_DEMARREE and debut["index"] == i + 1
         assert fin["index"] == i + 1 and fin["note"] == debut["note"]

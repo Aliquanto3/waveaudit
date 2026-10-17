@@ -75,21 +75,29 @@ def _trouver(resultats: list[Note | NoteInvalide], nom: str) -> Note | NoteInval
 # --- Notes de démonstration (contrats §16) ----------------------------------------------------
 
 
-def test_les_20_notes_de_demonstration_sont_valides():
+def test_les_30_notes_de_demonstration_sont_valides():
     resultats = NotesFichiers().lire(DOSSIER_DEMO)
-    assert len(resultats) == 20
+    assert len(resultats) == 30
     assert all(isinstance(r, Note) for r in resultats)
 
 
-def test_les_20_notes_ont_un_constat_attendu_distinct_et_fige():
+def test_les_30_notes_ont_un_constat_attendu_distinct_et_existant():
     notes = NotesFichiers().lire(DOSSIER_DEMO)
     attendus = [n.constat_attendu for n in notes]
     assert all(a is not None for a in attendus)
-    assert len(set(attendus)) == 20
-    assert set(attendus) <= IDENTIFIANTS_FIGES
+    assert len(set(attendus)) == 30
+    catalogue = {c.id for c in CatalogueYaml(racine_projet() / "donnees" / "catalogue").constats()}
+    assert set(attendus) <= catalogue, set(attendus) - catalogue
 
 
-def test_les_20_notes_couvrent_les_familles_minimales():
+def test_les_20_premieres_notes_ont_un_constat_attendu_fige():
+    notes = NotesFichiers().lire(DOSSIER_DEMO)
+    attendus_01_20 = [n.constat_attendu for n in notes if int(n.fichier.split("-", 1)[0]) <= 20]
+    assert len(attendus_01_20) == 20
+    assert set(attendus_01_20) <= IDENTIFIANTS_FIGES
+
+
+def test_les_30_notes_couvrent_les_familles_minimales():
     notes = NotesFichiers().lire(DOSSIER_DEMO)
     par_famille: dict[str, int] = {}
     for note in notes:
@@ -142,7 +150,7 @@ def test_note_hors_sujet_n_a_aucun_jeton_du_catalogue():
     assert _score_max(hors_sujet) <= 0.0
 
 
-def test_les_20_notes_de_demonstration_sont_rattachables():
+def test_les_30_notes_de_demonstration_sont_rattachables():
     for note in NotesFichiers().lire(DOSSIER_DEMO):
         assert _score_max(note) > 0.0, note.fichier
 

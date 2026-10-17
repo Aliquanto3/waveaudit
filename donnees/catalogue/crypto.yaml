@@ -86,3 +86,59 @@
       titre: Use of a Broken or Risky Cryptographic Algorithm
       url: https://cwe.mitre.org/data/definitions/327.html
   source: "Rédaction WaveAudit d'après CWE-327, licence du dépôt"
+
+- id: CRYPTO-SECRET-DANS-LE-CODE
+  titre: Clé cryptographique codée en dur dans le code source
+  famille: crypto
+  mots_cles:
+    - secret dans le code
+    - clé cryptographique codée en dur
+    - hardcoded cryptographic key
+    - clé de chiffrement versionnée
+    - secret présent dans le dépôt git
+    - clé statique partagée
+    - git history secret
+  description: >-
+    Une clé de chiffrement ou de signature est écrite en dur dans le code
+    source et versionnée avec le dépôt, identique pour tous les
+    déploiements de l'application.
+  impact: >-
+    Déchiffrement ou falsification de données protégées par quiconque
+    accède au code source, y compris via l'historique du dépôt.
+  recommandation: >-
+    Générer une clé par environnement, la fournir via un gestionnaire de
+    secrets et purger les clés versionnées de l'historique du dépôt.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
+  references:
+    - id: CWE-321
+      titre: Use of Hard-coded Cryptographic Key
+      url: https://cwe.mitre.org/data/definitions/321.html
+  source: "Rédaction WaveAudit d'après CWE-321, licence du dépôt"
+
+- id: CRYPTO-CHIFFREMENT-FAIBLE-AU-REPOS
+  titre: Données sensibles non chiffrées ou faiblement chiffrées au repos
+  famille: crypto
+  mots_cles:
+    - chiffrement faible au repos
+    - données non chiffrées au repos
+    - encryption at rest
+    - base de données en clair
+    - disque non chiffré
+    - algorithme de chiffrement obsolète au repos
+    - volume non protégé
+  description: >-
+    Des données sensibles sont stockées sans chiffrement, ou avec un
+    algorithme de chiffrement obsolète, sur le disque, la base de données
+    ou le support de sauvegarde.
+  impact: >-
+    Divulgation des données sensibles en cas d'accès physique au support
+    ou de vol d'une sauvegarde, sans qu'aucun chiffrement ne les protège.
+  recommandation: >-
+    Chiffrer les données sensibles au repos avec un algorithme à jour et
+    gérer les clés séparément du support de stockage.
+  cvss_vecteur: CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+  references:
+    - id: CWE-311
+      titre: Missing Encryption of Sensitive Data
+      url: https://cwe.mitre.org/data/definitions/311.html
+  source: "Rédaction WaveAudit d'après CWE-311, licence du dépôt"

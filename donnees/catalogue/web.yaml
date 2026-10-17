@@ -511,3 +511,136 @@
       titre: Software and Data Integrity Failures
       url: https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/
   source: "Rédaction WaveAudit d'après CWE-502 et OWASP Top 10 A08:2021, licence du dépôt"
+
+- id: WEB-JWT-FAIBLE
+  titre: Jeton JWT signé avec un secret faible ou prévisible
+  famille: web
+  mots_cles:
+    - jwt faible
+    - weak jwt secret
+    - clé de signature jwt
+    - algorithme none
+    - jwt cracké
+    - jwt secret brute force
+    - hs256 secret court
+    - falsification de jeton
+    - token forgé
+  description: >-
+    Le jeton JWT est signé avec un secret court, par défaut ou devinable, ou
+    l'application accepte l'algorithme `none`, ce qui permet de casser la
+    signature ou de fabriquer un jeton accepté comme authentique.
+  impact: >-
+    Usurpation de n'importe quelle identité ou élévation de privilèges par
+    falsification d'un jeton accepté comme valide.
+  recommandation: >-
+    Utiliser un secret long et aléatoire (ou une clé asymétrique), rejeter
+    l'algorithme `none` et vérifier explicitement l'algorithme attendu côté
+    serveur.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:N
+  references:
+    - id: CWE-347
+      titre: Improper Verification of Cryptographic Signature
+      url: https://cwe.mitre.org/data/definitions/347.html
+    - id: "A02:2021"
+      titre: Cryptographic Failures
+      url: https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
+  source: "Rédaction WaveAudit d'après CWE-347 et OWASP Top 10 A02:2021, licence du dépôt"
+
+- id: WEB-CLICKJACKING
+  titre: Détournement de clic par superposition de cadre (clickjacking)
+  famille: web
+  mots_cles:
+    - clickjacking
+    - détournement de clic
+    - iframe invisible
+    - superposition de cadre
+    - x-frame-options absent
+    - frame-ancestors
+    - ui redress attack
+    - cadre transparent
+  description: >-
+    La page sensible ne définit pas de protection contre son affichage dans
+    un cadre (`X-Frame-Options` ou `frame-ancestors`), ce qui permet de la
+    superposer, invisible, sur une page piégée pour détourner les clics de
+    la victime.
+  impact: >-
+    Exécution d'actions sensibles à l'insu de la victime, qui croit cliquer
+    sur un élément inoffensif de la page piégée.
+  recommandation: >-
+    Définir l'en-tête `Content-Security-Policy: frame-ancestors` (ou
+    `X-Frame-Options`) sur les pages sensibles pour interdire leur inclusion
+    dans un cadre tiers.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:N
+  references:
+    - id: CWE-1021
+      titre: Improper Restriction of Rendered UI Layers or Frames
+      url: https://cwe.mitre.org/data/definitions/1021.html
+    - id: "A05:2021"
+      titre: Security Misconfiguration
+      url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+  source: "Rédaction WaveAudit d'après CWE-1021 et OWASP Top 10 A05:2021, licence du dépôt"
+
+- id: WEB-SSTI
+  titre: Injection de modèle côté serveur (SSTI)
+  famille: web
+  mots_cles:
+    - ssti
+    - server-side template injection
+    - moteur de template
+    - jinja2 injection
+    - expression de template évaluée
+    - exécution de code via template
+    - tplmap
+    - payload d'évaluation arithmétique
+  description: >-
+    Une entrée utilisateur est insérée directement dans un gabarit évalué
+    par le moteur de template côté serveur, ce qui permet d'exécuter des
+    expressions voire du code arbitraire.
+  impact: >-
+    Exécution de code arbitraire sur le serveur, selon les capacités du
+    moteur de template utilisé.
+  recommandation: >-
+    Ne jamais construire de gabarit à partir d'une entrée utilisateur ;
+    passer les données en paramètres du template plutôt qu'en code de
+    template.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
+  references:
+    - id: CWE-1336
+      titre: Improper Neutralization of Special Elements Used in a Template Engine
+      url: https://cwe.mitre.org/data/definitions/1336.html
+    - id: "A03:2021"
+      titre: Injection
+      url: https://owasp.org/Top10/A03_2021-Injection/
+  source: "Rédaction WaveAudit d'après CWE-1336 et OWASP Top 10 A03:2021, licence du dépôt"
+
+- id: WEB-GRAPHQL-INTROSPECTION
+  titre: Introspection GraphQL accessible en production
+  famille: web
+  mots_cles:
+    - introspection graphql
+    - graphql introspection
+    - schéma graphql exposé
+    - requête __schema
+    - graphql voyager
+    - énumération de mutations
+    - champs sensibles exposés
+    - api graphql non restreinte
+  description: >-
+    L'API GraphQL accepte les requêtes d'introspection en production,
+    dévoilant l'intégralité du schéma, des types, des requêtes et des
+    mutations disponibles.
+  impact: >-
+    Facilite la découverte de fonctionnalités et de champs sensibles non
+    documentés, accélérant la préparation d'attaques ciblées sur l'API.
+  recommandation: >-
+    Désactiver l'introspection GraphQL en production ou la restreindre aux
+    environnements de développement authentifiés.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
+  references:
+    - id: CWE-200
+      titre: Exposure of Sensitive Information to an Unauthorized Actor
+      url: https://cwe.mitre.org/data/definitions/200.html
+    - id: "A05:2021"
+      titre: Security Misconfiguration
+      url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+  source: "Rédaction WaveAudit d'après CWE-200 et OWASP Top 10 A05:2021, licence du dépôt"

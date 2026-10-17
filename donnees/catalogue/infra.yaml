@@ -137,3 +137,91 @@
       titre: Channel Accessible by Non-Endpoint
       url: https://cwe.mitre.org/data/definitions/300.html
   source: "Rédaction WaveAudit d'après CWE-300, licence du dépôt"
+
+- id: INFRA-IPMI-EXPOSE
+  titre: Interface de gestion IPMI exposée sans restriction
+  famille: infra
+  mots_cles:
+    - ipmi exposé
+    - interface de gestion hors bande
+    - cipher zero
+    - identifiants ipmi par défaut
+    - bmc accessible
+    - ipmitool
+    - prise de contrôle hors bande
+  description: >-
+    L'interface de gestion hors bande IPMI (BMC) est accessible depuis un
+    réseau non restreint, parfois avec des identifiants par défaut ou le
+    chiffrement `cipher 0` désactivant l'authentification.
+  impact: >-
+    Prise de contrôle complète du serveur sous-jacent, indépendamment du
+    système d'exploitation, via l'interface de gestion hors bande.
+  recommandation: >-
+    Isoler le réseau de gestion IPMI, changer les identifiants par défaut
+    et désactiver les suites de chiffrement non authentifiées.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
+  references:
+    - id: CWE-306
+      titre: Missing Authentication for Critical Function
+      url: https://cwe.mitre.org/data/definitions/306.html
+  source: "Rédaction WaveAudit d'après CWE-306, licence du dépôt"
+
+- id: INFRA-NFS-EXPORTE
+  titre: Partage NFS exporté sans restriction d'accès
+  famille: infra
+  mots_cles:
+    - nfs exporté
+    - nfs export non restreint
+    - showmount
+    - no_root_squash
+    - partage accessible à tous
+    - accès réseau large aux partages
+    - montage nfs anonyme
+  description: >-
+    Un partage NFS est exporté vers un réseau large, voire sans
+    restriction de client, parfois avec l'option `no_root_squash` qui
+    conserve les droits root du client sur le serveur.
+  impact: >-
+    Lecture ou modification de fichiers partagés par un client non
+    autorisé, voire élévation de privilèges sur le serveur via
+    `no_root_squash`.
+  recommandation: >-
+    Restreindre les exports NFS aux hôtes nécessaires, retirer
+    `no_root_squash` sauf besoin justifié, et préférer une authentification
+    Kerberos lorsque c'est possible.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
+  references:
+    - id: CWE-668
+      titre: Exposure of Resource to Wrong Sphere
+      url: https://cwe.mitre.org/data/definitions/668.html
+  source: "Rédaction WaveAudit d'après CWE-668, licence du dépôt"
+
+- id: INFRA-SERVICE-GESTION-EXPOSE
+  titre: Interface de gestion d'équipement exposée sur le réseau
+  famille: infra
+  mots_cles:
+    - service de gestion exposé
+    - interface d'administration accessible
+    - console de gestion exposée
+    - management interface exposed
+    - accès réseau non restreint à l'administration
+    - port de gestion ouvert
+    - équipement d'infrastructure administrable à distance
+  description: >-
+    Une interface d'administration d'équipement (console de gestion de
+    serveur, hyperviseur, équipement réseau) est accessible depuis un
+    réseau plus large que celui destiné à l'administration.
+  impact: >-
+    Expose l'interface aux attaques par force brute ou à l'exploitation de
+    vulnérabilités connues, avec un impact direct sur l'infrastructure
+    gérée.
+  recommandation: >-
+    Restreindre l'accès aux interfaces de gestion à un réseau
+    d'administration dédié, filtré, et accessible uniquement via VPN ou
+    bastion.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H
+  references:
+    - id: CWE-284
+      titre: Improper Access Control
+      url: https://cwe.mitre.org/data/definitions/284.html
+  source: "Rédaction WaveAudit d'après CWE-284, licence du dépôt"
