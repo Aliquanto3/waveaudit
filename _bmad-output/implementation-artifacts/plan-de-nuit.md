@@ -50,7 +50,7 @@ Orchestrateur : une session principale neuve (`/clear`), qui lit seulement ce fi
 - Si une story échoue deux fois (tests rouges après la revue, ou fichier du socle à modifier) : la marquer `bloquée` dans `etat-de-nuit.md` avec la raison et passer aux stories qui ne dépendent pas d'elle. Ne jamais contourner une règle d'AD pour faire passer un test.
 - Si la suite complète est rouge sur `main` après une vague : un dev-story de correction (Sonnet) dont le prompt nomme les tests en échec, avant la vague suivante.
 - Push de `main` seulement après une story revue, intégrée et verte ; jamais de `--force`, aucune PR, aucune autre branche poussée. Aucun autre appel réseau sortant hors `uv sync` ; aucun téléchargement de modèles (`installer` n'est jamais lancé la nuit).
-- Phases après le MVP : la vague I ne démarre que si les stories 1 à 16 sont toutes intégrées et la suite verte. Si une story du MVP est bloquée, faire quand même K et L (indépendantes du vrai moteur), puis M à P si 12 et 13 sont intégrées.
+- Phases après le MVP : la vague I ne démarre que si les stories 1 à 16 sont toutes intégrées et la suite verte. Si une story du MVP est bloquée, faire quand même K et L (indépendantes du vrai moteur), puis M à P seulement si les stories 1 à 16 sont intégrées (prérequis de C1).
 - V1 et V2 lancent de vrais processus longs : commandes en tâche de fond ou découpées en runs de moins de 10 min ; jamais plus d'un llama-server à la fois (attendre la fin d'une story V avant d'en lancer une autre).
 - Les tests `slow` restent hors de la suite par défaut ; la suite complète n'appelle jamais le vrai moteur.
 - Si un push sur `.github/workflows/` est refusé (droit `workflow` du jeton), marquer D2 `bloquée : push refusé` et continuer.
