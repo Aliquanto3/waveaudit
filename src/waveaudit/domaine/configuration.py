@@ -25,6 +25,7 @@ class ConfigMoteur(BaseModel):
     temperature: float = 0.2
     seed: int = 42
     max_tokens: int = 700
+    mode_json: Literal["json_schema", "json_object"] = "json_schema"  # §22
     longueur_max_rubrique: int = 1200
     taille_max_note: int = 6000  # caractères du corps envoyés au modèle
     ctx: int = 4096

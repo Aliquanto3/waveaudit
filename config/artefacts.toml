@@ -1,6 +1,8 @@
 # Manifeste des artefacts installés par `waveaudit installer` (contrats §11, AD-12).
 # `destination` est relatif à var/ : un dossier si extraire = true, sinon le fichier final.
 # `executable` est le chemin de l'exécutable dans `destination`, pour le rôle moteur seulement.
+# Facultatifs, modèles seulement : `mode_json` (§22, prime sur moteur.mode_json) et
+# `reflexion` (false : chat_template_kwargs.enable_thinking = false ; absent : rien n'est envoyé).
 
 [[artefact]]
 nom = "llama-server-b11714"
@@ -43,6 +45,7 @@ destination = "modeles/MiniCPM5-1B-Q4_K_M.gguf"
 extraire = false
 executable = ""
 prefixe_systeme = ""
+reflexion = false            # V1 : réflexion par défaut, content vide (écart au §22)
 
 [[artefact]]
 nom = "qwen3-1.7b-q4km"
@@ -71,3 +74,4 @@ destination = "modeles/Qwen3.5-0.8B-Q4_K_M.gguf"
 extraire = false
 executable = ""
 prefixe_systeme = ""
+reflexion = false            # V1 : réflexion par défaut, content vide (écart au §22)

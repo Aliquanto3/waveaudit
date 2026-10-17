@@ -116,6 +116,7 @@ CHAMPS_ARTEFACT = [
     "executable",
     "prefixe_systeme",
 ]
+CHAMPS_FACULTATIFS = ["mode_json", "reflexion"]
 
 
 def test_manifeste_artefacts():
@@ -136,7 +137,8 @@ def test_manifeste_artefacts():
         "candidat",
     ]
     for artefact in artefacts:
-        assert list(artefact) == CHAMPS_ARTEFACT
+        assert list(artefact)[: len(CHAMPS_ARTEFACT)] == CHAMPS_ARTEFACT
+        assert set(list(artefact)[len(CHAMPS_ARTEFACT) :]) <= set(CHAMPS_FACULTATIFS)
         assert re.fullmatch(r"[0-9a-f]{64}", artefact["sha256"])
         assert isinstance(artefact["taille"], int) and artefact["taille"] > 0
         assert artefact["url"].startswith("https://")
@@ -149,6 +151,12 @@ def test_manifeste_artefacts():
     prefixes = {a["nom"]: a["prefixe_systeme"] for a in artefacts}
     assert prefixes["qwen3-1.7b-q4km"] == "/no_think"
     assert sum(1 for p in prefixes.values() if p) == 1
+    # V1 : réflexion coupée pour les deux modèles qui laissaient `content` vide ; mode_json absent.
+    assert {a["nom"]: a["reflexion"] for a in artefacts if "reflexion" in a} == {
+        "minicpm5-1b-q4km": False,
+        "qwen3.5-0.8b-q4km": False,
+    }
+    assert not any("mode_json" in a for a in artefacts)
 
 
 def test_chemin_relatif_resolu_contre_la_racine(fausse_racine, tmp_path, monkeypatch):

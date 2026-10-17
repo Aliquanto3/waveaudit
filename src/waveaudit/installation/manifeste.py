@@ -6,6 +6,7 @@ dur un chemin sous `var/`.
 
 import tomllib
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -31,6 +32,10 @@ class Artefact(BaseModel):
     extraire: bool
     executable: str
     prefixe_systeme: str
+    # Facultatifs, modèles seulement. `mode_json` (§22) prime sur `moteur.mode_json`.
+    mode_json: Literal["json_schema", "json_object"] | None = None
+    # Écart au §22 (V1, à entériner) : false coupe la réflexion du modèle de discussion.
+    reflexion: bool | None = None
 
 
 def charger(chemin: Path) -> list[Artefact]:
