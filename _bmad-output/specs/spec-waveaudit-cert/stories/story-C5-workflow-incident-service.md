@@ -77,3 +77,18 @@ bénigne). Ni l'oracle, ni les règles, ni la démo ne sont modifiés.
 - Commande `waveaudit incident` : appeler `executer_incident` sous le garde réseau,
   convertir `PermissionError` (export ou copie `-o`) en code 4, codes 2/3 comme `fiches`.
 - README : limites connues (§21), script PowerShell d'export.
+
+## Revue
+
+Revue Opus sur `story-C5-revue` (rebasée sans conflit sur main). Aucun constat medium ni
+high. Complexité : 0 constat (union par dict, dédoublonnage des recommandations borné par
+le nombre de règles, journal en ajout).
+
+| Sévérité | Source | Constat | Décision |
+|---|---|---|---|
+| low | second avis 1 | `incident.json` et la copie `-o` écrits sans fichier provisoire | Corrigé : `_ecrire_atomique` (provisoire voisin puis `os.replace`, comme les exporteurs) ; `PermissionError` sur cible verrouillée conservée pour C6b |
+| low | second avis 2 | `EntreeInvalide` porte le chemin du dossier | Rejeté côté C5 : même message que `executer_lot`, le chemin est celui que l'utilisateur a saisi ; `journal.jsonl` passe par `_sans_chemin` (test ajouté). À C6b d'afficher comme `fiches` |
+| low | second avis 3 | rubrique absente comblée par les garde-fous, sans nouvel essai | Rejeté : conforme au garde-fou 5 du §21 ; consigné dans les écarts |
+| low | second avis 4 | noms privés de `lot.py` importés, `_id_lot` dupliqué | Consigné comme dette pour une story de socle (rendre publics `Emetteur`, `sans_chemin`, la validation d'id) ; tests ajoutés qui cassent si `_ID_LOT`, `_sorties`, `_sans_chemin` changent de comportement |
+| low | second avis 5 | `assembler_rapport` à 3 arguments | Écart nécessaire, consigné (recommandation type absente de `Recit`) |
+| low | second avis 7 | pas de coupe-circuit moteur en cours de lot | Rejeté : conforme AD-6 (repli par détection) |

@@ -5,6 +5,7 @@ moins une détection. `journal.jsonl` est écrit par `journal.JournalLot` (via l
 réutilisé tel quel) avec les `EvenementLot` existants, sans nouveau type.
 """
 
+import os
 import shutil
 import time
 from pathlib import Path
@@ -30,6 +31,16 @@ from waveaudit.workflows.incident.pipeline import assembler_rapport, traiter_det
 INCIDENT_JSON = "incident.json"
 RAPPORT_INCIDENT = "rapport-incident.docx"
 WORKFLOW = "incident"
+
+
+def _ecrire_atomique(chemin: Path, ecrire) -> None:
+    """Écrit par un fichier provisoire voisin puis `os.replace` (comme les exporteurs)."""
+    provisoire = chemin.with_name(f".{chemin.name}.partiel")
+    try:
+        ecrire(provisoire)
+        os.replace(provisoire, chemin)
+    finally:
+        provisoire.unlink(missing_ok=True)
 
 
 def _id_lot(requete: RequeteIncident, config: Configuration) -> str:
@@ -103,13 +114,14 @@ def executer_incident(
                             duree_s=round(time.perf_counter() - chrono, 3),
                         )
             rapport = assembler_rapport(lecture, recits, par_id)
-            (dossier_sortie / INCIDENT_JSON).write_bytes(
-                rapport.model_dump_json(indent=2).encode("utf-8")
-            )
+            contenu = rapport.model_dump_json(indent=2).encode("utf-8")
+            _ecrire_atomique(dossier_sortie / INCIDENT_JSON, lambda p: p.write_bytes(contenu))
             chemin_rapport = dossier_sortie / RAPPORT_INCIDENT
             ports.exporteur.exporter(rapport, chemin_rapport)
             if requete.copie_rapport is not None:
-                shutil.copyfile(chemin_rapport, requete.copie_rapport)
+                _ecrire_atomique(
+                    Path(requete.copie_rapport), lambda p: shutil.copyfile(chemin_rapport, p)
+                )
         except BaseException as erreur:
             emetteur.emettre(
                 TypeEvenement.LOT_ECHOUE,

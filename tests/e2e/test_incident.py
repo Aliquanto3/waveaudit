@@ -202,3 +202,36 @@ def test_dossier_sans_fichier_route(config_test, tmp_path):
         _executer(config_test, dossier)
     (sortie,) = (config_test.chemins.var / "sorties").iterdir()
     assert [e["type"] for e in _journal(sortie)] == [T.LOT_ECHOUE]
+
+
+# Revue C5 : `application.incident` réutilise des noms privés de `lot.py` (`_ID_LOT`,
+# `_Emetteur`, `_sans_chemin`, `_sorties`) ; ces tests cassent si leur comportement change.
+@pytest.mark.parametrize("id_lot", ["../evasion", "-tiret", "a b", "NUL"])
+def test_id_lot_refuse(config_test, id_lot):
+    with pytest.raises(EntreeInvalide):
+        _executer(config_test, id_lot=id_lot)
+
+
+def test_id_lot_fourni_et_sans_fichier_provisoire(config_test, tmp_path):
+    copie = tmp_path / "copie.docx"
+    resultat = _executer(config_test, id_lot="lot-revue-1", copie_rapport=copie)
+    assert resultat.id_lot == "lot-revue-1"
+    assert resultat.dossier_sortie == config_test.chemins.var / "sorties" / "lot-revue-1"
+    assert sorted(p.name for p in resultat.dossier_sortie.iterdir()) == [
+        "incident.json",
+        "journal.jsonl",
+        "rapport-incident.docx",
+    ]
+    assert [p.name for p in tmp_path.iterdir() if p.name.startswith(".")] == []
+    assert copie.read_bytes() == resultat.chemin_rapport.read_bytes()
+
+
+def test_lot_echoue_sans_chemin_absolu(config_test, tmp_path):
+    dossier = tmp_path / "vide"
+    dossier.mkdir()
+    with pytest.raises(EntreeInvalide):
+        _executer(config_test, dossier)
+    (sortie,) = (config_test.chemins.var / "sorties").iterdir()
+    (echec,) = _journal(sortie)
+    assert echec["details"]["erreur"] == "EntreeInvalide"
+    assert str(tmp_path) not in echec["details"]["message"]
