@@ -28,7 +28,7 @@
 | C3 | Règles et moteur de détection | en cours |
 | C4 | Indicateurs et garde-fous du récit | en cours |
 | C5 | Workflow incident, service, calibrage | à faire |
-| C6a | Rapport d'incident Word | en cours |
+| C6a | Rapport d'incident Word | intégrée 6b45695 (revue : revues/story-C6a.md) |
 | C6b | CLI incident, hors ligne, README | à faire |
 
 ## Arbitrages d'Anaël (2026-10-17, soir)
@@ -53,4 +53,5 @@
 - Story 15 : le §20 ne définit pas `pic_rss_total_o` ; la revue retient le maximum de la somme application + moteur prise au même échantillon (pic simultané). À consigner dans le §20.
 - Story 16 (reporté) : le test slow de bout en bout n’a pas été lancé (pas de modèle) ; à lancer en V1.
 - Story C1 (à trancher dans le §21) : les motifs normatifs MOTIF_TECHNIQUE, MOTIF_IPV4 et MOTIF_HACHAGE (lookahead `(?![d.])`) ratent un jeton suivi d’un point final, et MOTIF_IPV6 avale ce point. Une technique ou une IP inventée en fin de phrase passerait donc les garde-fous du récit (CAP-5). Motifs inchangés. Décision de nuit (orchestrateur) : C4 applique les motifs sur une copie du texte de même longueur où chaque « . » suivi d’un blanc ou de la fin est remplacé par une espace (traitement proposé par la revue C1), et le consigne. Autre point : `ouvrir_moteur_incident(..., *, id_lot=None)` (mot-clé ajouté, comme `ouvrir`).
+- Story C6a : `ExporteurIncidentDocx(max_preuves=…)` prend la borne au constructeur (C5 la passe depuis `[incident]`) ; la mention « ligne = rang d’objet » (JSON) est un paragraphe sous le tableau, faute de précision dans formats-incident.md. Pour C5 : `-o` sur un fichier verrouillé doit sortir en code 4.
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
