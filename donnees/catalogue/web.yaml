@@ -10,6 +10,9 @@
     - burp repeater
     - paramètre non échappé
     - alert(1)
+    - parametre renvoye sans echappement dans la reponse
+    - script s'execute dans le navigateur de la victime
+    - lien piege pour detourner la session
   description: >-
     Un paramètre de requête est renvoyé dans la page sans encodage adapté au
     contexte HTML, ce qui permet d'y injecter du script exécuté par le
@@ -76,6 +79,9 @@
     - union select
     - blind sqli
     - time-based injection
+    - concatener la valeur saisie sans parametrage
+    - sleep temporisation reponse lente moteur base de donnees
+    - connecte en admin sans mot de passe valide
   description: >-
     Une entrée utilisateur est concatenée directement dans une requête SQL,
     ce qui permet à un attaquant d'altérer la logique de la requête exécutée
@@ -139,6 +145,9 @@
     - accès horizontal
     - broken object level authorization
     - bola
+    - numero de facture consecutif dans l'url
+    - aucune verification d'appartenance de la ressource
+    - meme session acces aux donnees d'un autre compte
   description: >-
     Un identifiant transmis par le client (numéro de compte, de document) est
     utilisé pour accéder à une ressource sans vérifier que l'utilisateur
