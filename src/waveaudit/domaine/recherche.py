@@ -65,8 +65,8 @@ _MOTS_VIDES: frozenset[str] = frozenset(
         "y",
         "mais",
         "si",
-        "été",
-        "être",
+        "ete",
+        "etre",
         "avoir",
         "fait",
         "faire",
@@ -118,11 +118,13 @@ _MOTS_VIDES: frozenset[str] = frozenset(
 )
 
 _SEPARATEURS = re.compile(r"[^a-z0-9]+")
+# NFKD ne décompose pas ces ligatures : sans cela « œuvre » donnerait « uvre ».
+_LIGATURES = str.maketrans({"œ": "oe", "æ": "ae", "ß": "ss"})
 
 
 def _tokeniser(texte: str) -> list[str]:
     """Minuscules, NFKD sans diacritique, découpage non-alphanumérique, jetons >=2 sans mot vide."""
-    normalise = unicodedata.normalize("NFKD", texte.lower())
+    normalise = unicodedata.normalize("NFKD", texte.lower().translate(_LIGATURES))
     sans_diacritiques = "".join(c for c in normalise if not unicodedata.combining(c))
     jetons = _SEPARATEURS.split(sans_diacritiques)
     return [j for j in jetons if len(j) >= 2 and j not in _MOTS_VIDES]

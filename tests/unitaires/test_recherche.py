@@ -1,7 +1,11 @@
 """Tests de `domaine/recherche.py` (BM25, contrats §7)."""
 
+from math import log
+
+import pytest
+
 from waveaudit.domaine.modeles import ConstatType, Note, Reference
-from waveaudit.domaine.recherche import classer, requete_depuis_note
+from waveaudit.domaine.recherche import _MOTS_VIDES, _tokeniser, classer, requete_depuis_note
 
 _REF = Reference(id="r1", titre="Référence", url="https://example.invalid/r1")
 
@@ -96,3 +100,28 @@ def test_requete_depuis_note_ignore_constat_attendu_et_actif() -> None:
     assert requete_depuis_note(note) == "Titre de la note\ncorps de la note"
     assert "jamais" not in requete_depuis_note(note)
     assert "serveur-x" not in requete_depuis_note(note)
+
+
+def test_mots_vides_deja_normalises_et_filtres() -> None:
+    # La liste est comparée après normalisation : une entrée accentuée serait inerte.
+    assert all(_tokeniser(m) in ([m], []) for m in _MOTS_VIDES)
+    assert _tokeniser("Il a été ÊTRE") == []
+
+
+def test_accents_et_ligatures() -> None:
+    assert _tokeniser("DÉFAUT d’accès") == ["defaut", "acces"]
+    assert _tokeniser("Mise en œuvre, MANŒUVRE") == _tokeniser("mise en oeuvre, manoeuvre")
+
+
+def test_score_bm25_valeur_calculee_a_la_main() -> None:
+    # c1 : alpha x3, beta x3, gamma -> 7 jetons ; c2 : delta x3, epsilon x3, zeta x3 -> 9.
+    # avgdl = 8 ; "alpha" : N=2, n=1 -> idf = ln(1 + 1.5/1.5) = ln 2 ; tf = 3.
+    # dénominateur = 3 + 1.5 * (0.25 + 0.75 * 7/8) = 4.359375 ; numérateur = 3 * 2.5.
+    catalogue = [
+        _constat("c1", "alpha", ["beta"], "gamma"),
+        _constat("c2", "delta", ["epsilon"], "zeta zeta zeta"),
+    ]
+    candidats = classer(catalogue, "alpha", k1=1.5, b=0.75)
+    assert [c.id for c in candidats] == ["c1", "c2"]
+    assert candidats[0].score == pytest.approx(log(2) * 7.5 / 4.359375)
+    assert candidats[1].score == 0.0
