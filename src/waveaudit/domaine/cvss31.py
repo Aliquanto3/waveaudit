@@ -1,0 +1,37 @@
+"""Vecteurs CVSS 3.1 (contrats §6). Seul module autorisé à importer `cvss` (story 3 : `evaluer`)."""
+
+from pydantic import ValidationError
+
+from waveaudit.domaine.erreurs import EntreeInvalide
+from waveaudit.domaine.modeles import MetriquesCvss
+
+PREFIXE = "CVSS:3.1/"
+ORDRE: tuple[str, ...] = tuple(MetriquesCvss.model_fields)  # AV/AC/PR/UI/S/C/I/A
+
+
+def vecteur(m: MetriquesCvss) -> str:
+    """Vecteur canonique : préfixe puis les 8 métriques de base dans l'ordre AV/AC/PR/UI/S/C/I/A."""
+    return PREFIXE + "/".join(f"{nom}:{getattr(m, nom)}" for nom in ORDRE)
+
+
+def metriques_depuis_vecteur(v: str) -> MetriquesCvss:
+    """Lit exactement les 8 métriques de base ; lève EntreeInvalide sinon.
+
+    L'ordre n'est pas imposé ici : `vecteur(metriques_depuis_vecteur(v)) == v` vérifie la forme
+    canonique.
+    """
+    if not isinstance(v, str) or not v.startswith(PREFIXE):
+        raise EntreeInvalide(f"vecteur CVSS 3.1 invalide (préfixe {PREFIXE} attendu) : {v!r}")
+    valeurs: dict[str, str] = {}
+    for morceau in v[len(PREFIXE) :].split("/"):
+        nom, separateur, valeur = morceau.partition(":")
+        if not separateur or nom not in ORDRE or nom in valeurs:
+            raise EntreeInvalide(f"vecteur CVSS 3.1 invalide (métrique {morceau!r}) : {v!r}")
+        valeurs[nom] = valeur
+    if len(valeurs) != len(ORDRE):
+        manquantes = ", ".join(nom for nom in ORDRE if nom not in valeurs)
+        raise EntreeInvalide(f"vecteur CVSS 3.1 invalide (manque {manquantes}) : {v!r}")
+    try:
+        return MetriquesCvss(**valeurs)
+    except ValidationError as erreur:
+        raise EntreeInvalide(f"vecteur CVSS 3.1 invalide (valeur hors enum) : {v!r}") from erreur
