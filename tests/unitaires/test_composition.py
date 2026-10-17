@@ -189,3 +189,38 @@ def test_ouvrir_moteur_incident_local_gere(config_test, artefacts, monkeypatch):
         assert prefixe == manifeste.par_nom(artefacts, "granite-4.0-1b-q4km").prefixe_systeme
         assert serveur.args[-1].name == "llama-server-20261017-130000.log"
     assert not serveur.ouvert
+
+
+# --- §22 mode_json et réflexion (V1) ---------------------------------------------------------
+
+
+def test_reflexion_du_manifeste_transmise_en_local_gere(config_test, artefacts, monkeypatch):
+    monkeypatch.setattr(composition, "LlamaServer", _FauxServeur)
+    config = _local(config_test)
+    _installer(config, artefacts, "llama-server-b11714", "minicpm5-1b-q4km", "granite-4.0-1b-q4km")
+    with composition.ouvrir(config, "minicpm5-1b-q4km") as (ports, _):
+        assert ports.moteur._reflexion is False
+        assert ports.moteur._mode_json == "json_schema"
+    with composition.ouvrir(config, "granite-4.0-1b-q4km") as (ports, _):
+        assert ports.moteur._reflexion is None
+
+
+def test_mode_json_du_manifeste_prime_sur_la_configuration(config_test, artefacts):
+    granite = manifeste.par_nom(artefacts, "granite-4.0-1b-q4km")
+    objet = config_test.model_copy(
+        update={"moteur": config_test.moteur.model_copy(update={"mode_json": "json_object"})}
+    )
+    url = "http://127.0.0.1:9/v1"
+    assert composition._moteur(objet, url, "m", granite)._mode_json == "json_object"
+    schema = granite.model_copy(update={"mode_json": "json_schema"})
+    assert composition._moteur(objet, url, "m", schema)._mode_json == "json_schema"
+    assert composition._moteur(config_test, url, "m", granite)._mode_json == "json_schema"
+
+
+def test_externe_mode_json_de_la_configuration_sans_reflexion(config_test):
+    config = config_test.model_copy(
+        update={"moteur": config_test.moteur.model_copy(update={"mode_json": "json_object"})}
+    )
+    with composition.ouvrir_moteur_incident(config, "m") as (moteur, _, _):
+        assert moteur._mode_json == "json_object"
+        assert moteur._reflexion is None

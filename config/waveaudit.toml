@@ -9,6 +9,7 @@ timeout_s = 180.0
 temperature = 0.2
 seed = 42
 max_tokens = 700
+mode_json = "json_schema"    # §22 : "json_schema" | "json_object" ; le manifeste prime
 longueur_max_rubrique = 1200
 taille_max_note = 6000       # caractères du corps envoyés au modèle
 ctx = 4096

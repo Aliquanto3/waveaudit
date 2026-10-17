@@ -48,7 +48,10 @@ def choisir_modele(
     return manifeste.par_role(artefacts, "modele_defaut")
 
 
-def _moteur(config: Configuration, base_url: str, modele_api: str) -> MoteurOpenAI:
+def _moteur(
+    config: Configuration, base_url: str, modele_api: str, artefact: Artefact | None = None
+) -> MoteurOpenAI:
+    """`artefact` (local-gere) : son `mode_json` prime sur la configuration (§22)."""
     m = config.moteur
     return MoteurOpenAI(
         base_url,
@@ -57,6 +60,8 @@ def _moteur(config: Configuration, base_url: str, modele_api: str) -> MoteurOpen
         timeout_s=m.timeout_s,
         temperature=m.temperature,
         seed=m.seed,
+        mode_json=(artefact.mode_json if artefact else None) or m.mode_json,
+        reflexion=artefact.reflexion if artefact else None,
     )
 
 
@@ -105,7 +110,7 @@ def _ouvrir_moteur(
     journal = var / "journaux" / f"llama-server-{suffixe}.log"
     serveur = LlamaServer(binaire, gguf, m.ctx, m.threads, m.delai_demarrage_s, journal)
     with serveur:
-        moteur = _moteur(config, serveur.base_url, m.modele_api or artefact.nom)
+        moteur = _moteur(config, serveur.base_url, m.modele_api or artefact.nom, artefact)
         try:
             yield (
                 moteur,

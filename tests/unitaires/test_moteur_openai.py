@@ -151,3 +151,56 @@ def test_reponse_200_malformee_leve_une_erreur_du_domaine(
     )
     with pytest.raises(erreur):
         moteur.generer_json(MESSAGES, SCHEMA, max_tokens=10)
+
+
+# --- §22 mode_json et réflexion (V1) ---------------------------------------------------------
+
+CLES_CORPS = {"model", "messages", "temperature", "seed", "max_tokens", "response_format"}
+
+
+def test_par_defaut_corps_sans_chat_template_kwargs(faux_moteur: Callable[..., FauxMoteur]) -> None:
+    fm = faux_moteur("nominal")
+    _moteur(fm).generer_json(MESSAGES, SCHEMA, max_tokens=100)
+    assert set(fm.requetes[0]) == CLES_CORPS
+
+
+@pytest.mark.parametrize("reflexion", [False, True])
+def test_reflexion_transmise_si_configuree(
+    faux_moteur: Callable[..., FauxMoteur], reflexion: bool
+) -> None:
+    fm = faux_moteur("nominal")
+    _moteur(fm, reflexion=reflexion).generer_json(MESSAGES, SCHEMA, max_tokens=100)
+    corps = fm.requetes[0]
+    assert set(corps) == CLES_CORPS | {"chat_template_kwargs"}
+    assert corps["chat_template_kwargs"] == {"enable_thinking": reflexion}
+    assert corps["response_format"]["type"] == "json_schema"
+    assert corps["messages"] == MESSAGES
+
+
+def test_json_object_schema_en_texte_a_la_fin_du_systeme(
+    faux_moteur: Callable[..., FauxMoteur],
+) -> None:
+    fm = faux_moteur("nominal")
+    originaux = [dict(m) for m in MESSAGES]
+    sortie = _moteur(fm, mode_json="json_object").generer_json(MESSAGES, SCHEMA, max_tokens=100)
+    assert isinstance(sortie, dict)
+    corps = fm.requetes[0]
+    assert corps["response_format"] == {"type": "json_object"}
+    systeme, utilisateur = corps["messages"]
+    assert systeme["role"] == "system"
+    assert systeme["content"].startswith("consigne\n")
+    texte_schema = systeme["content"].split("\n", 2)[2]
+    assert json.loads(texte_schema) == SCHEMA
+    assert utilisateur == MESSAGES[1]
+    assert MESSAGES == originaux  # la liste de l'appelant n'est pas modifiée
+
+
+def test_json_object_sans_message_systeme(faux_moteur: Callable[..., FauxMoteur]) -> None:
+    fm = faux_moteur("nominal")
+    seul = [MESSAGES[1]]
+    _moteur(fm, mode_json="json_object").generer_json(seul, SCHEMA, max_tokens=100)
+    premier, second = fm.requetes[0]["messages"]
+    assert premier["role"] == "system" and SCHEMA == json.loads(
+        premier["content"].split("\n", 1)[1]
+    )
+    assert second == MESSAGES[1]
