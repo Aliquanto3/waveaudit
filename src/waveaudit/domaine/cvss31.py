@@ -1,12 +1,22 @@
 """Vecteurs CVSS 3.1 (contrats §6). Seul module autorisé à importer `cvss` (story 3 : `evaluer`)."""
 
+from cvss import CVSS3
+from cvss.exceptions import CVSS3MalformedError, CVSS3MandatoryError
 from pydantic import ValidationError
 
 from waveaudit.domaine.erreurs import EntreeInvalide
-from waveaudit.domaine.modeles import MetriquesCvss
+from waveaudit.domaine.modeles import Cvss, MetriquesCvss
 
 PREFIXE = "CVSS:3.1/"
 ORDRE: tuple[str, ...] = tuple(MetriquesCvss.model_fields)  # AV/AC/PR/UI/S/C/I/A
+
+_SEVERITES: dict[str, str] = {
+    "None": "aucune",
+    "Low": "faible",
+    "Medium": "moyenne",
+    "High": "elevee",
+    "Critical": "critique",
+}
 
 
 def vecteur(m: MetriquesCvss) -> str:
@@ -36,3 +46,14 @@ def metriques_depuis_vecteur(v: str) -> MetriquesCvss:
         return MetriquesCvss(**valeurs)
     except ValidationError as erreur:
         raise EntreeInvalide(f"vecteur CVSS 3.1 invalide (valeur hors enum) : {v!r}") from erreur
+
+
+def evaluer(v: str) -> Cvss:
+    """Score et sévérité de base pour un vecteur CVSS 3.1 (contrats §6)."""
+    try:
+        base = CVSS3(v)
+    except (CVSS3MalformedError, CVSS3MandatoryError) as erreur:
+        raise EntreeInvalide(f"vecteur CVSS 3.1 invalide : {v!r}") from erreur
+    score = base.scores()[0]
+    severite = _SEVERITES[base.severities()[0]]
+    return Cvss(vecteur=v, score=score, severite=severite)
