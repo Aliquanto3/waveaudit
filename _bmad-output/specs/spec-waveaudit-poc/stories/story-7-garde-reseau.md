@@ -43,10 +43,11 @@ sources:
   d'erreur (comportement normal de `connect_ex`) : la story et contrats §12 décrivent un
   remplacement unique des trois fonctions avec la même garde, sans distinguer de comportement de
   retour pour `connect_ex` ; lever de façon uniforme est plus sûr et plus simple à tester.
-- Au niveau d'exécution, le contrôle compare l'adresse de destination à l'ensemble d'adresses déjà
-  résolu par `activer()` (pas de nouvelle résolution par appel), pour éviter toute résolution DNS
-  — donc toute sortie réseau potentielle — déclenchée par un appel `connect`/`create_connection`
-  vers un nom plutôt qu'une IP littérale.
+- Au niveau d'exécution, le contrôle compare la destination à l'ensemble déjà résolu par
+  `activer()` (IP résolues et noms de la liste, sans nouvelle résolution par appel), pour éviter
+  toute résolution DNS — donc toute sortie réseau potentielle — déclenchée par un appel vers un
+  nom hors liste.
+- Revue : `sendto`/`sendmsg` aussi remplacés ; `garde` imbriqué n'éteint pas l'englobant.
 
 ## Reports
 
@@ -54,3 +55,20 @@ sources:
   `with garde(config.reseau.hotes_autorises):`) : hors périmètre de cette story, qui livre
   uniquement le module `garde_reseau` ; `tests/e2e/test_hors_ligne.py` (AD-9) dépend de cette
   intégration et reste à faire avec les stories CLI/UI correspondantes.
+- Limite connue, à vérifier avec la story UI ou moteur : sous Windows, une connexion asyncio
+  (`ProactorEventLoop`, `ConnectEx`) ne passe pas par `socket.socket.connect` et échappe au garde
+  (pytest-socket a la même limite). Le moteur actuel est synchrone (httpx/httpcore →
+  `socket.create_connection`) ; si un client asynchrone sortant apparaît, ajouter un test e2e
+  sous garde qui exige `ConnexionInterdite` vers 192.0.2.1 depuis ce client.
+
+## Revue
+
+- high, second avis 1 — garde imbriqué (test e2e autour d'une commande qui pose son propre garde) : la sortie du garde interne désactivait l'englobant et `activer` vidait `tentatives()`. Corrigé : `garde` imbriqué ajoute ses hôtes puis rend la liste précédente, sans désactiver ni vider ; test ajouté.
+- medium, second avis 5 — `localhost` est dans `hotes_autorises` par défaut, mais `create_connection(("localhost", p))` (httpx vers `http://localhost:…`) levait `ConnexionInterdite`. Corrigé : les noms de la liste sont autorisés tels quels (la connexion IP qui suit est revérifiée) ; un nom hors liste reste refusé sans résolution DNS (test).
+- medium, second avis 2 — UDP non connecté (`sendto`, `sendmsg`) contournait le garde, contraire à l'esprit d'AD-9 (télémétrie UDP). Corrigé : `sendto` et `sendmsg` (s'il existe) remplacés ; test `sendto` aux deux signatures. Variante au-delà de la liste de contrats §12.
+- medium, second avis 3 — la fixture anti-fuite désactivait avant de vérifier (fuite masquée ; `test_activer_idempotent` laissait le garde actif). Corrigé : vérification avant nettoyage (`_actif` faux, aucune fonction remplacée) ; comparaison à l'identité d'avant le test impossible car pytest-socket retire son `connect` avant la fixture.
+- low, second avis 4 — fonction capturée sous garde puis appelée après : `KeyError`. Corrigé : `_originaux` conservé, les remplacements transmettent quand le garde est inactif ; test. Lectures hors verrou dans `_verifier` : rejeté (lecture d'une référence de frozenset et `list.append` atomiques sous le GIL).
+- low, second avis 6 — résolution des noms dans `activer` hors garde : rejeté, conforme à contrats §12 (noms locaux de la configuration).
+- low, second avis 7 — tests manquants (connect_ex, imbrication, sendto, nom) : corrigé ; threads non testés (rejeté, état global sous verrou).
+- low, revue — asyncio Proactor sous Windows échappe au garde : reporté (voir Reports).
+- Complexité : 0 constat (`tentatives()` copie la liste à la demande seulement ; `_verifier` en O(1)).
