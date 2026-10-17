@@ -10,6 +10,7 @@ avant qu'elle n'atteigne le réseau : depuis un abonné du vrai lot, et depuis l
 from typing import Any
 
 from tests.e2e.test_cli import DEMO, _ecrire_config, app, runner
+from tests.e2e.test_cli_incident import DEMO as DEMO_INCIDENT
 from tests.e2e.test_ui import _attendre_fin, _notes_demo
 from waveaudit.domaine.erreurs import ConnexionInterdite
 from waveaudit.domaine.modeles import TypeEvenement
@@ -19,6 +20,17 @@ from waveaudit.securite import garde_reseau
 def test_cli_lot_sous_garde_sans_tentative(tmp_path, faux_moteur):
     config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
     resultat = runner.invoke(app, ["fiches", str(DEMO), "--config", str(config)])
+
+    assert resultat.exit_code == 0, resultat.output
+    assert garde_reseau.tentatives() == []
+    assert not garde_reseau._actif
+
+
+def test_cli_incident_sous_garde_sans_tentative(tmp_path, faux_moteur):
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    resultat = runner.invoke(
+        app, ["incident", str(DEMO_INCIDENT), "--annee", "2026", "--config", str(config)]
+    )
 
     assert resultat.exit_code == 0, resultat.output
     assert garde_reseau.tentatives() == []

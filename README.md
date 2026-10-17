@@ -68,6 +68,7 @@ Autres commandes (`uv run waveaudit --help` pour le détail) :
 |---|---|
 | `installer [--candidats]` | Télécharge et vérifie les artefacts du manifeste |
 | `fiches DOSSIER [...]` | Lot CLI décrit ci-dessus |
+| `incident DOSSIER [...]` | Analyse de journaux CERT décrite ci-dessous |
 | `ui [--port N] [--config F]` | Démarre l'interface web locale |
 | `banc DOSSIER [--modele NOM]` | Lot instrumenté (temps par fiche, pic mémoire) |
 | `catalogue verifier [--config F]` | Contrôle le catalogue de constats types |
@@ -85,11 +86,61 @@ changer). Elle n'accepte que les requêtes dont l'en-tête `Host` et `Origin` vi
 locale. On y dépose un dossier de notes, on suit la progression du lot en direct, puis on
 télécharge le rapport Word une fois le lot terminé.
 
+## Utilisation — CERT (analyse d'incident)
+
+```
+uv run waveaudit incident <dossier-de-journaux> [-o FICHIER] [--annee N] [--modele NOM] [--config FICHIER]
+```
+
+Lit les journaux (auth/syslog Linux, journal Windows exporté en JSON, Sysmon en CSV) d'un
+dossier, détecte les faits connus d'un catalogue de règles, puis fait rédiger à chaque fait
+détecté un récit en français (titre, récit, impact, recommandation) par le même moteur que
+`fiches`. Produit `var/sorties/<id-du-lot>/incident.json` (le rapport structuré) et
+`rapport-incident.docx` (et, avec `-o`, une copie supplémentaire). `--annee` complète les
+journaux sans année explicite dans leurs horodatages (année courante par défaut). Sans aucun
+fait détecté, le rapport l'indique et le moteur n'est jamais ouvert (code 0, même si le moteur
+est injoignable).
+
+Le dossier `donnees/demo/incident/` fournit un jeu de démonstration (données fictives) :
+
+```
+uv run waveaudit incident donnees/demo/incident --annee 2026
+```
+
+Limites connues :
+
+- Décalage horaire fixe pour les journaux syslog (pas d'heure d'été) : pour un incident à cheval
+  sur un changement d'heure, lancer deux analyses séparées.
+- Exports de journal Windows : `ConvertTo-Json` brut de PowerShell 5.1 ne donne ni la propriété
+  `Data` ni un horodatage ISO ; utiliser plutôt le script PowerShell ci-dessous.
+- Les motifs se terminant par un point final sont neutralisés (le point n'est jamais inclus dans
+  l'indicateur extrait), et les adresses IPv6 écrites en prose abrégée (type « A::B », hors
+  contexte réseau) sont retirées des indicateurs pour éviter les faux positifs.
+- Aucun coupe-circuit sur le moteur : un moteur qui échoue systématiquement est retenté à chaque
+  détection (repli en « à revoir »), sans détection précoce ni arrêt anticipé du lot.
+- Lecture des journaux non en flux : chaque fichier est chargé en mémoire en entier, jamais lu
+  en continu.
+
+Export d'un journal d'événements Windows au format normalisé attendu (PowerShell) :
+
+```powershell
+Get-WinEvent -LogName Security |
+    ForEach-Object {
+        [xml]$xml = $_.ToXml()
+        [PSCustomObject]@{
+            Id            = $_.Id
+            TimeCreated   = $_.TimeCreated.ToString("o")
+            Data          = $xml.Event.EventData.Data
+        }
+    } | ConvertTo-Json -Depth 5 | Out-File security.json -Encoding utf8
+```
+
 ## Preuve hors ligne
 
 - **Aucun appel réseau sortant à l'exécution** (hors `uv sync` et `waveaudit installer`, qui
   n'ont lieu qu'à l'installation) : un garde réseau (`securite/garde_reseau.py`) remplace les
-  fonctions de connexion du module `socket` pendant les commandes `fiches`, `ui` et `banc`, et
+  fonctions de connexion du module `socket` pendant les commandes `fiches`, `incident`, `ui` et
+  `banc`, et
   lève une erreur avant toute connexion vers un hôte hors boucle locale.
   `tests/e2e/test_hors_ligne.py` exécute un lot CLI et un lot UI complets sous ce garde et vérifie
   qu'aucune tentative n'a été refusée, puis prouve, à l'inverse, que le garde détecte et bloque

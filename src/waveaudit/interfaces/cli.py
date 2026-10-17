@@ -60,6 +60,7 @@ def _charger_config(chemin: Path | None = None):  # noqa: ANN201 - Configuration
 def _codes_retour(commande: str) -> Iterator[None]:
     """Traduit les erreurs du bloc en codes retour (contrats §4), message d'une ligne, trace
     dans `logging`. `typer.Exit` (sous-classe d'`Exception`) est relancée telle quelle."""
+    from waveaudit.application.lot import _sans_chemin
     from waveaudit.domaine.erreurs import (
         ConfigurationInvalide,
         ConnexionInterdite,
@@ -73,7 +74,7 @@ def _codes_retour(commande: str) -> Iterator[None]:
     except typer.Exit:
         raise
     except (EntreeInvalide, ConfigurationInvalide) as erreur:
-        _echouer(str(erreur), 2)
+        _echouer(_sans_chemin(str(erreur)), 2)
     except MoteurInjoignable as erreur:
         _echouer(str(erreur), 3)
     except ConnexionInterdite as erreur:
@@ -85,8 +86,6 @@ def _codes_retour(commande: str) -> Iterator[None]:
         cible = Path(erreur.filename).name if erreur.filename else ""
         _echouer(f"{commande} : accès refusé en écriture ou en lecture ({cible})", 4)
     except Exception as erreur:  # erreurs httpx, OSError, CalledProcessError...
-        from waveaudit.application.lot import _sans_chemin
-
         _log.exception("%s : échec", commande)
         _echouer(f"{commande} : échec ({_sans_chemin(str(erreur))})", 4)
 
@@ -169,6 +168,65 @@ def fiches(
             f"{len(resultat.rapport.ecartees)} entrée(s) écartée(s) ; "
             f"rapport : {resultat.chemin_rapport}"
         )
+        typer.echo(BANDEAU)
+
+
+@app.command()
+def incident(
+    dossier: Path = typer.Argument(..., help="Dossier contenant les journaux (CERT)"),
+    o: Path | None = typer.Option(
+        None, "-o", help="Copie supplémentaire du rapport Word, en plus de var/sorties/<id>/"
+    ),
+    annee: int | None = typer.Option(
+        None, "--annee", help="Année des journaux sans année explicite (par défaut : courante)"
+    ),
+    modele: str | None = typer.Option(
+        None, "--modele", help="Nom du modèle (manifeste en local-gere, modele_api en externe)"
+    ),
+    config: Path | None = typer.Option(
+        None, "--config", help="Fichier de configuration TOML supplémentaire"
+    ),
+) -> None:
+    """Analyse un dossier de journaux et produit un rapport d'incident (CERT, contrats §21)."""
+    from datetime import datetime
+
+    cfg = _charger_config(config)
+    annee_effective = annee if annee is not None else datetime.now().year
+
+    from waveaudit.securite.garde_reseau import garde
+
+    with garde(cfg.reseau.hotes_autorises):
+        from waveaudit.adaptateurs.export_docx import BANDEAU
+        from waveaudit.application.incident import executer_incident
+        from waveaudit.domaine.incident import RequeteIncident
+        from waveaudit.domaine.modeles import EvenementLot, Statut, TypeEvenement
+
+        typer.echo(BANDEAU)
+
+        def abonne(evenement: EvenementLot) -> None:
+            if evenement.type != TypeEvenement.FICHE_TERMINEE:
+                return
+            duree = round(evenement.duree_s or 0.0)
+            typer.echo(
+                f"[{evenement.index}/{evenement.total}] {evenement.note} : "
+                f"{evenement.statut} ({duree} s)"
+            )
+
+        with _codes_retour("incident"):
+            resultat = executer_incident(
+                RequeteIncident(
+                    dossier=dossier,
+                    annee=annee_effective,
+                    modele=modele,
+                    copie_rapport=o,
+                ),
+                cfg,
+                abonne,
+            )
+
+        ok = sum(1 for r in resultat.rapport.recits if r.statut == Statut.OK)
+        a_revoir = len(resultat.rapport.recits) - ok
+        typer.echo(f"{ok} récit(s) ok, {a_revoir} à revoir ; rapport : {resultat.chemin_rapport}")
         typer.echo(BANDEAU)
 
 
