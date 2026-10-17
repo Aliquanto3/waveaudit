@@ -9,7 +9,7 @@ En parcourant l'historique de versionnage du dépôt "outils/facturation"
 de deux ans contient encore :
 
 ```
-AES_KEY = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
+AES_KEY = "CLE-FICTIVE-EXEMPLE-0000000000000"
 ```
 
 Le commit suivant "retire" la clé du fichier actuel, mais elle reste

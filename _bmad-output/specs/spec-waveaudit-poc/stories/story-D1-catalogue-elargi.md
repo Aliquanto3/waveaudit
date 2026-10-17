@@ -74,3 +74,13 @@ Tests : ciblés `test_catalogue.py` (23), `test_notes.py` (31), `test_rattacheme
 `test_lot.py` + `test_ui.py` + `test_cli.py` + `test_pipeline.py` (40) ; suite complète
 252 verts, 1 déselectionné (`slow`) ; `ruff check` et `ruff format --check` verts ; contrôle
 rapide vert.
+
+## Revue
+
+- medium, reviewer : après rebase sur main, `tests/e2e/test_cli.py::test_fiches_nominal_20_notes_bandeau_et_garde` (story 13, arrivée après la base de D1) attendait 20 lignes de fiche ; corrigé, réaligné à 30 (intention inchangée : une ligne par note de démo).
+- low, second avis 1 : constat_attendu des notes vérifié contre une liste figée ; corrigé, vérifié contre le vrai catalogue (`CatalogueYaml`).
+- low, second avis 2 : `pytest.xfail()` impératif plutôt que le marqueur ; rejeté, le marqueur est statique et ne peut dépendre du score mesuré, l'appel conditionnel donne le même effet non strict.
+- low, second avis 3 : clé AES d'aspect réel dans la note 27 ; corrigé, remplacée par `CLE-FICTIVE-EXEMPLE-0000000000000` (rangs inchangés).
+- low, second avis 4 : 6 nouveaux constats sans note de démo ; rejeté, non exigé par la story.
+- low, second avis 5 : AV:A pour AD-ACL-DANGEREUSE et AD-ADCS-ESC1 ; rejeté, cohérent avec la convention des 6 constats AD existants (tous AV:A, attaque depuis le réseau interne).
+- Complexité : 0 constat (données et tests seulement, aucune structure qui grossit).

@@ -60,20 +60,6 @@ FAMILLES_FIGEES = {
 }
 IDENTIFIANTS_FIGES = {i for famille in FAMILLES_FIGEES.values() for i in famille}
 
-# Identifiants introduits par la story D1 (catalogue élargi), utilisés par les notes 21-30 :
-# non figés par contrats §16, mais doivent exister dans le catalogue du dépôt.
-IDENTIFIANTS_NOTES_DIFFICILES = {
-    "INFRA-IPMI-EXPOSE",
-    "AD-ACL-DANGEREUSE",
-    "WEB-JWT-FAIBLE",
-    "WEB-GRAPHQL-INTROSPECTION",
-    "INFRA-NFS-EXPORTE",
-    "CRYPTO-SECRET-DANS-LE-CODE",
-    "AUTRE-MFA-ABSENTE",
-    "WEB-SSTI",
-    "WEB-CLICKJACKING",
-}
-
 
 def _famille(identifiant: str) -> str:
     return identifiant.split("-", 1)[0].lower()
@@ -100,7 +86,8 @@ def test_les_30_notes_ont_un_constat_attendu_distinct_et_existant():
     attendus = [n.constat_attendu for n in notes]
     assert all(a is not None for a in attendus)
     assert len(set(attendus)) == 30
-    assert set(attendus) <= IDENTIFIANTS_FIGES | IDENTIFIANTS_NOTES_DIFFICILES
+    catalogue = {c.id for c in CatalogueYaml(racine_projet() / "donnees" / "catalogue").constats()}
+    assert set(attendus) <= catalogue, set(attendus) - catalogue
 
 
 def test_les_20_premieres_notes_ont_un_constat_attendu_fige():

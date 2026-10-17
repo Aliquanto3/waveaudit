@@ -64,7 +64,7 @@ def _ecrire_config(
     return chemin
 
 
-def test_fiches_nominal_20_notes_bandeau_et_garde(tmp_path, faux_moteur):
+def test_fiches_nominal_30_notes_bandeau_et_garde(tmp_path, faux_moteur):
     config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
     resultat = runner.invoke(app, ["fiches", str(DEMO), "--config", str(config)])
 
@@ -73,7 +73,7 @@ def test_fiches_nominal_20_notes_bandeau_et_garde(tmp_path, faux_moteur):
     assert lignes[0] == BANDEAU
     assert lignes[-1] == BANDEAU
     lignes_fiche = [ligne for ligne in lignes if ligne.startswith("[")]
-    assert len(lignes_fiche) == 20
+    assert len(lignes_fiche) == 30
     assert any("rapport :" in ligne for ligne in lignes)
     assert not garde_reseau._actif  # désactivé en sortie de commande
 
