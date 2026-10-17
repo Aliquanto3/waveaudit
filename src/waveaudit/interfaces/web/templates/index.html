@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block contenu %}
+  <h1>WaveAudit — notes vers fiches de vulnérabilité</h1>
+  <p>Déposez des notes brutes (<code>.md</code> ou <code>.txt</code>, 1 Mo maximum chacune) pour
+  lancer un lot d'analyse.</p>
+  <form action="/lots" method="post" enctype="multipart/form-data">
+    <label for="notes">Notes à analyser</label>
+    <input type="file" id="notes" name="notes" accept=".md,.txt" multiple required>
+    <button type="submit">Lancer le lot</button>
+  </form>
+{% endblock %}
