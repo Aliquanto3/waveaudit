@@ -25,7 +25,7 @@
 | D3 | Guide des testeurs et formulaire de retour | intégrée e93367d (revue : revues/story-D3.md ; suite complète de vague L : 283 verte ; durées du guide estimées, installer non exécuté) |
 | C1 | Extension du socle pour le CERT | intégrée 5e5c42d (revue : revues/story-C1.md ; V1 reportée par arbitrage ; suite 414 verte) |
 | C2 | Lecture des journaux et jeu de démo | en cours |
-| C3 | Règles et moteur de détection | en cours |
+| C3 | Règles et moteur de détection | intégrée bcbd3d7 (revue : revues/story-C3.md ; fenêtre glissante O(n), 50 000 événements en ~1,3 s) |
 | C4 | Indicateurs et garde-fous du récit | en cours |
 | C5 | Workflow incident, service, calibrage | à faire |
 | C6a | Rapport d'incident Word | intégrée 6b45695 (revue : revues/story-C6a.md) |
