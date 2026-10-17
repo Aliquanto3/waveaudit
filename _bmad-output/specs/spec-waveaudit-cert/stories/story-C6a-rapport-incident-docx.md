@@ -60,4 +60,24 @@ sources:
 
 ## Revue
 
-- (à compléter par le second avis et le reviewer.)
+- low — second avis — rejeté : « Aucun fait détecté » posé dès qu'une liste (sections 3 à 7)
+  est vide, même avec des récits. formats-incident.md ne fixe la mention que sans détection
+  (chaque liste vide alors) et ne prévoit pas d'autre libellé ; le cas du contrat est couvert.
+  Libellé distinct pour une liste vide avec détections : à décider dans formats-incident.md.
+- low — second avis — corrigé : `max_preuves < 1` au constructeur → `ConfigurationInvalide`
+  (même borne que `config.incident.max_preuves`, ge=1) ; test paramétré 0 et -1.
+- low — second avis — corrigé : test du bandeau en première page et pages paires d'un
+  `modele.docx` (les 4 conteneurs portent le bandeau).
+- low — second avis — corrigé (spec) : stories.yaml dit « PermissionError convertie comme dans
+  export_docx » ; `ExportDocx` ne la convertit pas, `interfaces/cli.py` la mappe au code 4
+  (contrats §21, `-o` verrouillé). Même comportement ici (voir « Livré ») ; à vérifier dans
+  la commande `incident` : `-o` verrouillé → code 4.
+- low — reviewer — corrigé : test de la normalisation des preuves
+  (`" ".join(message.split())[:300]`, valeur attendue écrite en dur) et de l'absence de
+  « + N autres » quand `len(evenements) == max_preuves`.
+- info — reviewer — vérifié par sonde : `_propre` appliqué aux hôtes et cellules venues des
+  journaux ; mention JSON insensible à la casse ; annexe couvrant les fichiers entièrement
+  ignorés (`sources = lecture.fichiers` inclut les ignorées, contrats §21).
+- info — reviewer — branchement : exporteur pas encore composé (`creer_ports_incident`, C5),
+  conforme au cahier ; C5 passe `config.incident.max_preuves` et le thème privé.
+- Complexité : 0 constat (un parcours par section ; décompte des ignorées en O(n)).

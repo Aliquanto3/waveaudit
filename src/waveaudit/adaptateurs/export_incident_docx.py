@@ -38,6 +38,8 @@ class ExporteurIncidentDocx:
 
     def __init__(self, theme_prive: Path, max_preuves: int = 10) -> None:
         """Valide le thème privé dès la composition : `ConfigurationInvalide` avant le lot."""
+        if max_preuves < 1:  # même borne que `config.incident.max_preuves` (ge=1)
+            raise ConfigurationInvalide(f"max_preuves doit valoir au moins 1 : {max_preuves}")
         self._theme_prive = Path(theme_prive)
         self._max_preuves = max_preuves
         self._theme = charger_theme(self._theme_prive)

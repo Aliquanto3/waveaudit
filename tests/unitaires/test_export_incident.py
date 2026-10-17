@@ -220,6 +220,49 @@ def test_theme_toml_invalide_leve_configuration_invalide(tmp_path: Path, contenu
         ExporteurIncidentDocx(theme_prive)
 
 
+def test_preuves_message_normalise_et_tronque_sans_reste(tmp_path: Path):
+    message = "Failed  password\n\tfor " + "x" * 400
+    evenements = [evenement(ligne=i, message=message) for i in (1, 2)]
+    rapport = _rapport_vide().model_copy(
+        update={"recits": [recit(detection=detection(evenements=evenements))]}
+    )
+    chemin = tmp_path / "rapport.docx"
+    ExporteurIncidentDocx(tmp_path / "absent", max_preuves=2).exporter(rapport, chemin)
+
+    textes = _textes(Document(str(chemin)))
+    preuves = [t for t in textes if t.startswith("auth.log:")]
+    attendu = ("Failed password for " + "x" * 400)[:300]
+    assert preuves == [f"auth.log:1 — {attendu}", f"auth.log:2 — {attendu}"]
+    assert not any(t.startswith("+ ") for t in textes)
+
+
+def test_bandeau_sur_premiere_page_et_pages_paires_du_modele(tmp_path: Path):
+    theme_prive = tmp_path / "theme-prive"
+    theme_prive.mkdir()
+    modele = Document()
+    modele.settings.odd_and_even_pages_header_footer = True
+    modele.sections[0].different_first_page_header_footer = True
+    modele.save(str(theme_prive / "modele.docx"))
+
+    chemin = tmp_path / "rapport.docx"
+    ExporteurIncidentDocx(theme_prive).exporter(_rapport_vide(), chemin)
+
+    section = Document(str(chemin)).sections[0]
+    for conteneur in (
+        section.first_page_header,
+        section.first_page_footer,
+        section.even_page_header,
+        section.even_page_footer,
+    ):
+        assert BANDEAU in [p.text for p in conteneur.paragraphs]
+
+
+@pytest.mark.parametrize("max_preuves", [0, -1])
+def test_max_preuves_invalide_leve_configuration_invalide(tmp_path: Path, max_preuves: int):
+    with pytest.raises(ConfigurationInvalide, match="max_preuves"):
+        ExporteurIncidentDocx(tmp_path / "absent", max_preuves=max_preuves)
+
+
 def test_modele_docx_illisible_leve_configuration_invalide(tmp_path: Path):
     theme_prive = tmp_path / "theme-prive"
     theme_prive.mkdir()
