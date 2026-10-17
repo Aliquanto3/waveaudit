@@ -48,7 +48,7 @@ class TypeEvenement(StrEnum):
     FICHE_NON_TRAITEE="fiche_non_traitee"; FICHE_NON_RATTACHEE="fiche_non_rattachee"
     LOT_TERMINE="lot_termine"; LOT_ECHOUE="lot_echoue"
 class EvenementLot(BaseModel):
-    type: TypeEvenement; horodatage: datetime     # aware, ISO 8601
+    type: TypeEvenement; horodatage: AwareDatetime  # datetime.now().astimezone() ; un datetime naïf est refusé
     index: int | None                             # 1..total pour les événements de fiche, None sinon
     total: int; note: str | None                  # nom de fichier
     statut: Statut | None; duree_s: float | None
@@ -220,6 +220,7 @@ Tri par score décroissant, puis par `id` croissant ; la fonction renvoie tous l
   - En `local-gere`, il résout l'entrée du manifeste (`modele`, sinon `config.moteur.modele`, sinon `modele_defaut`, ou `modele_repli` si la RAM disponible est sous `ram_min_defaut_go`), puis démarre `LlamaServer`.
   - En `externe`, il utilise `base_url` et n'ouvre aucun processus.
   - `prefixe_systeme` vient de l'entrée du manifeste en `local-gere`, de `config.moteur.prefixe_systeme` en `externe`.
+- `composition.creer_mesure_memoire() -> MesureMemoire` (adaptateur `memoire_psutil`) : seul accès du banc à la mesure mémoire.
 - `nouvel_id_lot(var: Path) -> str` renvoie `AAAAMMJJ-HHMMSS`, avec un suffixe `-2`, `-3`… si besoin. Il crée `var/sorties/<id>/` par `mkdir(exist_ok=False)` et réessaie en cas de collision.
 - `executer_lot(requete, config, abonne) -> ResultatLot` :
   1. Crée le dossier de sortie.
