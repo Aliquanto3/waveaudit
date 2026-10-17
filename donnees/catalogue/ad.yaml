@@ -167,3 +167,93 @@
       titre: Use of Hard-coded Credentials
       url: https://cwe.mitre.org/data/definitions/798.html
   source: "Rédaction WaveAudit d'après CWE-798, licence du dépôt"
+
+- id: AD-ACL-DANGEREUSE
+  titre: Droit d'accès dangereux (ACE) sur un objet Active Directory sensible
+  famille: ad
+  mots_cles:
+    - acl dangereuse
+    - ace dangereux
+    - genericall
+    - writedacl
+    - droit délégué excessif
+    - bloodhound
+    - chemin d'attaque acl
+    - abus d'autorisation ad
+  description: >-
+    Un utilisateur ou un groupe peu privilégié dispose d'un droit d'accès
+    (ACE) excessif, tel que `GenericAll` ou `WriteDACL`, sur un objet
+    sensible de l'annuaire (contrôleur de domaine, compte à privilèges,
+    GPO).
+  impact: >-
+    Élévation de privilèges jusqu'à l'administration du domaine en abusant
+    du droit délégué pour modifier l'objet visé.
+  recommandation: >-
+    Revoir périodiquement les délégations d'accès sur les objets sensibles
+    et retirer les droits non justifiés par un besoin opérationnel.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  references:
+    - id: CWE-732
+      titre: Incorrect Permission Assignment for Critical Resource
+      url: https://cwe.mitre.org/data/definitions/732.html
+  source: "Rédaction WaveAudit d'après CWE-732, licence du dépôt"
+
+- id: AD-ADCS-ESC1
+  titre: Modèle de certificat AD CS vulnérable à l'escalade ESC1
+  famille: ad
+  mots_cles:
+    - adcs esc1
+    - modèle de certificat vulnérable
+    - enrollee supplies subject
+    - certify
+    - certipy
+    - escalade via certificat
+    - autorité de certification active directory
+    - usurpation d'identité par certificat
+  description: >-
+    Un modèle de certificat publié par l'autorité de certification Active
+    Directory autorise un demandeur peu privilégié à spécifier le nom de
+    sujet et permet l'authentification client, ce qui permet d'émettre un
+    certificat au nom d'un compte à privilèges.
+  impact: >-
+    Authentification en tant qu'un compte à privilèges arbitraire, y
+    compris un administrateur du domaine, à partir d'un compte peu
+    privilégié.
+  recommandation: >-
+    Retirer le droit d'inscription aux utilisateurs peu privilégiés sur ces
+    modèles, ou désactiver l'option permettant au demandeur de spécifier le
+    nom de sujet.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  references:
+    - id: CWE-269
+      titre: Improper Privilege Management
+      url: https://cwe.mitre.org/data/definitions/269.html
+  source: "Rédaction WaveAudit d'après CWE-269, licence du dépôt"
+
+- id: AD-COMPTES-INACTIFS-PRIVILEGIES
+  titre: Comptes privilégiés inactifs non désactivés
+  famille: ad
+  mots_cles:
+    - compte inactif privilégié
+    - stale privileged account
+    - compte à privilèges non désactivé
+    - dernière connexion ancienne
+    - compte orphelin
+    - revue des comptes à privilèges
+    - admin ayant quitté non désactivé
+  description: >-
+    Des comptes appartenant à des groupes à privilèges n'ont pas été
+    utilisés depuis une durée prolongée et restent activés, souvent faute
+    de revue périodique lors des départs ou des changements de poste.
+  impact: >-
+    Fournit à un attaquant des comptes à privilèges peu surveillés,
+    propices à un usage discret et prolongé une fois compromis.
+  recommandation: >-
+    Désactiver les comptes à privilèges inactifs après une durée définie et
+    mettre en place une revue périodique des comptes privilégiés.
+  cvss_vecteur: CVSS:3.1/AV:A/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:N
+  references:
+    - id: CWE-284
+      titre: Improper Access Control
+      url: https://cwe.mitre.org/data/definitions/284.html
+  source: "Rédaction WaveAudit d'après CWE-284, licence du dépôt"

@@ -107,3 +107,60 @@
       titre: Active Debug Code
       url: https://cwe.mitre.org/data/definitions/489.html
   source: "Rédaction WaveAudit d'après CWE-489, licence du dépôt"
+
+- id: CONFIG-SAUVEGARDE-EXPOSEE
+  titre: Fichier de sauvegarde accessible publiquement
+  famille: config
+  mots_cles:
+    - sauvegarde exposée
+    - backup exposé
+    - fichier .bak téléchargeable
+    - archive de sauvegarde publique
+    - dump de base accessible
+    - fichier de sauvegarde oublié
+    - backup file disclosure
+  description: >-
+    Un fichier de sauvegarde (archive, export de base de données, fichier
+    `.bak`) reste accessible publiquement sur le serveur web, souvent
+    oublié après une opération de maintenance.
+  impact: >-
+    Divulgation complète du contenu sauvegardé, incluant parfois des
+    identifiants ou des données personnelles.
+  recommandation: >-
+    Stocker les sauvegardes hors du répertoire public servi par le serveur
+    web et vérifier régulièrement l'absence de fichiers oubliés.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+  references:
+    - id: CWE-530
+      titre: Exposure of Backup File to an Unauthorized Control Sphere
+      url: https://cwe.mitre.org/data/definitions/530.html
+  source: "Rédaction WaveAudit d'après CWE-530, licence du dépôt"
+
+- id: CONFIG-CORS-DEBUG
+  titre: Configuration CORS de débogage laissée active en production
+  famille: config
+  mots_cles:
+    - cors de debug
+    - configuration cors de développement
+    - wildcard cors en production
+    - access-control-allow-origin *
+    - profil de configuration non adapté
+    - debug cors enabled
+    - origine de développement autorisée
+  description: >-
+    Le profil de configuration utilisé en production conserve les réglages
+    CORS permissifs prévus pour le développement, autorisant toute origine
+    à consommer l'API.
+  impact: >-
+    Exposition de l'API à des requêtes cross-origin non prévues en
+    production, facilitant l'exfiltration de données par un site tiers.
+  recommandation: >-
+    Séparer explicitement les profils de configuration CORS par
+    environnement et vérifier le profil effectivement chargé en
+    production.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N
+  references:
+    - id: CWE-942
+      titre: Permissive Cross-domain Policy with Untrusted Domains
+      url: https://cwe.mitre.org/data/definitions/942.html
+  source: "Rédaction WaveAudit d'après CWE-942, licence du dépôt"

@@ -32,3 +32,34 @@
       titre: Security Logging and Monitoring Failures
       url: https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/
   source: "Rédaction WaveAudit d'après CWE-778 et OWASP Top 10 A09:2021, licence du dépôt"
+
+- id: AUTRE-MFA-ABSENTE
+  titre: Absence d'authentification multifacteur sur les accès sensibles
+  famille: autre
+  mots_cles:
+    - absence de mfa
+    - multi-factor authentication absente
+    - authentification à facteur unique
+    - single factor authentication
+    - accès vpn sans second facteur
+    - compromission de mot de passe seul
+    - second facteur non déployé
+  description: >-
+    Les accès sensibles (VPN, portail d'administration, compte à
+    privilèges) ne requièrent qu'un mot de passe, sans second facteur
+    d'authentification.
+  impact: >-
+    Compromission du compte à la seule obtention du mot de passe, par
+    phishing, fuite de données ou réutilisation d'identifiants.
+  recommandation: >-
+    Déployer une authentification multifacteur sur les accès sensibles, en
+    priorité pour les comptes à privilèges et les accès distants.
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N
+  references:
+    - id: CWE-308
+      titre: Use of Single-factor Authentication
+      url: https://cwe.mitre.org/data/definitions/308.html
+    - id: "A07:2021"
+      titre: Identification and Authentication Failures
+      url: https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/
+  source: "Rédaction WaveAudit d'après CWE-308 et OWASP Top 10 A07:2021, licence du dépôt"
