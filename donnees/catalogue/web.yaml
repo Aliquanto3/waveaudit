@@ -10,6 +10,10 @@
     - burp repeater
     - paramètre non échappé
     - alert(1)
+    - vol de session
+    - lien forgé
+    - échappement de sortie absent
+    - dalfox
   description: >-
     Un paramètre de requête est renvoyé dans la page sans encodage adapté au
     contexte HTML, ce qui permet d'y injecter du script exécuté par le
@@ -76,6 +80,10 @@
     - union select
     - blind sqli
     - time-based injection
+    - contournement d'authentification
+    - boolean-based
+    - sleep / waitfor delay
+    - absence de paramétrage
   description: >-
     Une entrée utilisateur est concatenée directement dans une requête SQL,
     ce qui permet à un attaquant d'altérer la logique de la requête exécutée
@@ -139,6 +147,10 @@
     - accès horizontal
     - broken object level authorization
     - bola
+    - numéros séquentiels
+    - énumération d'identifiants
+    - données d'un autre compte
+    - burp autorize
   description: >-
     Un identifiant transmis par le client (numéro de compte, de document) est
     utilisé pour accéder à une ressource sans vérifier que l'utilisateur
