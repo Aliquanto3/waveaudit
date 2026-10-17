@@ -148,6 +148,17 @@ def test_adaptateurs_instancies_par_la_composition_seule():
     assert fautes == []
 
 
+def test_adaptateurs_sans_couche_superieure():
+    """Les adaptateurs ne dépendent que du domaine : ni application, ni interfaces, ni workflows."""
+    fautes = [
+        f"{chemin}:{imp.ligne} importe {imp.module}"
+        for chemin, imp in TOUS
+        if chemin.startswith("adaptateurs/")
+        and any(_waveaudit(imp.module, c) for c in ("application", "interfaces", "workflows"))
+    ]
+    assert fautes == []
+
+
 def test_analyse_detecte_les_imports():
     """Contrôle de l'analyseur lui-même : imports relatifs, `from x import y`, fonctions."""
     fichier = PAQUET / "workflows" / "registre.py"

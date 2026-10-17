@@ -24,8 +24,14 @@ sources:
 - `EvenementLot.horodatage` est typé `AwareDatetime` (pydantic) : un datetime sans fuseau est refusé.
 - Règles ajoutées sans changer les formes : `ConstatType.references` au moins 1, `Note.corps` non vide après strip, `Note.fichier` sans séparateur de chemin, `Fiche` refusée si `statut == a_revoir` ne correspond pas à `motifs` non vide.
 - `config_test` pointe aussi `chemins.theme_prive` vers un dossier absent de `tmp_path`, pour que les tests d'export restent sur le thème générique même si un `theme-prive/` existe localement. Elle part des défauts du dépôt, jamais de `waveaudit.local.toml`.
-- Sans balise `<constat>` dans le dernier message `user`, le faux moteur répond avec un constat par défaut (vecteur tout à `N`).
+- Sans balise `<constat>` dans le dernier message `user`, le faux moteur répond un `content` non JSON (`SANS_CONSTAT`) : un prompt mal formé échoue visiblement.
+- Script `waveaudit = "waveaudit.interfaces.cli:main"` (et non `:app`) : `main()` reconfigure la console en UTF-8 (contrats §19) puis lance `app`.
+- `cyclonedx-bom` est une dépendance principale (la commande `sbom` en a besoin à l'exécution).
 
 ## Reports
 
 - Aucun.
+
+## Revue
+
+Détail : `_bmad-output/implementation-artifacts/revues/story-1.md`. 2 moyens corrigés (faux moteur sans `<constat>`, script `cli:main`), 1 moyen rejeté (`MesureMemoire` par la composition), faibles : 3 corrigés, 1 reporté (story 4 vérifie le corps de requête), les autres conservés avec docstring. Complexité : 0 constat.

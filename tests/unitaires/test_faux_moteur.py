@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from tests.faux_moteur import REFERENCES_INVENTEES
+from tests.faux_moteur import REFERENCES_INVENTEES, SANS_CONSTAT
 
 CONSTAT = {
     "id": "WEB-XSS-REFLECHI",
@@ -133,3 +133,15 @@ def test_config_test(config_test, tmp_path):
     assert config_test.chemins.catalogue.parts[-2:] == ("donnees", "catalogue")
     with _client() as client:
         assert client.get(f"{config_test.moteur.base_url}/models").status_code == 200
+
+
+def test_nominal_sans_balise_constat_renvoie_du_non_json(faux_moteur):
+    moteur = faux_moteur()
+    corps = {"model": "m", "messages": [{"role": "user", "content": "<note>x</note>"}]}
+    with _client() as client:
+        reponse = client.post(f"{moteur.base_url}/chat/completions", json=corps)
+    assert reponse.status_code == 200
+    contenu = reponse.json()["choices"][0]["message"]["content"]
+    assert contenu == SANS_CONSTAT
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(contenu)

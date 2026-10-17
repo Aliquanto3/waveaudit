@@ -18,7 +18,10 @@ def racine_projet() -> Path:
     for dossier in Path(__file__).resolve().parents:
         if (dossier / FICHIER_DEFAUTS).is_file():
             return dossier
-    raise ConfigurationInvalide(f"{FICHIER_DEFAUTS} introuvable au-dessus de {Path(__file__)}")
+    raise ConfigurationInvalide(
+        f"{FICHIER_DEFAUTS} introuvable au-dessus de {Path(__file__)} : lancer WaveAudit par "
+        "`uv run` depuis le dépôt (installation éditable)"
+    )
 
 
 def _lire_toml(chemin: Path) -> dict[str, Any]:
@@ -44,7 +47,8 @@ def _fusionner(base: dict[str, Any], surcharge: dict[str, Any]) -> dict[str, Any
 def charger_configuration(chemin: Path | None = None) -> Configuration:
     """Défauts, puis `waveaudit.local.toml` s'il existe, puis `chemin` ; fusion profonde.
 
-    Les chemins relatifs de `[chemins]` sont résolus contre `racine_projet()`.
+    Les chemins relatifs, `chemin` compris et ceux de `[chemins]`, sont résolus contre
+    `racine_projet()`, jamais contre le dossier courant.
     """
     racine = racine_projet()
     donnees = _lire_toml(racine / FICHIER_DEFAUTS)
@@ -52,7 +56,7 @@ def charger_configuration(chemin: Path | None = None) -> Configuration:
     if local.is_file():
         donnees = _fusionner(donnees, _lire_toml(local))
     if chemin is not None:
-        donnees = _fusionner(donnees, _lire_toml(Path(chemin)))
+        donnees = _fusionner(donnees, _lire_toml(racine / chemin))
     try:
         config = Configuration.model_validate(donnees)
     except ValidationError as erreur:

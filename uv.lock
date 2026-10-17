@@ -864,6 +864,7 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "cvss" },
+    { name = "cyclonedx-bom" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "jinja2" },
@@ -878,7 +879,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "cyclonedx-bom" },
     { name = "pytest" },
     { name = "pytest-socket" },
     { name = "ruff" },
@@ -887,6 +887,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cvss", specifier = "==3.6" },
+    { name = "cyclonedx-bom", specifier = "==7.5.0" },
     { name = "fastapi", specifier = "==0.143.3" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "jinja2", specifier = "==3.1.6" },
@@ -901,7 +902,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "cyclonedx-bom", specifier = "==7.5.0" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "pytest-socket", specifier = "==0.8.1" },
     { name = "ruff", specifier = "==0.17.1" },

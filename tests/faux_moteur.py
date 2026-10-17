@@ -32,14 +32,9 @@ SCENARIOS = (
 REFERENCES_INVENTEES = " CWE-9999 CVE-2099-0001 https://exemple.invalid/x"
 DELAI_LENT_S = 3.0
 _CONSTAT = re.compile(r"<constat>(.*?)</constat>", re.DOTALL)
-# Utilisé si le dernier message user ne contient pas de balise <constat> (sonde, test ad hoc).
-_CONSTAT_PAR_DEFAUT = {
-    "titre": "Constat sans balise",
-    "description": "Aucun constat type fourni dans la requête.",
-    "impact": "Aucun constat type fourni dans la requête.",
-    "recommandation": "Aucun constat type fourni dans la requête.",
-    "cvss_vecteur": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N",
-}
+# Réponse non JSON si le dernier message user n'a pas de balise <constat> : un prompt mal formé
+# échoue visiblement (SortieInvalide côté adaptateur) au lieu de produire une fiche plausible.
+SANS_CONSTAT = "ERREUR faux moteur : balise <constat> absente"
 
 
 @dataclass
@@ -54,11 +49,14 @@ def _port_libre() -> int:
         return sock.getsockname()[1]
 
 
-def _sortie_nominale(corps: dict) -> dict:
+def _sortie_nominale(corps: dict) -> dict | None:
+    """Sortie nominale, ou None si le dernier message user n'a pas de balise <constat>."""
     messages = [m for m in corps.get("messages", []) if m.get("role") == "user"]
     texte = messages[-1].get("content", "") if messages else ""
     trouve = _CONSTAT.search(texte)
-    constat = json.loads(trouve.group(1)) if trouve else _CONSTAT_PAR_DEFAUT
+    if trouve is None:
+        return None
+    constat = json.loads(trouve.group(1))
     sortie: dict = {
         rubrique: "[adapté] " + constat[rubrique]
         for rubrique in ("titre", "description", "impact", "recommandation")
@@ -110,6 +108,8 @@ def creer_app(scenario: str, requetes: list[dict]) -> FastAPI:
         if scenario == "lent":
             await asyncio.sleep(DELAI_LENT_S)
         sortie = _sortie_nominale(corps)
+        if sortie is None:
+            return JSONResponse(_completion(corps, SANS_CONSTAT))
         if scenario == "references_inventees":
             sortie["description"] += REFERENCES_INVENTEES
         elif scenario == "vecteur_invalide":

@@ -41,6 +41,12 @@ class ConstatType(BaseModel):
 
 
 class Note(BaseModel):
+    """Note d'audit lue sur disque.
+
+    `fichier` sans chemin et `corps` vide après strip lèvent `ValidationError` : l'adaptateur
+    de lecture doit l'attraper et produire une `NoteInvalide` (contrats §14), pas la propager.
+    """
+
     model_config = _CONFIG
 
     fichier: str  # nom de fichier seul, jamais un chemin

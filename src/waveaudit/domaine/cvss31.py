@@ -17,8 +17,9 @@ def vecteur(m: MetriquesCvss) -> str:
 def metriques_depuis_vecteur(v: str) -> MetriquesCvss:
     """Lit exactement les 8 métriques de base ; lève EntreeInvalide sinon.
 
-    L'ordre n'est pas imposé ici : `vecteur(metriques_depuis_vecteur(v)) == v` vérifie la forme
-    canonique.
+    L'ordre des métriques n'est pas imposé ici : `vecteur(...)` le recanonise toujours en
+    AV/AC/PR/UI/S/C/I/A. Pour exiger la forme canonique (catalogue, `verifier`), comparer
+    `vecteur(metriques_depuis_vecteur(v)) == v`.
     """
     if not isinstance(v, str) or not v.startswith(PREFIXE):
         raise EntreeInvalide(f"vecteur CVSS 3.1 invalide (préfixe {PREFIXE} attendu) : {v!r}")

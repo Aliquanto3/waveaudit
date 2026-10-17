@@ -149,3 +149,12 @@ def test_manifeste_artefacts():
     prefixes = {a["nom"]: a["prefixe_systeme"] for a in artefacts}
     assert prefixes["qwen3-1.7b-q4km"] == "/no_think"
     assert sum(1 for p in prefixes.values() if p) == 1
+
+
+def test_chemin_relatif_resolu_contre_la_racine(fausse_racine, tmp_path, monkeypatch):
+    (fausse_racine / "surcharge.toml").write_text("[moteur]\nseed = 9\n", encoding="utf-8")
+    autre = tmp_path / "ailleurs"
+    autre.mkdir()
+    (autre / "surcharge.toml").write_text("[moteur]\nseed = 1\n", encoding="utf-8")
+    monkeypatch.chdir(autre)
+    assert charger_configuration(Path("surcharge.toml")).moteur.seed == 9
