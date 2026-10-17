@@ -69,40 +69,62 @@ class CatalogueYaml:
 
     def __init__(self, dossier: Path) -> None:
         self._dossier = Path(dossier)
+        # Lu une fois : `obtenir` est appelé par fiche, sans relire ni réanalyser le YAML.
+        self._par_id: dict[str, ConstatType] | None = None
 
-    def constats(self) -> list[ConstatType]:
-        """Tous les constats, triés par `id`. `ConfigurationInvalide` si invalides ou dupliqués."""
-        constats: list[ConstatType] = []
+    def _charger(self) -> dict[str, ConstatType]:
+        if self._par_id is not None:
+            return self._par_id
+        if not self._dossier.is_dir():
+            raise ConfigurationInvalide(f"catalogue : dossier introuvable ({self._dossier})")
+        par_id: dict[str, ConstatType] = {}
+        doublons: set[str] = set()
         for fichier in sorted(self._dossier.glob("*.yaml")):
             for index, entree in _lire_fichier(fichier):
                 try:
-                    constats.append(ConstatType.model_validate(entree))
+                    constat = ConstatType.model_validate(entree)
                 except ValidationError as erreur:
                     raise ConfigurationInvalide(
-                        f"{fichier.name}:{index}: constat type invalide ({erreur})"
+                        f"{fichier.name}:{index}: constat type invalide ({_resumer(erreur)})"
                     ) from erreur
-        constats.sort(key=lambda constat: constat.id)
-        ids = [constat.id for constat in constats]
-        if len(ids) != len(set(ids)):
-            doublons = sorted({i for i in ids if ids.count(i) > 1})
+                if constat.id in par_id:
+                    doublons.add(constat.id)
+                par_id[constat.id] = constat
+        if doublons:
             raise ConfigurationInvalide(
-                f"catalogue : identifiants dupliqués ({', '.join(doublons)})"
+                f"catalogue : identifiants dupliqués ({', '.join(sorted(doublons))})"
             )
-        return constats
+        self._par_id = dict(sorted(par_id.items()))
+        return self._par_id
+
+    def constats(self) -> list[ConstatType]:
+        """Tous les constats, triés par `id`. `ConfigurationInvalide` si invalides ou dupliqués."""
+        return list(self._charger().values())
 
     def obtenir(self, id: str) -> ConstatType:
         """Le constat type d'identifiant `id`. Lève `EntreeInvalide` si absent."""
-        for constat in self.constats():
-            if constat.id == id:
-                return constat
-        raise EntreeInvalide(f"constat type inconnu : {id!r}")
+        try:
+            return self._charger()[id]
+        except KeyError:
+            raise EntreeInvalide(f"constat type inconnu : {id!r}") from None
+
+
+def _resumer(erreur: Exception) -> str:
+    """Message d'erreur sur une seule ligne (la CLI affiche une ligne par erreur)."""
+    if isinstance(erreur, ValidationError):
+        return "; ".join(
+            f"{'.'.join(str(x) for x in e['loc']) or 'racine'}: {e['msg']}" for e in erreur.errors()
+        )
+    return " ".join(str(erreur).split())
 
 
 def _lire_fichier(fichier: Path) -> list[tuple[int, object]]:
     try:
         brut = yaml.safe_load(fichier.read_text(encoding="utf-8"))
     except (yaml.YAMLError, UnicodeDecodeError) as erreur:
-        raise ConfigurationInvalide(f"{fichier.name}: YAML illisible ({erreur})") from erreur
+        raise ConfigurationInvalide(
+            f"{fichier.name}: YAML illisible ({_resumer(erreur)})"
+        ) from erreur
     if brut is None:
         brut = []
     if not isinstance(brut, list):
@@ -119,6 +141,8 @@ def verifier(dossier: Path) -> list[str]:
     dossier = Path(dossier)
     erreurs: list[str] = []
     identifiants: list[str] = []
+    if not dossier.is_dir():
+        return [f"catalogue: dossier introuvable ({dossier})"]
 
     for fichier in sorted(dossier.glob("*.yaml")):
         try:
@@ -135,7 +159,7 @@ def verifier(dossier: Path) -> list[str]:
             try:
                 constat = ConstatType.model_validate(entree)
             except ValidationError as erreur:
-                erreurs.append(f"{fichier.name}:{cle}: constat type invalide ({erreur})")
+                erreurs.append(f"{fichier.name}:{cle}: constat type invalide ({_resumer(erreur)})")
                 continue
 
             identifiants.append(constat.id)

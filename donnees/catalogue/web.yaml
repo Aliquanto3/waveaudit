@@ -65,7 +65,7 @@
   source: "Rédaction WaveAudit d'après CWE-79 et OWASP Top 10 A03:2021, licence du dépôt"
 
 - id: WEB-INJECTION-SQL
-  titre: Injection SQL
+  titre: Injection SQL dans les requêtes applicatives
   famille: web
   mots_cles:
     - injection sql
@@ -256,7 +256,7 @@
   source: "Rédaction WaveAudit d'après CWE-434 et OWASP Top 10 A04:2021, licence du dépôt"
 
 - id: WEB-SESSION-FIXATION
-  titre: Fixation de session
+  titre: Fixation de session utilisateur
   famille: web
   mots_cles:
     - fixation de session
@@ -349,7 +349,7 @@
   source: "Rédaction WaveAudit d'après CWE-942 et OWASP Top 10 A05:2021, licence du dépôt"
 
 - id: WEB-REDIRECTION-OUVERTE
-  titre: Redirection ouverte
+  titre: Redirection ouverte non contrôlée
   famille: web
   mots_cles:
     - redirection ouverte
@@ -459,7 +459,7 @@
   recommandation: >-
     Désactiver la résolution des entités externes et des DTD dans la
     configuration du parseur XML utilisé par l'application.
-  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:H
+  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:L
   references:
     - id: CWE-611
       titre: Improper Restriction of XML External Entity Reference

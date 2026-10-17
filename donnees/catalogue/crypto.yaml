@@ -36,6 +36,9 @@
     - validation de certificat désactivée
     - nom de domaine non correspondant
     - chaîne de confiance rompue
+    - self-signed certificate
+    - expired certificate
+    - certificate validation disabled
   description: >-
     Le certificat présenté par le service est expiré, auto-signé, ne
     correspond pas au nom de domaine, ou sa validation est désactivée côté
@@ -65,6 +68,8 @@
     - fonction de dérivation de clé absente
     - hashcat
     - table arc-en-ciel
+    - weak password hashing
+    - unsalted hash
   description: >-
     Les mots de passe sont stockés avec un algorithme de hachage rapide
     (MD5, SHA-1) sans sel ni fonction de dérivation adaptée, facilitant leur

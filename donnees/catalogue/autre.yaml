@@ -9,6 +9,8 @@
     - absence d'alerte
     - traçabilité manquante
     - supervision de sécurité
+    - insufficient logging
+    - security monitoring
   description: >-
     Les événements de sécurité significatifs (connexions, échecs
     d'authentification, actions d'administration) ne sont pas journalisés

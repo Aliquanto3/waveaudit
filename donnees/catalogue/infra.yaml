@@ -48,7 +48,7 @@
   recommandation: >-
     Mettre à jour ou remplacer le service par une version maintenue, et
     planifier un cycle de gestion des correctifs.
-  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H
   references:
     - id: CWE-1104
       titre: Use of Unmaintained Third Party Components
@@ -77,10 +77,10 @@
     authentification et chiffrement, ou désactiver SNMP si inutilisé.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N
   references:
-    - id: CWE-521
-      titre: Weak Password Requirements
-      url: https://cwe.mitre.org/data/definitions/521.html
-  source: "Rédaction WaveAudit d'après CWE-521, licence du dépôt"
+    - id: CWE-1392
+      titre: Use of Default Credentials
+      url: https://cwe.mitre.org/data/definitions/1392.html
+  source: "Rédaction WaveAudit d'après CWE-1392, licence du dépôt"
 
 - id: INFRA-RDP-EXPOSE
   titre: Bureau à distance exposé sans restriction
@@ -104,7 +104,7 @@
     Restreindre l'accès RDP par liste blanche ou VPN, activer
     l'authentification au niveau réseau (NLA) et imposer une politique de
     verrouillage des comptes.
-  cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H
   references:
     - id: CWE-284
       titre: Improper Access Control

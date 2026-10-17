@@ -174,3 +174,52 @@ def test_verifier_sur_yaml_illisible_renvoie_une_erreur_sans_lever(tmp_path: Pat
     (tmp_path / "web.yaml").write_text(": : :", encoding="utf-8")
     erreurs = verifier(tmp_path)
     assert any("web.yaml" in e for e in erreurs)
+
+
+# --- Revue story 4 ---------------------------------------------------------------------------
+
+DOMAINES_REFERENCES = ("cwe.mitre.org", "owasp.org", "cyber.gouv.fr", "ssi.gouv.fr")
+
+
+def test_contenu_du_catalogue_du_depot_suit_le_cahier_des_charges():
+    """Règles de la story hors `verifier` (§15) : 6-12 mots-clés, source, URL publiques."""
+    for c in CatalogueYaml(racine_projet() / "donnees" / "catalogue").constats():
+        assert 6 <= len(c.mots_cles) <= 12, c.id
+        # Garde-fou §6 : un titre de fiche de moins de 20 caractères est remplacé (a_revoir).
+        assert len(c.titre) >= 20, c.id
+        assert c.source.startswith("Rédaction WaveAudit d'après "), c.id
+        assert c.source.endswith(", licence du dépôt"), c.id
+        for ref in c.references:
+            assert ref.url.split("/")[2].removeprefix("www.") in DOMAINES_REFERENCES, c.id
+            assert ref.id in c.source, (c.id, ref.id)
+            if ref.id.startswith("CWE-"):
+                numero = ref.id.removeprefix("CWE-")
+                assert ref.url == f"https://cwe.mitre.org/data/definitions/{numero}.html", c.id
+            if ref.id[0] == "A" and ":" in ref.id:
+                rang, annee = ref.id.split(":")
+                assert f"/Top10/{rang}_{annee}-" in ref.url, c.id
+
+
+def test_constats_leve_configuration_invalide_si_dossier_absent(tmp_path: Path):
+    absent = tmp_path / "absent"
+    with pytest.raises(ConfigurationInvalide, match="introuvable"):
+        CatalogueYaml(absent).constats()
+    assert verifier(absent) == [f"catalogue: dossier introuvable ({absent})"]
+
+
+def test_erreurs_de_verifier_tiennent_sur_une_ligne(tmp_path: Path):
+    _ecrire(tmp_path, "web.yaml", [{"id": "WEB-X", "titre": "t"}])
+    (tmp_path / "ad.yaml").write_text("- id: [\n  x: : :\n", encoding="utf-8")
+    erreurs = verifier(tmp_path)
+    assert any(e.startswith("web.yaml:WEB-X: ") for e in erreurs)
+    assert any(e.startswith("ad.yaml: YAML illisible") for e in erreurs)
+    assert all("\n" not in e for e in erreurs)
+
+
+def test_obtenir_ne_relit_pas_le_catalogue(tmp_path: Path):
+    _ecrire(tmp_path, "web.yaml", [_constat()])
+    catalogue = CatalogueYaml(tmp_path)
+    assert catalogue.obtenir("WEB-TEST").id == "WEB-TEST"
+    (tmp_path / "web.yaml").unlink()
+    assert catalogue.obtenir("WEB-TEST").id == "WEB-TEST"
+    assert [c.id for c in catalogue.constats()] == ["WEB-TEST"]

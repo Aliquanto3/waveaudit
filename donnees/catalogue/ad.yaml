@@ -75,7 +75,7 @@
     Remplacer la délégation non contrainte par une délégation contrainte ou
     basée sur les ressources, limitée aux services qui en ont réellement
     besoin.
-  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:H
   references:
     - id: CWE-269
       titre: Improper Privilege Management
@@ -92,6 +92,7 @@
     - pass-the-hash latéral
     - rotation de mot de passe local
     - compte admin local identique
+    - shared local admin password
   description: >-
     Le mot de passe du compte administrateur local est identique sur
     plusieurs postes ou serveurs et n'est pas renouvelé automatiquement,
@@ -103,12 +104,12 @@
   recommandation: >-
     Déployer une solution de rotation automatique des mots de passe
     administrateur locaux (LAPS ou équivalent), unique par machine.
-  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:H
   references:
-    - id: CWE-521
-      titre: Weak Password Requirements
-      url: https://cwe.mitre.org/data/definitions/521.html
-  source: "Rédaction WaveAudit d'après CWE-521, licence du dépôt"
+    - id: CWE-1391
+      titre: Use of Weak Credentials
+      url: https://cwe.mitre.org/data/definitions/1391.html
+  source: "Rédaction WaveAudit d'après CWE-1391, licence du dépôt"
 
 - id: AD-ADMINS-EXCESSIFS
   titre: Nombre excessif de comptes à privilèges d'administration du domaine
@@ -119,6 +120,7 @@
     - privilège excessif
     - surface d'attaque administrative
     - bloodhound
+    - excessive privileged accounts
     - chemin d'attaque vers domain admin
   description: >-
     Un nombre élevé de comptes appartiennent à des groupes à privilèges
@@ -131,7 +133,7 @@
     Réduire les groupes à privilèges au strict nécessaire, mettre en place
     des comptes d'administration dédiés et temporaires, et revoir
     périodiquement les appartenances.
-  cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  cvss_vecteur: CVSS:3.1/AV:A/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H
   references:
     - id: CWE-269
       titre: Improper Privilege Management
