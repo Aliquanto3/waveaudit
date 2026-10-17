@@ -9,7 +9,7 @@
 | 5 | Notes brutes et jeu de démonstration | intégrée 2162444 (revue : revues/story-5.md ; suite 165 verte) |
 | 6 | Adaptateur moteur OpenAI | intégrée 2277976 (revue : revues/story-6.md) |
 | 7 | Garde réseau | intégrée 8be7a3e (revue : section « Revue » de stories/story-7-garde-reseau.md) |
-| 8 | Installation vérifiée et SBOM | en cours |
+| 8 | Installation vérifiée et SBOM | intégrée 7769749 (revue : revues/story-8.md) |
 | 9 | Export Word et thèmes | en cours |
 | 10 | Pipeline fiches et prompt | à faire |
 | 11 | Calibrage du rattachement | à faire |
@@ -42,4 +42,5 @@
 - Story 4 (reporté, réseau requis) : vérifier que les 41 URL du catalogue répondent, et ajouter des références ANSSI vérifiées en ligne (le catalogue n'en cite aucune).
 - Story 7 (reporté) : sous Windows, une boucle asyncio Proactor échappe au garde (sockets non Python). Le relecteur a aussi gardé sendto/sendmsg (UDP), que le §12 ne liste pas.
 - Story 5 (reporté) : notes de démo en prose, peu de jargon ; BM25 seul classe le bon constat 1er pour 15/20, top 3 pour 19/20 (05-idor raté). À revoir après le premier banc.
+- Story 8 (reporté) : première installation réelle à vérifier (proxy, empreintes du manifeste, présence de llama-server.exe dans le zip) ; la CLI devra traduire les erreurs httpx en message clair.
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
