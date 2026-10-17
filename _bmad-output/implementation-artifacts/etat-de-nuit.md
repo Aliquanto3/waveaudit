@@ -21,7 +21,7 @@
 | V1 | Validation sur le vrai moteur | à faire |
 | V2 | Banc des 4 modèles et réglage du prompt | à faire |
 | D1 | Catalogue élargi et notes difficiles | en cours |
-| D2 | Intégration continue GitHub Actions | en cours |
+| D2 | Intégration continue GitHub Actions | intégrée 79abdfd (revue : revues/story-D2.md ; badge README fait par la story 16) |
 | D3 | Guide des testeurs et formulaire de retour | à faire |
 | C1 | Extension du socle pour le CERT | à faire |
 | C2 | Lecture des journaux et jeu de démo | à faire |
