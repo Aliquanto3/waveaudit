@@ -1,0 +1,116 @@
+# Catalogue de règles Linux (contrats §21 « Règles », formats-incident.md § « Catalogue
+# minimal »). Conditions et agrégations recopiées telles quelles depuis formats-incident.md.
+
+- id: INC-LIN-SSH-FORCE-BRUTE
+  titre: Force brute sur une connexion SSH
+  description: >-
+    Plusieurs échecs d'authentification SSH depuis la même adresse source en peu de
+    temps, typique d'une tentative de force brute contre un compte.
+  impact: >-
+    Un attaquant qui devine un mot de passe peut ouvrir une session SSH et progresser
+    dans le système d'information.
+  recommandation: >-
+    Bloquer l'adresse source, limiter le débit d'authentification et privilégier
+    l'authentification par clé publique.
+  severite: elevee
+  references:
+    - id: T1110.001
+      titre: "Brute Force: Password Guessing"
+      url: https://attack.mitre.org/techniques/T1110/001/
+  source: linux
+  condition:
+    programme: sshd
+    message_regex: '^Failed password for '
+  agregation:
+    seuil: 5
+    fenetre_s: 300
+    par: [ip]
+
+- id: INC-LIN-SSH-CONNEXION-ROOT
+  titre: Connexion SSH directe en tant que root
+  description: >-
+    Une connexion SSH a été acceptée directement sur le compte root, ce qui contourne
+    les bonnes pratiques d'administration par compte nominatif.
+  impact: >-
+    Une connexion root directe réussie peut traduire un accès frauduleux avec des
+    privilèges maximaux sur le système.
+  recommandation: >-
+    Désactiver la connexion SSH directe du compte root et imposer l'élévation de
+    privilèges via sudo après authentification nominative.
+  severite: elevee
+  references:
+    - id: T1078.003
+      titre: "Valid Accounts: Local Accounts"
+      url: https://attack.mitre.org/techniques/T1078/003/
+    - id: T1021.004
+      titre: "Remote Services: SSH"
+      url: https://attack.mitre.org/techniques/T1021/004/
+  source: linux
+  condition:
+    programme: sshd
+    message_regex: '^Accepted \S+ for root from '
+
+- id: INC-LIN-SUDO-SHELL
+  titre: Ouverture d'un interpréteur de commandes via sudo
+  description: >-
+    Une commande sudo a lancé directement un interpréteur de commandes, technique
+    courante d'élévation de privilèges vers un shell interactif.
+  impact: >-
+    Un shell obtenu via sudo donne à son utilisateur un contrôle étendu sur le système,
+    propice à une persistance ou une évasion de restrictions.
+  recommandation: >-
+    Vérifier la légitimité de l'action et restreindre les commandes autorisées par sudo
+    aux seules commandes nécessaires.
+  severite: elevee
+  references:
+    - id: T1548.003
+      titre: "Abuse Elevation Control Mechanism: Sudo and Sudo Caching"
+      url: https://attack.mitre.org/techniques/T1548/003/
+  source: linux
+  condition:
+    programme: sudo
+    champs_regex:
+      commande: '^(?:/usr)?/bin/(?:(?:ba|z|da|k)?sh|su)(?:\s|$)'
+
+- id: INC-LIN-COMPTE-CREE
+  titre: Création d'un compte utilisateur Linux
+  description: >-
+    Un nouveau compte utilisateur a été créé sur le système, à rapprocher des demandes
+    de création connues.
+  impact: >-
+    Un compte créé en dehors des procédures peut servir de porte dérobée persistante
+    pour un attaquant.
+  recommandation: >-
+    Vérifier que la création correspond à une demande légitime et documentée auprès du
+    service habilité.
+  severite: moyenne
+  references:
+    - id: T1136.001
+      titre: "Create Account: Local Account"
+      url: https://attack.mitre.org/techniques/T1136/001/
+  source: linux
+  condition:
+    programme: useradd
+    message_regex: '^new user: '
+
+- id: INC-LIN-CLE-SSH-AJOUTEE
+  titre: Ajout d'une clé publique SSH autorisée
+  description: >-
+    Une commande sudo a modifié un fichier de clés publiques autorisées, pouvant
+    installer un accès SSH persistant pour un attaquant.
+  impact: >-
+    Une clé publique ajoutée frauduleusement permet à un attaquant de se reconnecter
+    sans authentification par mot de passe.
+  recommandation: >-
+    Vérifier le contenu du fichier de clés autorisées et retirer toute clé publique non
+    reconnue.
+  severite: elevee
+  references:
+    - id: T1098.004
+      titre: "Account Manipulation: SSH Authorized Keys"
+      url: https://attack.mitre.org/techniques/T1098/004/
+  source: linux
+  condition:
+    programme: sudo
+    champs_regex:
+      commande: authorized_keys
