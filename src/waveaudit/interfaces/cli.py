@@ -172,13 +172,11 @@ def ui(
     with garde(cfg.reseau.hotes_autorises):
         if cfg.ui.hote not in ("127.0.0.1", "::1"):
             _echouer(f"ui.hote doit être 127.0.0.1 ou ::1 (reçu {cfg.ui.hote!r})", 2)
-        module = _module_optionnel("waveaudit.interfaces.web.app")
-        if module is None:
-            _echouer("interface web : disponible en story 14", 2)
         import uvicorn
 
-        application_web = module.creer_app(cfg)
-        uvicorn.run(application_web, host=cfg.ui.hote, port=cfg.ui.port)
+        from waveaudit.interfaces.web.app import creer_app
+
+        uvicorn.run(creer_app(cfg), host=cfg.ui.hote, port=cfg.ui.port)
 
 
 @catalogue_app.command("verifier")

@@ -4,6 +4,7 @@ Chaque test de `fiches` écrit sa propre configuration TOML sous `tmp_path` et l
 `--config` ; aucun test n'écrit dans le `var/` du dépôt (AD-10).
 """
 
+import sys
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -127,11 +128,38 @@ def test_catalogue_verifier_casse_code_2(tmp_path):
     assert resultat.output.strip()
 
 
-def test_ui_module_absent_code_2():
-    resultat = runner.invoke(app, ["ui"])
+def test_ui_lance_uvicorn_avec_creer_app(monkeypatch, tmp_path):
+    """`interfaces.web.app` (story 14) n'est pas encore sur `main` : import et `uvicorn.run`
+    monkeypatchés ici ; l'intégration réelle se vérifie après fusion des deux stories."""
+    config = _ecrire_config(tmp_path)
+    appels: dict[str, Any] = {}
+
+    def fausse_creer_app(cfg: Any) -> str:
+        appels["config"] = cfg
+        return "app-web"
+
+    faux_module = type(sys)("waveaudit.interfaces.web.app")
+    faux_module.creer_app = fausse_creer_app
+    monkeypatch.setitem(sys.modules, "waveaudit.interfaces.web.app", faux_module)
+
+    def faux_run(application: Any, *, host: str, port: int) -> None:
+        appels["run"] = (application, host, port)
+
+    monkeypatch.setattr("uvicorn.run", faux_run)
+
+    resultat = runner.invoke(app, ["ui", "--config", str(config), "--port", "9999"])
+
+    assert resultat.exit_code == 0, resultat.output
+    assert appels["run"] == ("app-web", "127.0.0.1", 9999)
+    assert not garde_reseau._actif
+
+
+def test_ui_hote_invalide_code_2(tmp_path):
+    chemin = tmp_path / "waveaudit-test.toml"
+    chemin.write_text('[ui]\nhote = "0.0.0.0"\n', encoding="utf-8")
+    resultat = runner.invoke(app, ["ui", "--config", str(chemin)])
 
     assert resultat.exit_code == 2
-    assert "story 14" in resultat.output
     assert not garde_reseau._actif
 
 

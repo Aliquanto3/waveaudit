@@ -23,8 +23,10 @@ sources:
     nom du rapport). Codes : `EntreeInvalide`/`ConfigurationInvalide` -> 2, `MoteurInjoignable`
     -> 3, `ConnexionInterdite` -> 4, toute autre exception (dont `PermissionError` sur `-o`) -> 4.
   - `ui [--port N] [--config F]` : même ordre config/garde ; refuse (code 2) un `ui.hote` hors
-    `127.0.0.1`/`::1` ; importe `interfaces.web.app.creer_app` si le module existe, sinon message
-    d'une ligne (« disponible en story 14 ») et code 2 ; sinon `uvicorn.run(...)`.
+    `127.0.0.1`/`::1` ; puis `uvicorn.run(interfaces.web.app.creer_app(config), host=..., port=...)`.
+    Import paresseux de `creer_app` et de `uvicorn`, à l'intérieur de la commande (contrats §12) :
+    la story 14 (branche `story-14`, pas encore sur `main`) fournit ce module sans lancer ni
+    uvicorn ni la garde elle-même.
   - `catalogue verifier [--config F]` : `adaptateurs.catalogue_yaml.verifier(catalogue)`, une
     ligne d'erreur par défaut et code 2 si la liste n'est pas vide, sinon code 0.
   - `banc DOSSIER [--modele NOM]` : même ordre config/garde ; importe `application.banc` si le
@@ -37,8 +39,10 @@ sources:
   `tmp_path`) : lot nominal sur les 20 notes de démonstration (code 0, bandeau, 20 lignes, garde
   désactivé en sortie), dossier absent (2), moteur injoignable (3), `--modele` inconnu en
   local-gere (2), `-o` vers un dossier existant simulant un verrou Windows (4, `PermissionError`),
-  `catalogue verifier` sur le dépôt (0) et sur un catalogue cassé (2), `ui`/`banc` avec leur
-  module absent (2, message et garde désactivé), `sbom` et `installer` avec
+  `catalogue verifier` sur le dépôt (0) et sur un catalogue cassé (2), `ui` avec `creer_app` et
+  `uvicorn.run` monkeypatchés (module inséré dans `sys.modules`, puisque `interfaces/web/app.py`
+  n'est pas encore sur `main`) et un hôte invalide (2), `banc` avec son module absent (2, message
+  et garde désactivé), `sbom` et `installer` avec
   `installation.sbom.generer`/`installation.telechargement.installer` monkeypatchés (succès,
   `EmpreinteInvalide` -> 5, `OSError`/erreur httpx -> 4). Aucun vrai téléchargement ni appel au
   vrai modèle.
@@ -47,9 +51,6 @@ sources:
 
 ## Écarts au contrat (variantes minimales)
 
-- Le message « disponible en story 14 » (commande `ui`) adapte le numéro de story à la
-  fonctionnalité concernée ; seul celui de `banc` (« disponible en story 15 ») est repris
-  littéralement de `invoke_dev_with`.
 - `installer` et `sbom` n'ont pas d'option `--config` (absente de la liste de commandes du
   contrat §19) : ils utilisent `charger_configuration()` sans surcharge. Les tests les isolent du
   `var/` réel du dépôt en monkeypatchant la fonction qui ferait l'E/S, plutôt que par un fichier
@@ -59,15 +60,18 @@ sources:
 
 ## Reports
 
-- Le corps réel des commandes `ui` (lancement d'uvicorn) et `banc` (appel du futur
-  `application.banc`) n'est pas testé en e2e : leurs modules n'existent pas encore (stories 14 et
-  15). Le contrat §19/§20 est suivi au mieux à partir de la seule information disponible
-  aujourd'hui ; la story 15 est explicitement chargée de rebrancher `banc` (seule modification
-  autorisée de `cli.py` par son `invoke_dev_with`) et devra vérifier l'appel réel.
+- `ui` appelle réellement `interfaces.web.app.creer_app` et `uvicorn.run`, mais ce module
+  (branche `story-14`) n'est pas encore sur `main` : le test e2e monkeypatche l'import (faux
+  module inséré dans `sys.modules`) et `uvicorn.run`. L'appel réel reste à vérifier après fusion
+  des deux branches.
+- Le corps réel de `banc` (appel du futur `application.banc`) n'est pas testé en e2e : le module
+  n'existe pas encore (story 15). La story 15 est explicitement chargée de rebrancher `banc`
+  (seule modification autorisée de `cli.py` par son `invoke_dev_with`) et devra vérifier l'appel
+  réel.
 
 ## Revue
 
 En attente (second avis puis reviewer).
 
-Tests : ciblés verts (`test_cli.py` 15, `test_architecture.py`, `test_lot.py`) ; suite complète
-253 verts, 1 sauté (`slow`) ; `ruff check` et `ruff format --check` verts.
+Tests : ciblés verts (`test_cli.py` 16, `test_architecture.py`, `test_lot.py`) ; suite complète
+254 verts, 1 sauté (`slow`) ; `ruff check` et `ruff format --check` verts.
