@@ -1,0 +1,153 @@
+"""Banc de mesure : lot instrumenté en mémoire et en durées (contrats §20, CAP-12).
+
+Le banc s'abonne au lot (AD-2) : il démarre un échantillonnage de `MesureMemoire.rss_octets`
+(contrats §9, `composition.creer_mesure_memoire`) à `lot_demarre` — qui porte `pid_moteur` — et
+l'arrête à `lot_termine` ou `lot_echoue`. `top1`/`top3`/`etiquetees` sont recalculés depuis la
+traçabilité des fiches et des entrées écartées (contrats §20).
+"""
+
+import json
+import logging
+import os
+import statistics
+import threading
+from pathlib import Path
+
+from waveaudit.application import composition
+from waveaudit.application.lot import executer_lot
+from waveaudit.domaine.configuration import Configuration
+from waveaudit.domaine.modeles import (
+    Candidat,
+    EvenementLot,
+    Fiche,
+    Rapport,
+    RequeteLot,
+    TypeEvenement,
+)
+from waveaudit.domaine.ports import MesureMemoire
+
+_log = logging.getLogger(__name__)
+INTERVALLE_S = 0.5
+FICHIER = "banc.json"
+
+
+class _Echantillonneur:
+    """Échantillonne la RSS de l'application et, si connue, du moteur, dans un fil dédié."""
+
+    def __init__(self, mesure: MesureMemoire, pid_app: int) -> None:
+        self._mesure = mesure
+        self._pid_app = pid_app
+        self._pid_moteur: int | None = None
+        self._arret = threading.Event()
+        self._fil: threading.Thread | None = None
+        self.app: list[int] = []
+        self.moteur: list[int] = []
+
+    def demarrer(self, pid_moteur: int | None) -> None:
+        self._pid_moteur = pid_moteur
+        self._fil = threading.Thread(target=self._boucle, daemon=True)
+        self._fil.start()
+
+    def _echantillon(self) -> None:
+        rss_app = self._mesure.rss_octets(self._pid_app)
+        if rss_app is not None:
+            self.app.append(rss_app)
+        if self._pid_moteur is not None:
+            rss_moteur = self._mesure.rss_octets(self._pid_moteur)
+            if rss_moteur is not None:
+                self.moteur.append(rss_moteur)
+
+    def _boucle(self) -> None:
+        self._echantillon()
+        while not self._arret.wait(INTERVALLE_S):
+            self._echantillon()
+
+    def arreter(self) -> None:
+        """Arrête le fil puis prend un dernier échantillon (hors concurrence, après le `join`)."""
+        self._arret.set()
+        if self._fil is not None:
+            self._fil.join(timeout=2.0)
+        self._echantillon()
+
+    def pic_app_o(self) -> int:
+        return max(self.app, default=0)
+
+    def pic_moteur_o(self) -> int:
+        return max(self.moteur, default=0)
+
+
+def _top(rapport: Rapport) -> tuple[int, int, int]:
+    """`top1`, `top3`, `etiquetees` : comparaison de `constat_attendu` aux candidats triés."""
+    top1 = top3 = etiquetees = 0
+    for element in (*rapport.fiches, *rapport.ecartees):
+        constat_attendu = (
+            element.tracabilite.constat_attendu
+            if isinstance(element, Fiche)
+            else element.constat_attendu
+        )
+        if constat_attendu is None:
+            continue
+        candidats: list[Candidat] = (
+            element.tracabilite.candidats if isinstance(element, Fiche) else element.candidats
+        )
+        etiquetees += 1
+        ids = [c.id for c in candidats]
+        if ids[:1] == [constat_attendu]:
+            top1 += 1
+        if constat_attendu in ids[:3]:
+            top3 += 1
+    return top1, top3, etiquetees
+
+
+def executer_banc(dossier: Path, config: Configuration, modele: str | None = None) -> Path:
+    """Exécute un lot instrumenté ; écrit et affiche `banc.json` ; renvoie son chemin."""
+    mesure = composition.creer_mesure_memoire()
+    echantillonneur = _Echantillonneur(mesure, os.getpid())
+    durees: list[tuple[str, float]] = []
+    info: dict[str, str] = {}
+
+    def abonne(evenement: EvenementLot) -> None:
+        if evenement.type == TypeEvenement.LOT_DEMARRE:
+            pid_moteur = evenement.details.get("pid_moteur")
+            echantillonneur.demarrer(pid_moteur if isinstance(pid_moteur, int) else None)
+            info["modele"] = str(evenement.details.get("modele", ""))
+        elif evenement.type in (
+            TypeEvenement.FICHE_TERMINEE,
+            TypeEvenement.FICHE_NON_TRAITEE,
+            TypeEvenement.FICHE_NON_RATTACHEE,
+        ):
+            if evenement.note is not None and evenement.duree_s is not None:
+                durees.append((evenement.note, evenement.duree_s))
+        elif evenement.type in (TypeEvenement.LOT_TERMINE, TypeEvenement.LOT_ECHOUE):
+            echantillonneur.arreter()
+
+    resultat = executer_lot(RequeteLot(dossier=dossier, modele=modele), config, abonne)
+
+    top1, top3, etiquetees = _top(resultat.rapport)
+    valeurs_durees = [duree for _, duree in durees]
+    pic_app = echantillonneur.pic_app_o()
+    pic_moteur = echantillonneur.pic_moteur_o()
+    banc = {
+        "id_lot": resultat.id_lot,
+        "modele": info.get("modele", ""),
+        "fiches": [{"note": note, "duree_s": duree} for note, duree in durees],
+        "duree_mediane_s": statistics.median(valeurs_durees) if valeurs_durees else 0.0,
+        "duree_max_s": max(valeurs_durees, default=0.0),
+        "pic_rss_app_o": pic_app,
+        "pic_rss_moteur_o": pic_moteur,
+        "pic_rss_total_o": pic_app + pic_moteur,
+        "top1": top1,
+        "top3": top3,
+        "etiquetees": etiquetees,
+    }
+    chemin = resultat.dossier_sortie / FICHIER
+    chemin.write_text(json.dumps(banc, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print(
+        f"banc {resultat.id_lot} (modèle {banc['modele']}) : "
+        f"{len(durees)} fiche(s) traitée(s), "
+        f"durée médiane {banc['duree_mediane_s']} s, max {banc['duree_max_s']} s"
+    )
+    print(f"pic RSS app {pic_app} o, moteur {pic_moteur} o, total {banc['pic_rss_total_o']} o")
+    print(f"top1 {top1}/{etiquetees}, top3 {top3}/{etiquetees} ; rapport : {chemin}")
+    return chemin

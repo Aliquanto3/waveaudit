@@ -188,13 +188,12 @@ def test_ui_hote_invalide_code_2(tmp_path):
     assert not garde_reseau._actif
 
 
-def test_banc_module_absent_code_2(tmp_path):
-    notes = tmp_path / "notes"
-    notes.mkdir()
-    resultat = runner.invoke(app, ["banc", str(notes)])
+def test_banc_dossier_absent_code_2(tmp_path):
+    """Branchement réel de `banc` sur `application.banc.executer_banc` (story 15) : l'erreur de
+    dossier manquant est levée avant tout accès au moteur, donc sans configuration dédiée."""
+    resultat = runner.invoke(app, ["banc", str(tmp_path / "absent")])
 
     assert resultat.exit_code == 2
-    assert "story 15" in resultat.output
     assert not garde_reseau._actif
 
 
