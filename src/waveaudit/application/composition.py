@@ -11,12 +11,15 @@ from datetime import datetime
 from waveaudit.adaptateurs import memoire_psutil
 from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
 from waveaudit.adaptateurs.export_docx import ExportDocx
+from waveaudit.adaptateurs.export_incident_docx import ExporteurIncidentDocx
+from waveaudit.adaptateurs.journaux import SourceJournauxFichiers
 from waveaudit.adaptateurs.llama_server import LlamaServer
 from waveaudit.adaptateurs.moteur_openai import MoteurOpenAI
 from waveaudit.adaptateurs.notes_fichiers import NotesFichiers
+from waveaudit.adaptateurs.regles_yaml import CatalogueReglesYaml
 from waveaudit.domaine.configuration import Configuration
 from waveaudit.domaine.erreurs import ConfigurationInvalide
-from waveaudit.domaine.ports import InfoMoteur, MesureMemoire, Moteur, Ports
+from waveaudit.domaine.ports import InfoMoteur, MesureMemoire, Moteur, Ports, PortsIncident
 from waveaudit.installation import manifeste
 from waveaudit.installation.manifeste import Artefact
 
@@ -134,3 +137,18 @@ def ouvrir_moteur_incident(
     """
     with _ouvrir_moteur(config, modele, id_lot) as ouvert:
         yield ouvert
+
+
+def creer_ports_incident(config: Configuration) -> PortsIncident:
+    """Ports du workflow incident, sans processus ni connexion (contrats §21, AD-17).
+
+    Le catalogue de règles et le thème privé sont validés ici (`ConfigurationInvalide`), avant
+    toute lecture de journaux et toute ouverture du moteur.
+    """
+    return PortsIncident(
+        source_journaux=SourceJournauxFichiers(config.incident.decalage_syslog),
+        regles=CatalogueReglesYaml(config.chemins.regles),
+        exporteur=ExporteurIncidentDocx(
+            config.chemins.theme_prive, max_preuves=config.incident.max_preuves
+        ),
+    )
