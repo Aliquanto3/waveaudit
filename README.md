@@ -28,6 +28,9 @@ Les données de mission d'un audit de sécurité (preuves, vulnérabilités, ext
 | Mémoire | Pic ≤ 6 Go |
 | Installation | < 10 min |
 
+> **Vous testez le POC ?** Suivez le [guide des testeurs](docs/guide-testeurs.md) : installation,
+> premier lot, et comment transmettre votre retour.
+
 ## Prérequis
 
 - Windows 11, CPU seul (pas de GPU requis), 16 Go de RAM.
