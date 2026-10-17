@@ -1,0 +1,230 @@
+# Catalogue de règles Windows (contrats §21 « Règles », formats-incident.md § « Catalogue
+# minimal »). Conditions et agrégations recopiées telles quelles depuis formats-incident.md.
+
+- id: INC-WIN-FORCE-BRUTE
+  titre: Force brute sur une ouverture de session Windows
+  description: >-
+    Plusieurs échecs d'authentification Windows depuis la même adresse source en peu de
+    temps, typique d'une tentative de force brute contre un compte.
+  impact: >-
+    Un attaquant qui devine un mot de passe peut ouvrir une session et progresser dans
+    le système d'information.
+  recommandation: >-
+    Bloquer ou limiter l'adresse source, imposer un verrouillage de compte et des mots
+    de passe robustes.
+  severite: elevee
+  references:
+    - id: T1110
+      titre: Brute Force
+      url: https://attack.mitre.org/techniques/T1110/
+    - id: T1110.001
+      titre: "Brute Force: Password Guessing"
+      url: https://attack.mitre.org/techniques/T1110/001/
+  source: windows
+  condition:
+    log_name: Security
+    event_id: [4625]
+  agregation:
+    seuil: 5
+    fenetre_s: 300
+    par: [IpAddress]
+
+- id: INC-WIN-CONNEXION-RDP
+  titre: Ouverture de session Windows par Bureau à distance
+  description: >-
+    Une ouverture de session réussie de type Bureau à distance, à rapprocher des accès
+    distants légitimes connus.
+  impact: >-
+    Une session distante non attendue peut traduire un accès frauduleux au poste ou au
+    serveur concerné.
+  recommandation: >-
+    Vérifier la légitimité de la connexion et restreindre l'accès RDP aux postes
+    d'administration autorisés.
+  severite: moyenne
+  references:
+    - id: T1021.001
+      titre: "Remote Services: Remote Desktop Protocol"
+      url: https://attack.mitre.org/techniques/T1021/001/
+  source: windows
+  condition:
+    log_name: Security
+    event_id: [4624]
+    champs:
+      LogonType: "10"
+
+- id: INC-WIN-COMPTE-CREE
+  titre: Création d'un compte utilisateur Windows
+  description: >-
+    Un nouveau compte utilisateur a été créé dans l'annuaire ou sur le poste local.
+  impact: >-
+    Un compte créé en dehors des procédures peut servir de porte dérobée persistante
+    pour un attaquant.
+  recommandation: >-
+    Vérifier que la création correspond à une demande légitime et documentée auprès du
+    service habilité.
+  severite: moyenne
+  references:
+    - id: T1136.001
+      titre: "Create Account: Local Account"
+      url: https://attack.mitre.org/techniques/T1136/001/
+  source: windows
+  condition:
+    log_name: Security
+    event_id: [4720]
+
+- id: INC-WIN-AJOUT-GROUPE-ADMIN
+  titre: Ajout d'un membre à un groupe d'administration
+  description: >-
+    Un compte a été ajouté à un groupe d'administrateurs, ce qui lui confère des
+    privilèges élevés sur le domaine ou le poste.
+  impact: >-
+    Une élévation de privilèges non autorisée permet à un attaquant d'étendre son
+    contrôle sur le système d'information.
+  recommandation: >-
+    Vérifier que l'ajout correspond à une demande approuvée et retirer le compte du
+    groupe en l'absence de justification.
+  severite: elevee
+  references:
+    - id: T1098
+      titre: Account Manipulation
+      url: https://attack.mitre.org/techniques/T1098/
+  source: windows
+  condition:
+    log_name: Security
+    event_id: [4728, 4732, 4756]
+    champs_regex:
+      TargetUserName: '^(?:administrateurs|administrators|admins du domaine|domain admins|administrateurs de l.entreprise|enterprise admins)$'
+
+- id: INC-WIN-JOURNAL-EFFACE
+  titre: Effacement d'un journal d'événements Windows
+  description: >-
+    Un journal d'audit Windows a été effacé, ce qui peut masquer une activité
+    malveillante antérieure.
+  impact: >-
+    La suppression des traces compromet la capacité à détecter et à reconstituer un
+    incident de sécurité.
+  recommandation: >-
+    Investiguer l'origine de l'effacement et renforcer la centralisation des journaux
+    vers un collecteur externe.
+  severite: critique
+  references:
+    - id: T1070.001
+      titre: "Indicator Removal: Clear Windows Event Logs"
+      url: https://attack.mitre.org/techniques/T1070/001/
+  source: windows
+  condition:
+    event_id: [1102, 104]
+
+- id: INC-WIN-SERVICE-INSTALLE
+  titre: Installation d'un service Windows
+  description: >-
+    Un nouveau service a été installé sur le système, pouvant servir à exécuter du code
+    de façon persistante.
+  impact: >-
+    Un service malveillant installé par un attaquant peut assurer sa persistance et son
+    exécution avec des privilèges élevés.
+  recommandation: >-
+    Vérifier la légitimité du service, son éditeur et son chemin d'exécutable avant de le
+    laisser en place.
+  severite: moyenne
+  references:
+    - id: T1543.003
+      titre: "Create or Modify System Process: Windows Service"
+      url: https://attack.mitre.org/techniques/T1543/003/
+  source: windows
+  condition:
+    log_name: System
+    event_id: [7045]
+
+- id: INC-WIN-TACHE-PLANIFIEE
+  titre: Création d'une tâche planifiée Windows
+  description: >-
+    Une tâche planifiée a été créée, pouvant être utilisée pour exécuter du code à
+    intervalle régulier ou de façon persistante.
+  impact: >-
+    Une tâche planifiée malveillante peut assurer la persistance d'un attaquant sans
+    intervention manuelle répétée.
+  recommandation: >-
+    Vérifier le contenu et la planification de la tâche, et la supprimer si elle n'est
+    pas justifiée.
+  severite: moyenne
+  references:
+    - id: T1053.005
+      titre: "Scheduled Task/Job: Scheduled Task"
+      url: https://attack.mitre.org/techniques/T1053/005/
+  source: windows
+  condition:
+    log_name: Security
+    event_id: [4698]
+
+- id: INC-WIN-POWERSHELL-ENCODE
+  titre: Commande PowerShell encodée
+  description: >-
+    Une ligne de commande PowerShell contient une commande encodée en base64, technique
+    fréquente pour dissimuler un script malveillant.
+  impact: >-
+    Un script encodé peut masquer des actions offensives aux outils d'inspection et de
+    surveillance du poste.
+  recommandation: >-
+    Décoder et analyser la commande, puis restreindre l'exécution de scripts non signés
+    sur le poste concerné.
+  severite: elevee
+  references:
+    - id: T1059.001
+      titre: "Command and Scripting Interpreter: PowerShell"
+      url: https://attack.mitre.org/techniques/T1059/001/
+    - id: T1027
+      titre: Obfuscated Files or Information
+      url: https://attack.mitre.org/techniques/T1027/
+  source: windows
+  condition:
+    event_id: [1, 4688]
+    champs_regex:
+      CommandLine: '(?:^|\s)[-/]e(?:c|nc|ncodedcommand)?\s+[a-z0-9+/=]{16,}'
+
+- id: INC-WIN-ACCES-LSASS
+  titre: Accès au processus LSASS
+  description: >-
+    Un processus a ouvert le processus LSASS avec des droits d'accès étendus, technique
+    classique d'extraction d'identifiants en mémoire.
+  impact: >-
+    L'extraction des secrets de LSASS permet à un attaquant de récupérer des
+    identifiants et de se déplacer vers d'autres systèmes.
+  recommandation: >-
+    Isoler le poste, analyser le processus à l'origine de l'accès et réinitialiser les
+    identifiants potentiellement exposés.
+  severite: critique
+  references:
+    - id: T1003.001
+      titre: "OS Credential Dumping: LSASS Memory"
+      url: https://attack.mitre.org/techniques/T1003/001/
+  source: windows
+  condition:
+    log_name: Microsoft-Windows-Sysmon/Operational
+    event_id: [10]
+    champs_regex:
+      TargetImage: '\\lsass\.exe$'
+
+- id: INC-WIN-OUTIL-OFFENSIF
+  titre: Exécution d'un outil offensif connu
+  description: >-
+    Un exécutable correspondant à un outil offensif connu ou à une empreinte réservée a
+    été lancé sur le poste.
+  impact: >-
+    L'exécution d'un outil offensif indique une tentative active de compromission ou de
+    mouvement latéral.
+  recommandation: >-
+    Isoler le poste concerné, analyser l'exécutable et rechercher d'autres indices de
+    compromission sur le réseau.
+  severite: critique
+  references:
+    - id: T1588.002
+      titre: "Obtain Capabilities: Tool"
+      url: https://attack.mitre.org/techniques/T1588/002/
+  source: windows
+  condition:
+    log_name: Microsoft-Windows-Sysmon/Operational
+    event_id: [1]
+    au_moins_un:
+      Image: '\\(?:mimikatz|rubeus|sharphound|lazagne)\.exe$'
+      Hashes: 'SHA256=A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4A1B2C3D4'
