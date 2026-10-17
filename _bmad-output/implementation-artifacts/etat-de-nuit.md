@@ -16,14 +16,14 @@
 | 12 | Composition, lot, llama-server | intégrée f31117e (revue : revues/story-12.md ; suite complète de vague E : 238 verte, lint OK) |
 | 13 | CLI complète | intégrée 5f3a388 (revue : revues/story-13.md ; suite 271 verte) |
 | 14 | UI web locale | intégrée 41b03c8 (revue : revues/story-14.md) |
-| 15 | Banc de mesure | en cours |
-| 16 | Preuve hors ligne, test réel, README | en cours |
+| 15 | Banc de mesure | intégrée b8022b2 (revue : revues/story-15.md) |
+| 16 | Preuve hors ligne, test réel, README | intégrée 612457c (revue : revues/story-16.md ; suite complète de fin de MVP : 283 verte, lint OK) |
 | V1 | Validation sur le vrai moteur | à faire |
 | V2 | Banc des 4 modèles et réglage du prompt | à faire |
-| D1 | Catalogue élargi et notes difficiles | en cours |
-| D2 | Intégration continue GitHub Actions | intégrée 79abdfd (revue : revues/story-D2.md ; badge README fait par la story 16) |
-| D3 | Guide des testeurs et formulaire de retour | à faire |
-| C1 | Extension du socle pour le CERT | à faire |
+| D1 | Catalogue élargi et notes difficiles | intégrée 1d4f448 (revue : revues/story-D1.md ; 50 constats ; notes 21-30 : 8/10 top 1, 10/10 top 3) |
+| D2 | Intégration continue GitHub Actions | intégrée 79abdfd (revue : revues/story-D2.md ; badge README fait par la story 16 ; premier run CI 39070885639 vert sur windows-latest) |
+| D3 | Guide des testeurs et formulaire de retour | en cours |
+| C1 | Extension du socle pour le CERT | en cours |
 | C2 | Lecture des journaux et jeu de démo | à faire |
 | C3 | Règles et moteur de détection | à faire |
 | C4 | Indicateurs et garde-fous du récit | à faire |
@@ -50,4 +50,6 @@
 - Story 12 : `composition.ouvrir(config, modele, *, id_lot=None)` (mot-clé ajouté pour nommer le journal de llama-server) ; `fiches.json` écrit sans écriture atomique (non demandée par le contrat) ; une exception inattendue de `traiter` arrête le lot (code 4, §4).
 - Story 14 : l’UI accepte `Host: [::1]:<port>` (écart au §18, nécessaire puisque le §18 autorise `ui.hote = "::1"`) ; `/etat?depuis=N` facultatif ajouté (réponse par défaut inchangée). Reporté : le champ `erreur` d’un lot peut afficher un chemin absolu.
 - Story 13 (reporté) : vérifier à la main qu’un second `waveaudit ui` sur un port occupé sort en code 4.
+- Story 15 : le §20 ne définit pas `pic_rss_total_o` ; la revue retient le maximum de la somme application + moteur prise au même échantillon (pic simultané). À consigner dans le §20.
+- Story 16 (reporté) : le test slow de bout en bout n’a pas été lancé (pas de modèle) ; à lancer en V1.
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
