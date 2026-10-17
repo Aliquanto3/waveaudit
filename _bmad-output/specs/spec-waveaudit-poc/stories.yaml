@@ -1,0 +1,245 @@
+- id: "1"
+  title: Socle commun (AD-0)
+  description: >-
+    Crée le projet uv et tous les fichiers partagés figés par AD-0 et AD-16 :
+    modèles, ports, erreurs, configuration, registre de workflow, manifeste,
+    faux moteur, fixtures et test d'architecture.
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Transcrire contrats.md §1 à §5, §11 (artefacts.toml complet avec tailles et
+    SHA-256 de la table Stack), §12 (addopts), §13 (faux moteur et fixtures) et
+    §2 (waveaudit.toml) à l'identique. pyproject : package src/waveaudit,
+    script `waveaudit = "waveaudit.interfaces.cli:app"`, Python ==3.12.*,
+    dépendances épinglées de la table Stack (dev : pytest, pytest-socket,
+    ruff, cyclonedx-bom), marqueur `slow` déclaré. Créer cli.py avec une app
+    typer vide (commande `version`) pour que le script existe.
+    domaine/cvss31.py : seulement `metriques_depuis_vecteur` et `vecteur`
+    (nécessaires au faux moteur) ; `evaluer` vient en story 3. .gitignore :
+    ajouter /var/ et waveaudit.local.toml. Tests : test_architecture.py (AD-1,
+    via ast), test_modeles.py (schema_sortie sans $ref, additionalProperties
+    false, enums CVSS ; extra interdit), test_config.py (défauts, surcharge
+    locale, clé inconnue -> ConfigurationInvalide, chemins relatifs à
+    racine_projet), test_faux_moteur.py (chaque scénario, deux instances
+    simultanées). Suite complète verte, ruff check et format propres.
+- id: "2"
+  title: Recherche BM25
+  description: >-
+    domaine/recherche.py : classement déterministe des constats pour une note
+    (CAP-3), selon AD-7 et contrats §7.
+  invoke_dev_with: >-
+    Fichiers : src/waveaudit/domaine/recherche.py,
+    tests/unitaires/test_recherche.py. Tests sur un mini-catalogue en
+    mémoire : tokenisation (accents, casse, mots vides), pondération par
+    répétition, IDF toujours positif, égalité départagée par id, requête sans
+    jeton connu -> scores 0. Ne pas toucher aux fichiers du socle.
+- id: "3"
+  title: CVSS 3.1 et garde-fous
+  description: >-
+    Complète domaine/cvss31.py (evaluer) et crée domaine/garde_fous.py (CAP-5),
+    selon AD-5 et contrats §6.
+  invoke_dev_with: >-
+    Fichiers : domaine/cvss31.py (ajout de `evaluer` seulement, sans changer
+    les deux fonctions existantes), domaine/garde_fous.py,
+    tests/unitaires/test_cvss31.py, tests/unitaires/test_garde_fous.py. Tests
+    CVSS sur des vecteurs de référence FIRST (ex.
+    AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H = 9.8 critique ;
+    AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N = 6.1 moyenne ; tout N = 0.0 aucune).
+    Garde-fous : références inventées retirées (casse, ponctuation finale,
+    URL), références du constat conservées, vecteur invalide -> défaut,
+    rubrique courte -> texte du constat, invariant statut/motifs,
+    motifs_initiaux transmis.
+- id: "4"
+  title: Catalogue de constats types
+  description: >-
+    Rédige le catalogue FR (CAP-2) dans donnees/catalogue/<famille>.yaml,
+    l'adaptateur CatalogueYaml et la fonction de vérification, selon contrats
+    §15 et §16.
+  invoke_dev_with: >-
+    Fichiers : donnees/catalogue/{web,ad,infra,config,crypto,autre}.yaml,
+    src/waveaudit/adaptateurs/catalogue_yaml.py (CatalogueYaml + fonction
+    `verifier(dossier) -> list[str]` d'erreurs, appelée plus tard par la CLI),
+    tests/unitaires/test_catalogue.py. Les 35 identifiants figés, au moins.
+    Textes rédigés en propre en français (aucune copie de CWE, OWASP ou
+    ANSSI), précis et professionnels. Chaque constat : 6 à 12 mots_cles FR et
+    EN (synonymes, noms d'outils, termes de preuve), au moins une référence de
+    forme canonique avec une URL https publique réelle (cwe.mitre.org,
+    owasp.org, cyber.gouv.fr ou ssi.gouv.fr), un vecteur de base cohérent, et
+    `source` = "Rédaction WaveAudit d'après <références>, licence du dépôt".
+    Tests : le catalogue du dépôt passe verifier ; chaque règle de verifier a
+    un cas d'échec sur un catalogue de test sous tmp_path.
+- id: "5"
+  title: Notes brutes et jeu de démonstration
+  description: >-
+    adaptateurs/notes_fichiers.py (CAP-1) et les 20 notes fictives étiquetées,
+    plus une note hors sujet, selon contrats §14 et §16.
+  invoke_dev_with: >-
+    Fichiers : src/waveaudit/adaptateurs/notes_fichiers.py,
+    donnees/demo/notes/01-…md à 20-…md, tests/donnees/notes/ (cas invalides :
+    corps vide, YAML cassé, en-tête non mapping, BOM + CRLF valide,
+    severite_pressentie hors liste, fichier .png ignoré),
+    tests/donnees/notes/hors-sujet.md, tests/unitaires/test_notes.py. Notes
+    réalistes de consultant : style télégraphique, vocabulaire différent de
+    celui du catalogue, preuves textuelles fictives (exemple.test, *.local,
+    192.0.2.0/24), sans jamais citer l'identifiant du constat ni de CWE dans
+    le corps. Le catalogue n'existe pas encore dans cette story :
+    constat_attendu doit être pris dans la liste figée de contrats §16.
+- id: "6"
+  title: Adaptateur moteur compatible OpenAI
+  description: >-
+    adaptateurs/moteur_openai.py (CAP-4, CAP-9), selon AD-3 et contrats §3.
+  invoke_dev_with: >-
+    Fichiers : src/waveaudit/adaptateurs/moteur_openai.py,
+    tests/unitaires/test_moteur_openai.py. Tests avec la fixture faux_moteur :
+    nominal (corps de requête conforme, response_format, seed, temperature,
+    model = modele_api), json_invalide -> SortieInvalide, erreur_500 et
+    injoignable -> MoteurInjoignable, lent avec timeout_s=1 ->
+    MoteurInjoignable, sonder OK et KO, Authorization absent si cle_api vide,
+    trust_env=False (un HTTP_PROXY bidon via monkeypatch ne change rien).
+- id: "7"
+  title: Garde réseau
+  description: >-
+    securite/garde_reseau.py (CAP-11), selon AD-9 et contrats §12.
+  invoke_dev_with: >-
+    Fichiers : src/waveaudit/securite/garde_reseau.py,
+    tests/unitaires/test_garde_reseau.py. Tests : connexion vers 127.0.0.1
+    (faux_moteur) autorisée sous garde ; connexion vers 192.0.2.1:80 refusée
+    par ConnexionInterdite (avant toute émission réseau ; vérifier que
+    pytest-socket ne la voit pas : le garde lève avant), enregistrée dans
+    tentatives() ; localhost résolu ; activer idempotent ; desactiver
+    restaure ; ConnexionInterdite n'est pas une OSError ; aucune fuite entre
+    tests (fixture qui vérifie que socket.socket.connect est l'original après
+    chaque test).
+- id: "8"
+  title: Installation vérifiée et SBOM
+  description: >-
+    installation/ (manifeste, téléchargement, SBOM) pour CAP-10 et CAP-11,
+    selon AD-12 et contrats §11.
+  invoke_dev_with: >-
+    Fichiers : src/waveaudit/installation/{manifeste,telechargement,sbom}.py,
+    tests/unitaires/test_installation.py. Aucun réseau : httpx.MockTransport.
+    Tests : manifeste du dépôt chargé (5 artefacts, rôles uniques sauf
+    candidat, URL épinglées sur un commit ou un tag) ; téléchargement OK ->
+    renommage depuis .part ; mauvaise empreinte -> fichier supprimé et
+    EmpreinteInvalide ; fichier déjà valide sauté ; extraction zip et
+    executable résolu (zip de test fabriqué) ; sbom appelle la bonne commande
+    (subprocess monkeypatché). Exposer une fonction
+    `installer(manifeste, var, candidats: bool, transport=None)` pour la CLI.
+- id: "9"
+  title: Export Word et thèmes
+  description: >-
+    adaptateurs/export_docx.py et theme_generique.py (CAP-6), selon AD-14 et
+    contrats §17.
+  invoke_dev_with: >-
+    Fichiers : src/waveaudit/adaptateurs/{export_docx,theme_generique}.py,
+    tests/unitaires/test_export_docx.py. Rapport de test construit à la main
+    (2 fiches dont une a_revoir avec motifs, 2 écartées). Relecture par
+    python-docx : bandeau exact en en-tête et en pied, titres et intitulés
+    exacts, table de synthèse, « À revoir » et motifs, annexe présente
+    seulement s'il y a des écartées. Thème privé : modele.docx et theme.toml
+    créés sous tmp_path (via config.chemins.theme_prive), styles utilisés ;
+    sans dossier, le thème générique fonctionne.
+- id: "10"
+  title: Pipeline fiches et prompt
+  description: >-
+    workflows/fiches/ (pipeline et prompt) branché au registre (CAP-4), selon
+    AD-4, AD-6, AD-15 et contrats §5 et §8.
+  invoke_dev_with: >-
+    Fichiers : src/waveaudit/workflows/fiches/{__init__,pipeline,prompt}.py ;
+    seule modification autorisée d'un fichier du socle : l'entrée "fiches" de
+    REGISTRE si le socle l'a laissée en attente. Tests
+    (tests/unitaires/test_pipeline.py) avec un vrai MoteurOpenAI sur
+    faux_moteur et des ports en mémoire : nominal -> fiche ok, préfixe
+    "[adapté] " ; json_invalide_une_fois -> 2 requêtes, ok ;
+    json_invalide -> 2 requêtes, repli a_revoir ; erreur_500 -> 1 requête,
+    repli ; references_inventees -> retirées ; vecteur_invalide -> défaut,
+    1 seule requête ; NoteInvalide -> non_traitee ; note hors sujet ->
+    non_rattachee, 0 requête ; troncature -> note_tronquee ; prompt : balises
+    dans le dernier message user, sans références ni constat_attendu.
+- id: "11"
+  title: Calibrage du rattachement (CAP-3)
+  description: >-
+    Mesure et atteint le seuil de CAP-3 sur les 20 notes de démonstration
+    (au moins 18 dans le top 3 et 15 en premier), sans modèle.
+  invoke_dev_with: >-
+    Test tests/unitaires/test_rattachement_demo.py : charge le vrai catalogue
+    et les vraies notes, classe chaque note et vérifie les seuils ; affiche la
+    matrice des échecs. Pour atteindre le seuil, on peut seulement : enrichir
+    mots_cles, ajuster la liste de mots vides de recherche.py, ou reformuler
+    une note qui serait ambiguë pour un humain aussi. Il est interdit d'ajouter
+    l'identifiant ou le titre du constat dans une note, et de changer
+    l'algorithme ou ses paramètres. Consigner le score obtenu dans le message
+    de commit.
+- id: "12"
+  title: Composition, lot et cycle de vie de llama-server
+  description: >-
+    application/composition.py, lot.py, adaptateurs/llama_server.py et
+    memoire_psutil.py (CAP-7, CAP-9, CAP-12), selon AD-2, AD-8, AD-11 et
+    contrats §9 et §10.
+  invoke_dev_with: >-
+    Tests e2e (tests/e2e/test_lot.py) avec config_test (mode externe,
+    faux_moteur) : 20 notes de démo -> fiches.json (Rapport valide),
+    journal.jsonl (séquence d'événements, index 1..total), rapport.docx ;
+    id_lot unique pour deux lots dans la même seconde ; sonde KO ->
+    lot_echoue puis MoteurInjoignable ; abonné qui lève -> lot terminé ;
+    copie_rapport ; CAP-9 : deux faux moteurs, chacun ne reçoit que son lot.
+    llama_server : tests unitaires avec un faux binaire (script Python lancé
+    par sys.executable qui sert /health) pour le port, l'attente, l'arrêt et
+    le Job Object (Windows : le processus enfant meurt quand le job est
+    fermé) ; choix du repli par RAM via MesureMemoire ou psutil monkeypatché.
+    Test réel marqué slow, sauté si var/modeles absents.
+- id: "13"
+  title: CLI complète
+  description: >-
+    interfaces/cli.py : installer, fiches, ui, catalogue verifier, banc, sbom
+    (CAP-7, CAP-10), selon contrats §4, §12 et §19.
+  invoke_dev_with: >-
+    La commande `banc` appelle application.banc s'il existe ; sinon, elle
+    affiche « disponible en story 15 » et renvoie le code 2. La commande `ui`
+    appelle interfaces.web.app.creer_app ; même règle si le module est absent.
+    Tests e2e (tests/e2e/test_cli.py, CliRunner de typer, config_test via
+    --config sur un TOML écrit sous tmp_path) : fiches sur les 20 notes ->
+    code 0, bandeau en première et dernière ligne, une ligne par fiche ;
+    dossier absent -> 2 ; moteur injoignable -> 3 ; --modele inconnu en
+    local-gere -> 2 ; catalogue verifier -> 0 sur le dépôt, 2 sur un catalogue
+    cassé ; -o vers un fichier verrouillé -> 4. Le garde réseau est actif
+    pendant fiches (désactivé en sortie de test).
+- id: "14"
+  title: UI web locale
+  description: >-
+    interfaces/web/ (FastAPI, Jinja2, JS vanilla) au-dessus d'executer_lot
+    (CAP-8), selon AD-2, AD-9, AD-14 et contrats §18.
+  invoke_dev_with: >-
+    Fichiers : src/waveaudit/interfaces/web/{__init__,app}.py, templates/,
+    static/ ; tests/e2e/test_ui.py avec TestClient et config_test. Parcours :
+    envoi de 20 notes -> 303 -> attente de l'état « termine » ->
+    téléchargement d'un .docx valide ; second envoi pendant un lot -> 409 sans
+    écriture ; noms refusés (../x.md, CON.md, doublon de casse, .exe, plus de
+    1 Mo) -> 400 ; Host étranger -> 400 ; Origin étranger -> 403 ; rapport
+    avant la fin -> 409, lot inconnu -> 404 ; bandeau sur chaque page ; aucune
+    URL externe dans templates/ et static/. Interface sobre et lisible, en
+    français.
+- id: "15"
+  title: Banc de mesure
+  description: >-
+    application/banc.py et la commande banc (CAP-12), selon contrats §20.
+  invoke_dev_with: >-
+    Tests (tests/e2e/test_banc.py) avec config_test et une MesureMemoire
+    factice : banc.json conforme au format, top1/top3/etiquetees calculés
+    depuis la traçabilité, médiane et maximum, échantillonnage arrêté à
+    lot_termine et à lot_echoue. Brancher la commande `banc` de cli.py (seule
+    modification autorisée de cli.py) et ajouter un test CLI de banc.
+- id: "16"
+  title: Preuve hors ligne, test réel et README
+  description: >-
+    tests/e2e/test_hors_ligne.py (CAP-11), test slow de bout en bout sur le
+    vrai moteur, et README d'installation et d'utilisation.
+  invoke_dev_with: >-
+    test_hors_ligne : un lot CLI et un lot UI sous garde(), avec
+    tentatives() == [] ; un test négatif prouve que le garde détecte bien un
+    appel à 192.0.2.1 depuis un abonné. Test slow
+    (tests/e2e/test_reel.py) : 2 notes de démo via installer déjà fait,
+    mode local-gere, assertions de structure seulement. README (français) :
+    prérequis, installation (uv sync, waveaudit installer), utilisation CLI
+    et UI, preuve hors ligne (tests, SBOM, SHA-256), choix et licences des
+    modèles, banc, limites du POC, bandeau démonstration. Lancer la suite
+    complète, ruff check et format.
