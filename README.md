@@ -68,6 +68,7 @@ Autres commandes (`uv run waveaudit --help` pour le détail) :
 |---|---|
 | `installer [--candidats]` | Télécharge et vérifie les artefacts du manifeste |
 | `fiches DOSSIER [...]` | Lot CLI décrit ci-dessus |
+| `incident DOSSIER [...]` | Analyse de journaux CERT décrite ci-dessous |
 | `ui [--port N] [--config F]` | Démarre l'interface web locale |
 | `banc DOSSIER [--modele NOM]` | Lot instrumenté (temps par fiche, pic mémoire) |
 | `catalogue verifier [--config F]` | Contrôle le catalogue de constats types |
@@ -85,11 +86,77 @@ changer). Elle n'accepte que les requêtes dont l'en-tête `Host` et `Origin` vi
 locale. On y dépose un dossier de notes, on suit la progression du lot en direct, puis on
 télécharge le rapport Word une fois le lot terminé.
 
+## Utilisation — CERT (analyse d'incident)
+
+```
+uv run waveaudit incident <dossier-de-journaux> [-o FICHIER] [--annee N] [--modele NOM] [--config FICHIER]
+```
+
+Lit les journaux (auth/syslog Linux, journal Windows exporté en JSON, Sysmon en CSV) d'un
+dossier, détecte les faits connus d'un catalogue de règles, puis fait rédiger à chaque fait
+détecté un récit en français (titre, récit, impact, recommandation) par le même moteur que
+`fiches`. Produit `var/sorties/<id-du-lot>/incident.json` (le rapport structuré) et
+`rapport-incident.docx` (et, avec `-o`, une copie supplémentaire). `--annee` complète les
+journaux sans année explicite dans leurs horodatages (année courante par défaut). Sans aucun
+fait détecté, le rapport l'indique et le moteur n'est jamais ouvert (code 0, même si le moteur
+est injoignable).
+
+Le dossier `donnees/demo/incident/` fournit un jeu de démonstration (données fictives) :
+
+```
+uv run waveaudit incident donnees/demo/incident --annee 2026
+```
+
+Limites connues :
+
+- Décalage horaire fixe pour les journaux syslog (pas d'heure d'été) : pour un incident à cheval
+  sur un changement d'heure, lancer deux analyses séparées.
+- Exports de journal Windows : `ConvertTo-Json` brut de PowerShell 5.1 ne donne ni la propriété
+  `Data` ni un horodatage ISO ; utiliser plutôt le script PowerShell ci-dessous.
+- Indicateurs extraits des journaux : une adresse IPv4 suivie d'un point final dans le message
+  d'une ligne (« depuis 203.0.113.5. ») n'est pas relevée. Les garde-fous du récit, eux, traitent
+  ce cas.
+- Garde-fous du récit : un mot qui a la forme d'une adresse IPv6 valide (« cafe::dead », « :: »)
+  et qui n'apparaît pas dans les journaux est retiré du récit comme indicateur inventé ; le récit
+  passe alors « à revoir ».
+- Aucun coupe-circuit sur le moteur : s'il tombe en cours d'analyse, il est rappelé pour chaque
+  détection restante, et chaque récit concerné reprend le texte type de la règle (« à revoir »).
+- Lecture des journaux non en flux : chaque fichier est chargé en mémoire en entier.
+
+Export d'un journal d'événements Windows au format normalisé attendu (PowerShell 5.1 ; le
+journal `Security` demande une console administrateur). Le lecteur exige un tableau JSON
+d'objets portant `TimeCreated` (ISO 8601 avec fuseau), `Id`, `MachineName` et `Data` (objet des
+champs `EventData`) ; `LogName` sert aux règles :
+
+```powershell
+$evenements = Get-WinEvent -LogName Security -MaxEvents 5000 | ForEach-Object {
+    $xml = [xml]$_.ToXml()
+    $data = [ordered]@{}
+    foreach ($champ in $xml.Event.EventData.Data) {
+        if ($champ.Name) { $data[$champ.Name] = $champ.'#text' }
+    }
+    [PSCustomObject]@{
+        TimeCreated  = $_.TimeCreated.ToString("o")
+        Id           = $_.Id
+        LogName      = $_.LogName
+        ProviderName = $_.ProviderName
+        MachineName  = $_.MachineName
+        Message      = $_.Message
+        Data         = $data
+    }
+}
+ConvertTo-Json -InputObject @($evenements) -Depth 4 | Out-File security.json -Encoding utf8
+```
+
+`-InputObject @(...)` garde un tableau même pour un seul événement (le pipeline donnerait un
+objet seul, que le lecteur ignore).
+
 ## Preuve hors ligne
 
 - **Aucun appel réseau sortant à l'exécution** (hors `uv sync` et `waveaudit installer`, qui
   n'ont lieu qu'à l'installation) : un garde réseau (`securite/garde_reseau.py`) remplace les
-  fonctions de connexion du module `socket` pendant les commandes `fiches`, `ui` et `banc`, et
+  fonctions de connexion du module `socket` pendant les commandes `fiches`, `incident`, `ui` et
+  `banc`, et
   lève une erreur avant toute connexion vers un hôte hors boucle locale.
   `tests/e2e/test_hors_ligne.py` exécute un lot CLI et un lot UI complets sous ce garde et vérifie
   qu'aucune tentative n'a été refusée, puis prouve, à l'inverse, que le garde détecte et bloque
