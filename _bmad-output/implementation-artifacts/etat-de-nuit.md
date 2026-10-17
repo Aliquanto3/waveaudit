@@ -4,7 +4,7 @@
 |---|---|---|
 | 1 | Socle commun | intégrée 080d53e (revue : revues/story-1.md, validée par Anaël) |
 | 2 | Recherche BM25 | intégrée b74abe1 (revue : revues/story-2.md) |
-| 3 | CVSS 3.1 et garde-fous | en cours |
+| 3 | CVSS 3.1 et garde-fous | intégrée c980c3f (revue : revues/story-3.md) |
 | 4 | Catalogue de constats types | en cours |
 | 5 | Notes brutes et jeu de démonstration | à faire |
 | 6 | Adaptateur moteur OpenAI | à faire |
@@ -33,4 +33,5 @@
 
 ## Écarts à arbitrer
 
-(aucun)
+- Story 2 : la tokenisation remplace œ, æ, ß (oe, ae, ss) avant NFKD ; le §7 ne cite que NFKD (sans cela « œuvre » donne « uvre »). Écart mineur, à entériner dans contrats.md.
+- Story 3 (reporté par la revue) : conformément au §6, un titre de moins de 20 caractères (ex. « Injection SQL ») est remplacé par celui du constat type et la fiche passe `a_revoir` ; seuil probablement trop strict, à vérifier au banc.
