@@ -3,9 +3,9 @@
 | Story | Titre | État |
 |---|---|---|
 | 1 | Socle commun | intégrée 080d53e (revue : revues/story-1.md, validée par Anaël) |
-| 2 | Recherche BM25 | à faire |
-| 3 | CVSS 3.1 et garde-fous | à faire |
-| 4 | Catalogue de constats types | à faire |
+| 2 | Recherche BM25 | intégrée b74abe1 (revue : revues/story-2.md) |
+| 3 | CVSS 3.1 et garde-fous | en cours |
+| 4 | Catalogue de constats types | en cours |
 | 5 | Notes brutes et jeu de démonstration | à faire |
 | 6 | Adaptateur moteur OpenAI | à faire |
 | 7 | Garde réseau | à faire |
