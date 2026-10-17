@@ -229,11 +229,14 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
 ### AD-17 — Workflow incident (CERT), service dédié
 
 - **Binds:** SPEC-waveaudit-cert CAP-1 à CAP-7
-- **Prevents:** une généralisation forcée du protocole `Workflow` des fiches, ou un second moteur, un second garde réseau ou un second format d'événements pour le CERT.
+- **Prevents:** une généralisation forcée du protocole `Workflow` des fiches ; un second moteur, garde réseau, écrivain de journal ou format d'événements ; des stories parallèles qui se rencontrent sans contrat figé.
 - **Rule:**
   - Le CERT a ses propres formes, ports et service (contrats §21) : `domaine/incident.py`, `workflows/incident/` et `application/incident.executer_incident`. Il n'est pas inscrit dans `REGISTRE`.
-  - Il réutilise sans les dupliquer : le port `Moteur`, la composition (`ouvrir_incident`), le garde réseau, `EvenementLot`, `nouvel_id_lot` et les conventions.
-  - Seule la story C1 modifie les fichiers du socle pour ce workflow.
+  - Il réutilise sans les dupliquer : le port `Moteur`, la composition, le garde réseau, `EvenementLot` (sans nouveau `TypeEvenement`), `nouvel_id_lot` et les conventions.
+  - Seule la story C1 modifie le code existant du MVP : ajouts aux fichiers AD-0 (formes, ports, configuration, faux moteur) et deux extractions sans changement de comportement, `application/journal.JournalLot` (tiré de `lot.py` ; il devient l'unique écrivain de `journal.jsonl` au sens d'AD-8) et `composition.ouvrir_moteur_incident` (tiré d'`ouvrir`). Les autres stories CERT n'ajoutent que des fonctions ou une commande nouvelles (`creer_ports_incident`, commande `incident`).
+  - La création des ports (`creer_ports_incident`, sans processus) est séparée de l'ouverture du moteur, ouvert seulement s'il y a au moins une détection.
+  - Conditions des règles, champs normalisés, chronologie de démo et schéma de l'oracle sont normatifs dans `formats-incident.md`. C1 les traduit en constantes (`domaine/incident.py`) et en fixture (`tests/donnees/incident/canoniques.yaml`) : c'est là que C2, C3 et C4 se rencontrent.
+  - L'oracle `donnees/demo/incident-attendu.yaml` est hors du dossier lu et ne se régénère jamais depuis une sortie du programme.
   - La détection, les indicateurs et la chronologie sont déterministes ; le SLM ne rédige que le récit.
 
 ## Consistency Conventions

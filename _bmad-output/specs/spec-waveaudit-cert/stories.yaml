@@ -1,60 +1,112 @@
+# Ordre : C1 seule ; puis C2, C3, C4 et C6a en parallèle (fichiers disjoints) ; puis C5 ; puis C6b.
+# Contrat commun : SPEC.md, formats-incident.md (normatif), contrats §21, AD-17.
+# Pièges Windows communs : open(..., newline="") pour le CSV ; retirer "\r" à la lecture ($ ne
+# s'arrête pas avant \r) ; noms de fichiers comparés en casefold, sans glob ; aucun test ne dépend
+# de l'année courante (toujours annee=2026) ; Path.name seulement, jamais de chemin absolu.
 - id: "C1"
   title: Extension du socle pour le CERT
   description: >-
-    Crée les formes, ports, configuration et le scénario de faux moteur du
-    workflow incident (contrats §21, AD-17). Seule story CERT autorisée à
-    modifier le socle.
+    Crée les formes, constantes, ports, configuration, la fixture d'événements
+    canoniques, le mode incident du faux moteur, et extrait l'écrivain du
+    journal et l'ouverture du moteur (contrats §21, AD-17). Seule story CERT
+    autorisée à modifier le code existant du MVP.
   invoke_dev_with: >-
-    Fichiers : src/waveaudit/domaine/incident.py (nouveau), ajouts dans
-    domaine/ports.py (SourceJournaux, CatalogueRegles, ExporteurIncident,
-    PortsIncident), domaine/modeles.py (CodeMotif.INDICATEUR_RETIRE
-    seulement), domaine/configuration.py et config/waveaudit.toml (section
-    [incident]), tests/faux_moteur.py (balise <regle>), conftest si besoin,
-    dossiers donnees/regles/ et donnees/demo/incident/ (.gitkeep). Ne rien
-    changer d'existant hors ces ajouts. Tests : test_incident_modeles.py
-    (schema_recit, validations), test_config (section incident),
-    test_faux_moteur (nominal incident, et un scénario non nominal),
-    test_architecture inchangé et vert. Suite complète verte.
+    Appliquer contrats §21 révisé (revue adversariale K1-K7, E1-E8).
+    Prérequis : main contient les stories 1 à 16 (et V1 si faite). Fichiers :
+    src/waveaudit/domaine/incident.py (nouveau : formes, validations du
+    tableau §21, Evenement.cle, Recit.regle_titre, Condition.au_moins_un,
+    schema_recit, constantes CHAMPS_WINDOWS, CHAMPS_LINUX, PROGRAMMES_LINUX,
+    SEVERITES, LIBELLES_SEVERITE, TYPES_INDICATEUR, IDS_REGLES_MINIMAUX,
+    MOTIF_TECHNIQUE, MOTIF_IPV4, MOTIF_IPV6, MOTIF_HACHAGE) ; domaine/ports.py
+    (SourceJournaux, CatalogueRegles, ExporteurIncident, PortsIncident SANS
+    moteur) ; domaine/modeles.py (CodeMotif.INDICATEUR_RETIRE seulement) ;
+    domaine/configuration.py et config/waveaudit.toml (ConfigChemins.regles,
+    section [incident] : decalage_syslog, max_preuves, longueur_max_recit,
+    max_tokens ; garder moteur.mode_json tel quel s'il existe ; ne pas
+    modifier application/config.py) ; application/journal.py (JournalLot,
+    extrait de lot.py, que lot.py utilise désormais, sans changement de
+    comportement) ; application/composition.py (ouvrir_moteur_incident,
+    via une fonction privée partagée avec ouvrir, ouvrir inchangé) ;
+    tests/faux_moteur.py (mode <regle> : nominal, references_inventees avec
+    REFERENCES_INVENTEES_INCIDENT, vecteur_invalide = nominal ; SCENARIOS
+    inchangé) ; tests/incident_outils.py (evenement(**s), regle(**s),
+    detection(**s), recit(**s), valides par défaut) ;
+    tests/donnees/incident/canoniques.yaml : liste d'entrées {id, fichier
+    (nom routable : security.json, system.json, sysmon.csv, auth.log), brut
+    (contenu complet d'un fichier minimal : tableau JSON d'un objet, en-tête
+    CSV + un enregistrement, ou une ligne syslog), ligne (1 ; 2 pour un CSV),
+    evenement (Evenement attendu sans fichier ni ligne, horodatage ISO avec
+    fuseau, lu avec annee=2026 et +02:00), regles (ids dont la CONDITION est
+    vraie, agrégation à part ; peut être vide)} : une entrée par ligne de la
+    chronologie normative de formats-incident.md (17), plus au moins 10
+    voisines bénignes (4624 type 3, 4625 isolé, 4732 vers un groupe non
+    admin, Sysmon 1 powershell sans -enc, Sysmon 10 vers un autre processus,
+    4688 avec -ep bypass, Accepted publickey for deploy, Invalid user,
+    sudo apt update, CRON) et les cas de normalisation (LogonType entier en
+    JSON -> "10", cellule CSV vide -> clé absente, IpAddress ::ffff:192.0.2.10
+    verbatim) ; dossiers donnees/regles/ et donnees/demo/incident/ (.gitkeep).
+    Tests : test_incident_modeles.py (chaque validation, Evenement.cle,
+    schema_recit, motifs : 08:02:10 et 10.0.17763.1 ne correspondent pas à
+    MOTIF_IPV4 ni à une IPv6 valide), test_canoniques.py (chaque evenement
+    construit un Evenement valide, ids de regles dans IDS_REGLES_MINIMAUX,
+    chacun des 15 ids couvert), test_config (section incident, chemins.regles),
+    test_faux_moteur (nominal incident, references_inventees incident, sans
+    balise), test_journal (JournalLot), test d'ouvrir_moteur_incident en mode
+    externe. À garder verts sans modifier leurs cas existants : test_architecture,
+    tests/e2e/test_lot.py, tests de composition, test_faux_moteur.
+    Suite complète verte.
 - id: "C2"
   title: Lecture des journaux Windows et Linux et jeu de démonstration
   description: >-
-    Adaptateurs de lecture (CAP-1) et scénario de compromission fictif avec
-    ses détections et indicateurs attendus.
+    Adaptateurs de lecture (CAP-1), jeu de démonstration et oracle calculé à
+    la main.
   invoke_dev_with: >-
     Fichiers : adaptateurs/journaux_windows.py, journaux_linux.py,
     journaux.py (SourceJournauxFichiers) ; donnees/demo/incident/
-    (security.json, sysmon.csv, auth.log, syslog) et
-    donnees/demo/incident/attendu.yaml (liste des détections attendues :
-    regle_id, debut, hote ; liste exacte des indicateurs attendus) ;
-    tests/unitaires/test_journaux.py. Scénario fictif cohérent sur environ
-    une journée (adresses en 192.0.2.0/24, 198.51.100.0/24 et
-    203.0.113.0/24, domaine corp.exemple.test, hôtes BASTION01, SRV-FICHIERS,
-    PC-COMPTA07) : force brute SSH sur le bastion puis connexion, sudo vers
-    un shell, ajout d'une clé SSH ; RDP vers SRV-FICHIERS après une force
-    brute 4625 ; création de compte, ajout aux administrateurs, PowerShell
-    encodé, accès à LSASS, outil offensif (hachage fictif), service et
-    tâche planifiée, effacement du journal. Au moins 60 % de lignes
-    bénignes réalistes, qui ne doivent rien déclencher. attendu.yaml doit
-    correspondre au catalogue minimal de formats-incident.md (une détection
-    attendue au moins par règle). Tests de lecture : BOM, séparateur ;,
-    lignes illisibles comptées, passage d'année, tri, champs Linux.
+    (security.json, system.json, sysmon.csv, auth.log, syslog) ;
+    donnees/demo/incident-attendu.yaml (HORS du dossier lu) ;
+    tests/unitaires/test_journaux.py et test_demo_incident.py. Lecture et
+    champs exactement selon contrats §21 « Lecture » et formats-incident.md
+    « Champs normalisés » ; constantes importées de domaine.incident. Test
+    paramétré : chaque entrée de tests/donnees/incident/canoniques.yaml,
+    écrite dans tmp_path sous son nom, est lue à l'identique (un événement
+    égal à evenement + fichier + ligne). Autres tests : BOM UTF-8 et UTF-16,
+    séparateur ;, CSV multiligne (ligne de début), JSON non tableau, lignes
+    illisibles comptées, jour sur espace (Oct  5), sudo sans [pid], ligne
+    ISO rsyslog, passage d'année, 29 févr., routage en casse mixte, .gz et
+    .yaml ignorés, tri. Démo : lignes d'attaque exactement celles de la
+    chronologie normative (forme brute des canoniques), entourées de bénin
+    respectant la liste « Bénin interdit » ; au moins 80 événements, part
+    bénigne >= 0,60 ; adresses 192.0.2.0/24, 198.51.100.0/24,
+    203.0.113.0/24, domaine corp.exemple.test ; jamais 203.0.113.254 ni
+    0f0f… ; hôtes en nom court. Oracle selon le schéma figé de
+    formats-incident.md, calculé à la main (algorithme d'agrégation et
+    règles d'indicateurs de §21), jamais généré par un script ni depuis une
+    sortie du programme. test_demo_incident : la lecture de la démo donne
+    exactement les ignorees de l'oracle et >= 80 événements. Ne pas
+    importer domaine.detection ni domaine.indicateurs (codés en parallèle).
 - id: "C3"
   title: Catalogue de règles et moteur de détection
   description: >-
     Les 15 règles YAML, leur chargement et vérification, et le moteur de
     détection déterministe (CAP-2, CAP-3).
   invoke_dev_with: >-
-    Fichiers : donnees/regles/{windows,linux}.yaml,
-    adaptateurs/regles_yaml.py (CatalogueReglesYaml + verifier_regles ->
-    list[str] : schéma, unicité, préfixe INC-WIN ou INC-LIN cohérent avec
-    source, expressions régulières compilables, références ATT&CK de forme
-    T\d{4}(\.\d{3})? avec URL https://attack.mitre.org/techniques/…),
+    Fichiers : donnees/regles/windows.yaml et linux.yaml,
+    adaptateurs/regles_yaml.py (CatalogueReglesYaml, verifier_regles),
     domaine/detection.py, tests/unitaires/test_detection.py et
-    test_regles.py. Textes types rédigés en propre, en français. Tests du
-    moteur sur des événements construits en mémoire : chaque règle déclenche
-    sur un cas positif et pas sur un cas voisin négatif, agrégation (seuil,
-    fenêtre, groupes, rafales successives), déterminisme. Ne pas dépendre
-    du jeu de démo de C2 (calibrage en C5).
+    test_regles.py. Conditions et agrégations recopiées telles quelles du
+    bloc normatif de formats-incident.md ; textes types rédigés en propre,
+    en français, sans jeton ATT&CK, IP ni hachage. verifier_regles selon
+    contrats §21 « Règles » (clés hors CHAMPS_<source>, conditions vides,
+    URL incohérente, textes interdits, ids minimaux manquants). detecter
+    selon §21 « Détection » ; les vecteurs d'agrégation de §21 sont des
+    tests. detection.py laisse indicateurs=[] et n'importe ni ne crée
+    domaine/indicateurs.py. Test paramétré sur canoniques.yaml : pour chaque
+    entrée, l'ensemble des règles du catalogue pour lesquelles
+    correspond(regle, evenement) est vrai est exactement regles ; pour une règle agrégée, seuil copies espacées de
+    10 s donnent une détection et une seule copie aucune. Tests : un cas
+    positif et un voisin négatif par règle, au_moins_un, clé absente, par
+    absent, déterminisme, tri final. Ne pas lire le jeu de démo de C2.
 - id: "C4"
   title: Indicateurs de compromission et garde-fous du récit
   description: >-
@@ -62,41 +114,79 @@
     généré (CAP-5), selon contrats §21.
   invoke_dev_with: >-
     Fichiers : domaine/indicateurs.py, domaine/garde_fous_incident.py,
-    tests/unitaires/test_indicateurs.py, test_garde_fous_incident.py. Tests :
-    chaque source de champ, découpage de Hashes (MD5=…,SHA256=…), IPv4 dans
-    message, exclusions, normalisation, dédoublonnage, origines ; garde-fous :
-    IP et hachage inventés retirés, IP présente conservée, technique ATT&CK
-    hors règle retirée, rubrique courte complétée, invariant statut/motifs.
+    tests/unitaires/test_indicateurs.py, test_garde_fous_incident.py.
+    Sources, exclusions (groupes 4728/4732/4756, comptes machine en $,
+    comptes système), Hashes (MD5, SHA1, SHA256 seulement, IMPHASH ignoré),
+    IPv4 mappée, IPv4 de message, origines, tri : contrats §21 et table de
+    formats-incident.md. Motifs importés de domaine.incident, jamais
+    redéfinis ; données de test par tests/incident_outils.py et
+    canoniques.yaml (Hashes, messages). Garde-fous dans l'ordre de §21 :
+    titre complété seulement s'il est vide, autres rubriques sous 20
+    caractères, regle_titre recopié. Tests : REFERENCES_INVENTEES_INCIDENT
+    donne 2 reference_retiree et 2 indicateur_retire ; IP et hachage
+    présents (casse différente, IPv4 mappée) conservés ; T1110 retiré si la
+    règle n'a que T1110.001 ; vecteurs de non-mutilation (08:02:10, ISO avec
+    fuseau, 10.0.17763.1, 0x1010) ; repli ; invariant statut/motifs. Ne pas
+    importer domaine.detection.
+- id: "C6a"
+  title: Rapport d'incident Word
+  description: >-
+    Exporteur du rapport d'incident (CAP-6), sur un RapportIncident construit
+    en mémoire ; parallèle à C2-C4.
+  invoke_dev_with: >-
+    Fichiers : adaptateurs/export_incident_docx.py (ExporteurIncidentDocx),
+    tests/unitaires/test_export_incident.py. Sections, intitulés et mise en
+    forme selon formats-incident.md « Rapport d'incident » ; libellés de
+    sévérité par LIBELLES_SEVERITE ; bandeau d'export_docx.py réutilisé sans
+    le modifier (sinon texte recopié, consigné). RapportIncident construit
+    avec tests/incident_outils.py, sans dépendre de C2 à C5. Relecture
+    python-docx : sections dans l'ordre, bandeau, synthèse avec les 4
+    sévérités et zéros, une ligne de chronologie par récit (Fait =
+    regle_titre), tableau des indicateurs identique au rapport, preuves
+    fichier:ligne limitées à max_preuves avec « + N autres », annexe des
+    sources, mention « Aucun fait détecté » sans détection. PermissionError
+    à l'écriture convertie comme dans export_docx.
 - id: "C5"
   title: Workflow incident, service et calibrage
   description: >-
-    Pipeline incident (prompt, récit, repli), service executer_incident,
-    composition ouvrir_incident, et calibrage du catalogue sur le jeu de
-    démonstration (CAP-3, CAP-5).
+    Prompt, pipeline (récit, repli, assemblage), service executer_incident,
+    création des ports, et calibrage sur le jeu de démonstration (CAP-3 à
+    CAP-5).
   invoke_dev_with: >-
-    Fichiers : workflows/incident/{__init__,pipeline,prompt}.py,
-    application/incident.py, ajout de ouvrir_incident dans
-    application/composition.py (sans modifier ouvrir). Tests e2e
-    (tests/e2e/test_incident.py) avec config_test et faux_moteur : le jeu de
-    démo donne exactement les détections et indicateurs de attendu.yaml
-    (ajuster les règles ou le jeu de démo si un écart est un défaut de
-    rédaction ; ne jamais affaiblir le test), incident.json valide, journal
-    d'événements, json_invalide_une_fois, erreur_500 (repli),
-    references_inventees (retirées), dossier sans détection (pas d'appel au
-    modèle), déterminisme de deux exécutions.
-- id: "C6"
-  title: Rapport d'incident Word, CLI et preuve hors ligne
+    Fichiers : workflows/incident/{__init__,prompt,pipeline}.py,
+    application/incident.py, ajout de creer_ports_incident dans
+    application/composition.py (fonction nouvelle seulement, branchant
+    SourceJournauxFichiers, CatalogueReglesYaml(config.chemins.regles) et
+    ExporteurIncidentDocx) ; tests/unitaires/test_prompt_incident.py,
+    test_pipeline_incident.py ; tests/e2e/test_incident.py. Selon contrats
+    §21 « Prompt et pipeline » et « Service » : moteur ouvert par
+    ouvrir_moteur_incident seulement s'il y a une détection ; journal par
+    JournalLot (aucune écriture directe de journal.jsonl) ; indicateurs
+    remplis par model_copy ; assembler_rapport. Tests e2e avec config_test
+    et faux_moteur, annee=2026 : la démo donne exactement les détections,
+    indicateurs et ignorees de donnees/demo/incident-attendu.yaml (comparaison
+    de formats-incident.md) et une part bénigne >= 0,60 ; incident.json
+    valide ; journal (lot_demarre total=16, workflow incident) ;
+    json_invalide_une_fois ; erreur_500 (repli, a_revoir) ;
+    references_inventees (2 reference_retiree et 2 indicateur_retire par
+    récit) ; dossier sans détection avec moteur injoignable (code 0, aucun
+    appel) ; démo avec moteur injoignable (MoteurInjoignable) ; deux
+    exécutions -> incident.json identique ; durée < 30 s. Écart de
+    calibrage : corriger la règle, la ligne de démo ou l'oracle seulement là
+    où l'un contredit formats-incident.md ou §21, motif dans le commit ;
+    jamais recopier une sortie dans l'oracle ni affaiblir un test.
+- id: "C6b"
+  title: CLI incident, preuve hors ligne et documentation
   description: >-
-    Export du rapport d'incident (CAP-6), commande `waveaudit incident`
-    (CAP-7), test hors ligne et documentation.
+    Commande `waveaudit incident` (CAP-7), test hors ligne et section CERT du
+    README.
   invoke_dev_with: >-
-    Fichiers : adaptateurs/export_incident_docx.py, ajout de la commande
-    incident dans interfaces/cli.py, branchement de l'exporteur dans
-    ouvrir_incident, tests/unitaires/test_export_incident.py,
-    tests/e2e/test_cli_incident.py, ajout d'un cas incident dans
-    tests/e2e/test_hors_ligne.py, section CERT du README. Relecture python-docx :
-    sections dans l'ordre de formats-incident.md, bandeau, une ligne de
-    chronologie par détection, tableau des indicateurs identique à
-    l'extraction, preuves fichier:ligne, annexe des sources. CLI : code 0 sur
-    la démo, 2 sur dossier absent ou vide, 3 moteur injoignable (seulement
-    s'il y a au moins une détection). Suite complète, ruff check et format.
+    Fichiers : ajout de la commande incident dans interfaces/cli.py (autres
+    commandes inchangées), tests/e2e/test_cli_incident.py, ajout d'un cas
+    incident dans tests/e2e/test_hors_ligne.py, section CERT du README
+    (usage, script PowerShell d'export au format normalisé, limite heure
+    d'été). Selon contrats §21 « CLI ». Codes : 0 sur la démo ; 2 sur dossier
+    absent, vide ou sans fichier routé ; 3 moteur injoignable sur la démo ;
+    0 moteur injoignable sur un dossier sans détection ; 4 si -o vise un
+    fichier verrouillé. Toujours --annee 2026 dans les tests. Suite complète,
+    ruff check et format.

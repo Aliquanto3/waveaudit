@@ -28,7 +28,8 @@
 | C3 | Règles et moteur de détection | à faire |
 | C4 | Indicateurs et garde-fous du récit | à faire |
 | C5 | Workflow incident, service, calibrage | à faire |
-| C6 | Rapport d'incident, CLI, hors ligne | à faire |
+| C6a | Rapport d'incident Word | à faire |
+| C6b | CLI incident, hors ligne, README | à faire |
 
 ## Écarts à arbitrer
 

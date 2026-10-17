@@ -27,10 +27,10 @@ Orchestrateur : une session principale neuve (`/clear`), qui lit seulement ce fi
 | J | V2 | Opus | seule ; longue (bancs réels) |
 | K | D1, D2 | Sonnet | en parallèle ; après intégration de D2 et push, vérifier le run CI (`gh run watch`) |
 | L | D3 | Sonnet | seule (README partagé avec D2) ; puis **suite complète** |
-| M | C1 | Opus | seule ; modifie le socle (AD-17) |
-| N | C2, C3, C4 | Sonnet | en parallèle |
-| O | C5 | Opus | seule |
-| P | C6 | Sonnet | puis **suite complète finale** et bilan |
+| M | C1 | Opus | seule ; seule story CERT à modifier le code existant (AD-17) ; prérequis : stories 1 à 16 intégrées (lot, composition, export_docx, cli), V1 faite ou abandonnée |
+| N | C2, C3, C4, C6a | Sonnet | en parallèle (fichiers disjoints) ; puis **suite complète** |
+| O | C5 | Opus | seule ; après C2, C3, C4 et C6a |
+| P | C6b | Sonnet | puis **suite complète finale** et bilan |
 
 ## Boucle par story (appels bloquants, une passe de revue)
 
