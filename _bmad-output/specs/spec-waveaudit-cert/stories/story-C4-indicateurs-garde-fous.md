@@ -68,3 +68,30 @@ Aucun.
 - Complexité : O(n log n) par rubrique (tri des décisions de retrait, bornée par la longueur
   du texte généré, `longueur_max` ≤ quelques centaines de caractères) ; `extraire` : O(n log n)
   dans le nombre d'événements (tri initial puis un passage).
+- medium — second avis — corrigé : la neutralisation ne couvrait que « . » suivi d'un blanc
+  ou de la fin ; « (203.0.113.254.) », « 203.0.113.254., », « 2001:db8::1.) », « (T1059.003.) »,
+  « 203.0.113.254... » laissaient passer le jeton inventé (prouvé). `_POINT_FINAL` couvre
+  désormais une suite de « . » suivie d'un blanc, de la fin ou de `) ] } > » " ' ” ’ , ; : ! ?`,
+  remplacée par autant d'espaces (longueur conservée). Un « . » suivi d'un chiffre n'est jamais
+  touché. Tests : `test_jeton_invente_point_puis_ponctuation_retire` (9 cas),
+  `test_non_mutilation_point_puis_ponctuation` (versions, horodatages, `T1110.001`, IP connue et
+  IPv4 mappée suivies de « .) », « ., », « .; »).
+- low — second avis — rejeté (conforme à §21) : un candidat IPv6 de prose valide pour
+  `ipaddress` (« A::B », « cafe::dead », « :: » isolé) est retiré comme `indicateur_retire`.
+  C'est la lettre de §21, étape 3 ; à changer seulement par une révision du contrat.
+- low — second avis — reporté (hors contrat) : fragments résiduels après retrait
+  (« Source (.) », « vers :443 », « /24 », « « . » »). §21, étape 4, ne prévoit que la réduction
+  des espaces et la suppression de `()` et `[]` vides ; retirer le port, le préfixe ou la
+  ponctuation orpheline demande une révision de §21 (récit marqué `a_revoir` dans tous ces cas).
+- low — reviewer — corrigé : le test redéfinissait `REFERENCES_INVENTEES_INCIDENT` au lieu de
+  l'importer de `tests/faux_moteur.py` (dérive silencieuse possible) ; importé.
+- low — reviewer — corrigé : le cahier demandait des données de test tirées de
+  `canoniques.yaml` (Hashes, messages), absentes ; ajout de
+  `test_extraire_entrees_canoniques_oracle_a_la_main` (chrono-01, chrono-10, chrono-14, attendu
+  écrit à la main, origines comprises). `test_extraire_resultat_trie_type_puis_valeur` reste
+  tautologique (trie sa propre sortie) ; le nouveau test fixe l'ordre attendu.
+- info — reviewer — vérifié : `extraire` et `appliquer_recit` ne sont appelés nulle part hors
+  tests (branchement prévu par C5) ; `domaine.detection` non importé ; aucun fichier du socle
+  ni du MVP modifié.
+- Complexité : 0 constat (rubriques bornées par `longueur_max`, test d'inclusion IPv4/IPv6
+  quadratique sur quelques jetons ; `extraire` en O(n log n)).

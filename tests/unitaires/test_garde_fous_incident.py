@@ -5,12 +5,13 @@ jeton suivi d'un point final de phrase ; `garde_fous_incident` les applique sur 
 texte où ce point final devient une espace. Voir les reports de la story C1.
 """
 
+import pytest
+
+from tests.faux_moteur import REFERENCES_INVENTEES_INCIDENT
 from tests.incident_outils import detection, regle
 from waveaudit.domaine.garde_fous_incident import appliquer_recit
 from waveaudit.domaine.incident import Indicateur
 from waveaudit.domaine.modeles import CodeMotif, Motif, Statut
-
-REFERENCES_INVENTEES_INCIDENT = " T9999 T1110.999 203.0.113.254 " + "0f" * 32
 
 
 def _sortie(**surcharges) -> dict:
@@ -128,6 +129,38 @@ def test_ipv6_inventee_point_final_retiree():
     recit = appliquer_recit(sortie, regle(), _detection_avec_indicateurs(), 800)
     assert "2001:db8::1" not in recit.recit
     assert any(m.code == CodeMotif.INDICATEUR_RETIRE for m in recit.motifs)
+
+
+@pytest.mark.parametrize(
+    ("fragment", "jeton", "code"),
+    [
+        ("Source (203.0.113.254.) vue", "203.0.113.254", CodeMotif.INDICATEUR_RETIRE),
+        ("Vu 203.0.113.254., puis rien", "203.0.113.254", CodeMotif.INDICATEUR_RETIRE),
+        ("Vu 203.0.113.254.; puis rien", "203.0.113.254", CodeMotif.INDICATEUR_RETIRE),
+        ("Vu « 203.0.113.254. » cité", "203.0.113.254", CodeMotif.INDICATEUR_RETIRE),
+        ('Vu "203.0.113.254." cité', "203.0.113.254", CodeMotif.INDICATEUR_RETIRE),
+        ("Vu [203.0.113.254.] cité", "203.0.113.254", CodeMotif.INDICATEUR_RETIRE),
+        ("Vu 203.0.113.254... puis", "203.0.113.254", CodeMotif.INDICATEUR_RETIRE),
+        ("Vers 2001:db8::1.) fin", "2001:db8::1", CodeMotif.INDICATEUR_RETIRE),
+        ("Voir (T1059.003.) ici", "T1059.003", CodeMotif.REFERENCE_RETIREE),
+    ],
+)
+def test_jeton_invente_point_puis_ponctuation_retire(fragment, jeton, code):
+    """Revue C4 : « . » suivi d'une ponctuation fermante ou séparatrice, pas d'un blanc."""
+    sortie = _sortie(recit="Échecs répétés depuis une adresse externe. " + fragment)
+    recit = appliquer_recit(sortie, regle(), _detection_avec_indicateurs(), 800)
+    assert jeton not in recit.recit
+    assert Motif(code=code, detail=jeton) in recit.motifs
+
+
+def test_non_mutilation_point_puis_ponctuation():
+    texte = (
+        "Outil v2.4.1.) et (10.0.19045.), T1110.001, 08:02:10.; "
+        "2026-10-14T08:02:10+02:00.) et (203.0.113.45.) ainsi que ::ffff:203.0.113.45."
+    )
+    recit = appliquer_recit(_sortie(recit=texte), regle(), _detection_avec_indicateurs(), 800)
+    assert recit.recit == texte
+    assert recit.motifs == []
 
 
 def test_non_mutilation_horaire_iso_version_et_hexa():

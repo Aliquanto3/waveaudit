@@ -5,8 +5,10 @@ Décision d'orchestration (consignée dans les reports de C1) : les motifs norma
 jeton suivi d'un point final de phrase (leur lookahead `(?![\\d.])` ou la gloutonnerie de
 `MOTIF_IPV6` sont figés par `test_motifs_point_final_comportement_fige` et ne sont pas
 modifiés). Ce module les applique sur une **copie** du texte, de même longueur, où chaque
-« . » suivi d'un blanc ou de la fin du texte est remplacé par une espace ; les positions des
-jetons trouvés restent valables pour retirer le jeton du texte d'origine.
+suite de « . » suivie d'un blanc, de la fin du texte ou d'une ponctuation fermante ou
+séparatrice (`) ] } > » " ' ” ’ , ; : ! ?`) est remplacée par autant d'espaces ; les
+positions des jetons trouvés restent valables pour retirer le jeton du texte d'origine. Un
+« . » suivi d'un chiffre (`T1110.001`, `10.0.19045`, `::ffff:192.0.2.10`) n'est jamais touché.
 """
 
 import ipaddress
@@ -26,12 +28,12 @@ from waveaudit.domaine.incident import (
 from waveaudit.domaine.modeles import CodeMotif, Motif, Statut
 
 _LONGUEUR_MIN_RUBRIQUE = 20
-_POINT_FINAL = re.compile(r"\.(?=\s|\Z)")
+_POINT_FINAL = re.compile(r"\.+(?=[\s)\]}>»\"'”’,;:!?]|\Z)")
 
 
 def _copie_sans_point_final(texte: str) -> str:
     """Même longueur que `texte` : chaque « . » de fin de phrase devient une espace."""
-    return _POINT_FINAL.sub(" ", texte)
+    return _POINT_FINAL.sub(lambda m: " " * len(m.group(0)), texte)
 
 
 def _normaliser_ip(candidat: str) -> str | None:

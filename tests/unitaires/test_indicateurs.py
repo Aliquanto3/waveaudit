@@ -1,7 +1,14 @@
 """Tests de l'extraction d'indicateurs (contrats §21, CAP-4, formats-incident.md)."""
 
+from pathlib import Path
+
+import yaml
+
 from tests.incident_outils import evenement
+from waveaudit.domaine.incident import Evenement
 from waveaudit.domaine.indicateurs import extraire
+
+FIXTURE = Path(__file__).parents[1] / "donnees" / "incident" / "canoniques.yaml"
 
 
 def _win(**surcharges):
@@ -118,3 +125,31 @@ def test_extraire_resultat_trie_type_puis_valeur():
     assert [(i.type, i.valeur) for i in indicateurs] == sorted(
         (i.type, i.valeur) for i in indicateurs
     )
+
+
+def test_extraire_entrees_canoniques_oracle_a_la_main():
+    """Revue C4 : fixture `canoniques.yaml` (C1), entrées mélangées, attendu écrit à la main."""
+    entrees = {e["id"]: e for e in yaml.safe_load(FIXTURE.read_text(encoding="utf-8"))}
+    evenements = [
+        Evenement.model_validate(
+            entrees[i]["evenement"]
+            | {"fichier": entrees[i]["fichier"], "ligne": entrees[i]["ligne"]}
+        )
+        for i in (
+            "chrono-14-win-outil-offensif",
+            "chrono-10-win-ajout-groupe-admin",
+            "chrono-01-ssh-force-brute",
+        )
+    ]
+    obtenus = [(i.type, i.valeur, i.origines) for i in extraire(evenements)]
+    assert obtenus == [
+        ("compte", "admin", ["auth.log:1"]),
+        ("compte", "administrateur", ["security.json:1"]),
+        ("executable", "c:\\programdata\\maj\\outil.exe", ["sysmon.csv:2"]),
+        ("hachage", "a1b2c3d4" * 4, ["sysmon.csv:2"]),
+        ("hachage", "a1b2c3d4" * 8, ["sysmon.csv:2"]),
+        ("hote", "bastion01", ["auth.log:1"]),
+        ("hote", "pc-compta07", ["sysmon.csv:2"]),
+        ("hote", "srv-fichiers", ["security.json:1"]),
+        ("ip", "203.0.113.45", ["auth.log:1"]),
+    ]
