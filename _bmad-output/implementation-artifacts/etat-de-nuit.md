@@ -23,12 +23,12 @@
 | D1 | Catalogue élargi et notes difficiles | intégrée 1d4f448 (revue : revues/story-D1.md ; 50 constats ; notes 21-30 : 8/10 top 1, 10/10 top 3) |
 | D2 | Intégration continue GitHub Actions | intégrée 79abdfd (revue : revues/story-D2.md ; badge README fait par la story 16 ; premier run CI 39070885639 vert sur windows-latest) |
 | D3 | Guide des testeurs et formulaire de retour | intégrée e93367d (revue : revues/story-D3.md ; suite complète de vague L : 283 verte ; durées du guide estimées, installer non exécuté) |
-| C1 | Extension du socle pour le CERT | en cours |
-| C2 | Lecture des journaux et jeu de démo | à faire |
-| C3 | Règles et moteur de détection | à faire |
-| C4 | Indicateurs et garde-fous du récit | à faire |
+| C1 | Extension du socle pour le CERT | intégrée 5e5c42d (revue : revues/story-C1.md ; V1 reportée par arbitrage ; suite 414 verte) |
+| C2 | Lecture des journaux et jeu de démo | en cours |
+| C3 | Règles et moteur de détection | en cours |
+| C4 | Indicateurs et garde-fous du récit | en cours |
 | C5 | Workflow incident, service, calibrage | à faire |
-| C6a | Rapport d'incident Word | à faire |
+| C6a | Rapport d'incident Word | en cours |
 | C6b | CLI incident, hors ligne, README | à faire |
 
 ## Arbitrages d'Anaël (2026-10-17, soir)
@@ -52,4 +52,5 @@
 - Story 13 (reporté) : vérifier à la main qu’un second `waveaudit ui` sur un port occupé sort en code 4.
 - Story 15 : le §20 ne définit pas `pic_rss_total_o` ; la revue retient le maximum de la somme application + moteur prise au même échantillon (pic simultané). À consigner dans le §20.
 - Story 16 (reporté) : le test slow de bout en bout n’a pas été lancé (pas de modèle) ; à lancer en V1.
+- Story C1 (à trancher dans le §21) : les motifs normatifs MOTIF_TECHNIQUE, MOTIF_IPV4 et MOTIF_HACHAGE (lookahead `(?![d.])`) ratent un jeton suivi d’un point final, et MOTIF_IPV6 avale ce point. Une technique ou une IP inventée en fin de phrase passerait donc les garde-fous du récit (CAP-5). Motifs inchangés. Décision de nuit (orchestrateur) : C4 applique les motifs sur une copie du texte de même longueur où chaque « . » suivi d’un blanc ou de la fin est remplacé par une espace (traitement proposé par la revue C1), et le consigne. Autre point : `ouvrir_moteur_incident(..., *, id_lot=None)` (mot-clé ajouté, comme `ouvrir`).
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
