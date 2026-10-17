@@ -8,7 +8,7 @@
 | 4 | Catalogue de constats types | intégrée 2fef712 (revue : revues/story-4.md ; suite 106 verte) |
 | 5 | Notes brutes et jeu de démonstration | en cours |
 | 6 | Adaptateur moteur OpenAI | intégrée 2277976 (revue : revues/story-6.md) |
-| 7 | Garde réseau | en cours |
+| 7 | Garde réseau | intégrée 8be7a3e (revue : section « Revue » de stories/story-7-garde-reseau.md) |
 | 8 | Installation vérifiée et SBOM | à faire |
 | 9 | Export Word et thèmes | à faire |
 | 10 | Pipeline fiches et prompt | à faire |
@@ -40,4 +40,5 @@
 - Story 2 : la tokenisation remplace œ, æ, ß (oe, ae, ss) avant NFKD ; le §7 ne cite que NFKD (sans cela « œuvre » donne « uvre »). Écart mineur, à entériner dans contrats.md.
 - Story 3 (reporté par la revue) : conformément au §6, un titre de moins de 20 caractères (ex. « Injection SQL ») est remplacé par celui du constat type et la fiche passe `a_revoir` ; seuil probablement trop strict, à vérifier au banc.
 - Story 4 (reporté, réseau requis) : vérifier que les 41 URL du catalogue répondent, et ajouter des références ANSSI vérifiées en ligne (le catalogue n'en cite aucune).
+- Story 7 (reporté) : sous Windows, une boucle asyncio Proactor échappe au garde (sockets non Python). Le relecteur a aussi gardé sendto/sendmsg (UDP), que le §12 ne liste pas.
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
