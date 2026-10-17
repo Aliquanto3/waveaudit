@@ -197,6 +197,31 @@ def test_banc_dossier_absent_code_2(tmp_path):
     assert not garde_reseau._actif
 
 
+def test_banc_succes_code_0(monkeypatch, config_test):
+    """Chemin nominal de `banc` par la CLI : faux moteur (config_test), mesure mémoire factice."""
+    import os
+
+    from waveaudit.application import composition
+    from waveaudit.interfaces import cli
+
+    class _Mesure:
+        def rss_octets(self, pid: int) -> int | None:
+            return 1000 if pid == os.getpid() else None
+
+    monkeypatch.setattr(cli, "_charger_config", lambda chemin=None: config_test)
+    monkeypatch.setattr(composition, "creer_mesure_memoire", _Mesure)
+
+    resultat = runner.invoke(app, ["banc", str(DEMO)])
+
+    assert resultat.exit_code == 0, resultat.output
+    (chemin,) = (config_test.chemins.var / "sorties").glob("*/banc.json")
+    donnees = json.loads(chemin.read_text(encoding="utf-8"))
+    assert donnees["pic_rss_app_o"] == 1000
+    assert len(donnees["fiches"]) == len([*DEMO.glob("*.md"), *DEMO.glob("*.txt")])
+    assert "top1" in resultat.output
+    assert not garde_reseau._actif
+
+
 def test_banc_erreurs_traduites_en_codes(monkeypatch, tmp_path):
     from waveaudit.domaine.erreurs import EntreeInvalide, MoteurInjoignable
 

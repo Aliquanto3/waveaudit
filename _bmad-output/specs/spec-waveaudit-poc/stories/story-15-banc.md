@@ -71,3 +71,14 @@ sources:
 
 `uv run pytest -q --tb=short tests/e2e/test_banc.py tests/e2e/test_cli.py` : 24 verts. Suite
 complète, `ruff check` et `ruff format --check` : voir rapport final.
+
+## Revue
+
+- medium, second avis : fil d'échantillonnage non arrêté si `lot_echoue`/`lot_termine` n'atteint pas l'abonné — corrigé (`finally`, `arreter` idempotent).
+- low, second avis : pas de test de l'arrêt sur exception hors abonné — corrigé (test ajouté).
+- low, second avis : `pic_rss_total_o` somme de deux pics non simultanés — corrigé (maximum de la somme par échantillon) ; interprétation à consigner dans contrats §20.
+- low, second avis : course après `join(timeout=2.0)` — rejeté (seulement si `rss_octets` bloque plus de 2 s, effet borné à un échantillon).
+- low, second avis : pas de test CLI du chemin de succès — corrigé (`test_banc_succes_code_0`).
+- Complexité : 0 constat.
+
+Détail : `_bmad-output/implementation-artifacts/revues/story-15.md`.

@@ -165,3 +165,54 @@ def test_banc_echantillonnage_arrete_a_lot_echoue(config_test, monkeypatch):
     appels_apres = mesure.appels
     time.sleep(0.3)
     assert mesure.appels == appels_apres  # le fil d'échantillonnage est bien arrêté
+
+
+def test_banc_echantillonnage_arrete_si_lot_echoue_n_atteint_pas_l_abonne(config_test, monkeypatch):
+    """Exception sortie de `executer_lot` sans `lot_echoue` reçu (journal en échec) : le banc
+    arrête quand même son fil d'échantillonnage."""
+    mesure = _MesureFactice(valeurs={os.getpid(): 10})
+
+    def faux_executer_lot(requete, config, abonne):
+        abonne(
+            EvenementLot(
+                type=TypeEvenement.LOT_DEMARRE,
+                horodatage=datetime.now().astimezone(),
+                index=None,
+                total=0,
+                note=None,
+                statut=None,
+                duree_s=None,
+                details={"id_lot": "x", "modele": "m", "pid_moteur": None},
+            )
+        )
+        raise OSError("disque plein")
+
+    monkeypatch.setattr(composition, "creer_mesure_memoire", lambda: mesure)
+    monkeypatch.setattr(banc, "executer_lot", faux_executer_lot)
+    monkeypatch.setattr(banc, "INTERVALLE_S", 0.05)
+
+    with pytest.raises(OSError, match="disque plein"):
+        banc.executer_banc(DEMO, config_test, None)
+
+    appels_apres = mesure.appels
+    time.sleep(0.2)
+    assert mesure.appels == appels_apres
+
+
+def test_pic_total_est_le_pic_simultane():
+    """`pic_rss_total_o` : maximum de la somme app + moteur d'un même échantillon."""
+
+    class _Mesure:
+        def __init__(self) -> None:
+            self.series = {1: iter([100, 10]), 2: iter([10, 50])}
+
+        def rss_octets(self, pid: int) -> int | None:
+            return next(self.series[pid])
+
+    echantillonneur = banc._Echantillonneur(_Mesure(), 1)
+    echantillonneur._pid_moteur = 2
+    echantillonneur._echantillon()
+    echantillonneur._echantillon()
+
+    assert (echantillonneur.pic_app_o(), echantillonneur.pic_moteur_o()) == (100, 50)
+    assert echantillonneur.pic_total_o() == 110  # et non 150 (pics à deux instants différents)

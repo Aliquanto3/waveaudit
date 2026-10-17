@@ -42,6 +42,7 @@ class _Echantillonneur:
         self._fil: threading.Thread | None = None
         self.app: list[int] = []
         self.moteur: list[int] = []
+        self.total: list[int] = []
 
     def demarrer(self, pid_moteur: int | None) -> None:
         self._pid_moteur = pid_moteur
@@ -50,12 +51,15 @@ class _Echantillonneur:
 
     def _echantillon(self) -> None:
         rss_app = self._mesure.rss_octets(self._pid_app)
+        rss_moteur = (
+            self._mesure.rss_octets(self._pid_moteur) if self._pid_moteur is not None else None
+        )
         if rss_app is not None:
             self.app.append(rss_app)
-        if self._pid_moteur is not None:
-            rss_moteur = self._mesure.rss_octets(self._pid_moteur)
-            if rss_moteur is not None:
-                self.moteur.append(rss_moteur)
+        if rss_moteur is not None:
+            self.moteur.append(rss_moteur)
+        # Pic simultané : somme d'un même échantillon (et non somme des pics de chaque série).
+        self.total.append((rss_app or 0) + (rss_moteur or 0))
 
     def _boucle(self) -> None:
         self._echantillon()
@@ -63,10 +67,11 @@ class _Echantillonneur:
             self._echantillon()
 
     def arreter(self) -> None:
-        """Arrête le fil puis prend un dernier échantillon (hors concurrence, après le `join`)."""
+        """Arrête le fil puis prend un dernier échantillon (après le `join`) ; idempotent."""
+        if self._fil is None or self._arret.is_set():
+            return
         self._arret.set()
-        if self._fil is not None:
-            self._fil.join(timeout=2.0)
+        self._fil.join(timeout=2.0)
         self._echantillon()
 
     def pic_app_o(self) -> int:
@@ -74,6 +79,9 @@ class _Echantillonneur:
 
     def pic_moteur_o(self) -> int:
         return max(self.moteur, default=0)
+
+    def pic_total_o(self) -> int:
+        return max(self.total, default=0)
 
 
 def _top(rapport: Rapport) -> tuple[int, int, int]:
@@ -121,12 +129,18 @@ def executer_banc(dossier: Path, config: Configuration, modele: str | None = Non
         elif evenement.type in (TypeEvenement.LOT_TERMINE, TypeEvenement.LOT_ECHOUE):
             echantillonneur.arreter()
 
-    resultat = executer_lot(RequeteLot(dossier=dossier, modele=modele), config, abonne)
+    try:
+        resultat = executer_lot(RequeteLot(dossier=dossier, modele=modele), config, abonne)
+    finally:
+        # Filet si `lot_termine`/`lot_echoue` n'a pas atteint l'abonné (écriture du journal en
+        # échec avant l'appel de l'abonné) : le fil d'échantillonnage ne survit pas au lot.
+        echantillonneur.arreter()
 
     top1, top3, etiquetees = _top(resultat.rapport)
     valeurs_durees = [duree for _, duree in durees]
     pic_app = echantillonneur.pic_app_o()
     pic_moteur = echantillonneur.pic_moteur_o()
+    pic_total = echantillonneur.pic_total_o()
     banc = {
         "id_lot": resultat.id_lot,
         "modele": info.get("modele", ""),
@@ -135,7 +149,7 @@ def executer_banc(dossier: Path, config: Configuration, modele: str | None = Non
         "duree_max_s": max(valeurs_durees, default=0.0),
         "pic_rss_app_o": pic_app,
         "pic_rss_moteur_o": pic_moteur,
-        "pic_rss_total_o": pic_app + pic_moteur,
+        "pic_rss_total_o": pic_total,
         "top1": top1,
         "top3": top3,
         "etiquetees": etiquetees,
