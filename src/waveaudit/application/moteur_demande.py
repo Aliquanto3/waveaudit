@@ -6,6 +6,7 @@ régénération). `MoteurALaDemande` : le moteur de la régénération, ouvert p
 `ui.inactivite_moteur_s` sans usage. La CLI n'utilise ni l'un ni l'autre.
 """
 
+import logging
 import threading
 from collections.abc import Iterator
 from contextlib import ExitStack, contextmanager
@@ -17,6 +18,8 @@ from waveaudit.application import composition
 from waveaudit.domaine.configuration import Configuration
 from waveaudit.domaine.ports import InfoMoteur, Ports
 from waveaudit.installation import manifeste
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -130,7 +133,7 @@ class MoteurALaDemande:
             try:
                 self._fermer_moteur()
             except Exception:  # noqa: BLE001 - fil de la minuterie : rien à qui remonter
-                pass
+                _log.warning("arrêt du moteur après inactivité en échec", exc_info=True)
 
     @contextmanager
     def utiliser(self, modele: str | None) -> Iterator[tuple[Ports, InfoMoteur]]:

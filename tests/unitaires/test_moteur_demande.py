@@ -224,20 +224,29 @@ def test_minuterie_concurrente_sans_fermeture_pendant_usage(local):
     fabrique, serveurs, _ = local
     moteur = MoteurALaDemande(fabrique(inactivite_s=0.01))
     erreurs: list[str] = []
+    ensemble = threading.Barrier(2, timeout=5)
 
-    def boucle():
+    def boucle(decalage: int):
         try:
-            for _ in range(40):
+            for i in range(40):
                 with moteur.utiliser(MODELE_A) as (_, info):
                     serveur = serveurs[info.pid - 1]
                     for _ in range(3):
                         if not serveur.ouvert:
                             erreurs.append(f"moteur {info.pid} fermé pendant un usage")
                         time.sleep(0.002)
+                # [revue M1] Pauses autour de la minuterie : des échéances tombent pendant
+                # la reprise d'un usage, au lieu d'être toujours annulées avant d'échoir ;
+                # toutes les 10 itérations, pause commune garantissant une échéance réelle.
+                if i % 10 == 9:
+                    ensemble.wait()
+                    time.sleep(0.05)
+                else:
+                    time.sleep(0.005 * ((i + decalage) % 6))
         except Exception as exc:  # noqa: BLE001 - remonté par l'assertion
             erreurs.append(repr(exc))
 
-    fils = [threading.Thread(target=boucle, daemon=True) for _ in range(2)]
+    fils = [threading.Thread(target=boucle, args=(d,), daemon=True) for d in (0, 2)]
     try:
         for fil in fils:
             fil.start()
@@ -245,9 +254,40 @@ def test_minuterie_concurrente_sans_fermeture_pendant_usage(local):
             fil.join(timeout=30)
         assert not any(fil.is_alive() for fil in fils)
         assert erreurs == []
+        assert len(serveurs) > 1, "aucune échéance réelle : le test ne prouve rien"
     finally:
         moteur.fermer()
     assert all(not s.ouvert for s in serveurs)
+
+
+def test_echeance_perimee_ne_ferme_pas(local):
+    """[revue M1] Rappel de minuterie déjà parti (cancel trop tard) : sans effet.
+
+    Déterministe : appelle `_echeance` avec une minuterie annulée, pendant un usage puis
+    après qu'une nouvelle minuterie a été armée.
+    """
+    fabrique, serveurs, _ = local
+    moteur = MoteurALaDemande(fabrique(inactivite_s=60.0))
+    try:
+        with moteur.utiliser(MODELE_A):
+            pass
+        premiere = moteur._minuterie
+        with moteur.utiliser(MODELE_A):
+            moteur._echeance(premiere)
+            assert serveurs[0].ouvert
+            moteur._minuterie = premiere  # minuterie courante, mais un usage est en cours
+            moteur._echeance(premiere)
+            assert serveurs[0].ouvert
+            moteur._minuterie = None
+        seconde = moteur._minuterie
+        assert seconde is not None and seconde is not premiere
+        moteur._echeance(premiere)
+        assert serveurs[0].ouvert and moteur._minuterie is seconde
+        moteur._echeance(seconde)
+        assert not serveurs[0].ouvert and moteur._minuterie is None
+        seconde.cancel()
+    finally:
+        moteur.fermer()
 
 
 # --- Mode externe ---
