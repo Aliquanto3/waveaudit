@@ -203,7 +203,10 @@ Les artefacts installés sont épinglés par version et empreinte dans `config/a
 | Modèle de repli (RAM basse) | Qwen3.5 0.8B (GGUF Q4_K_M) | Apache-2.0 | huggingface.co/unsloth |
 | Candidats (choisissables à l'accueil) | Qwen3 1.7B, MiniCPM5 1B (GGUF Q4_K_M) | Apache-2.0 | huggingface.co/unsloth, huggingface.co/openbmb |
 
-Tous sous licence permissive. `repeat_penalty = 1.1` pour granite et qwen3-1.7b.
+Tous sous licence permissive. `repeat_penalty = 1.1` pour granite et qwen3-1.7b. Sans `--modele`
+ni modèle choisi à l'accueil, granite (par défaut) n'est retenu que si la RAM disponible au
+lancement est ≥ 4,5 Go (`ram_min_defaut_go`, `config/waveaudit.toml`) ; sous ce seuil, repli
+automatique sur qwen3.5-0.8b. Seuil fixé au POC, non remesuré en v2.
 
 Rebanc EliteBook (v2, détail dans
 `_bmad-output/implementation-artifacts/bilan-modeles.md`) : **granite-4.0-1b reste le modèle
@@ -213,9 +216,10 @@ seed, une fiche sort en repli sur un délai dépassé (5/6, CAP-6 non tenu) ; il
 choisissable à l'accueil. qwen3.5-0.8b (repli) et minicpm5-1b (candidat) n'ont pas été rebancés
 en v2.
 
-Mesure de la recherche du constat type (Q4, index bilingue) : le rang 1 des notes 01 et 29 est
-mesuré sur des notes qui ont servi au réglage des mots-clés (optimiste) ; sur les notes non
-vues du banc, le rang 1 est atteint 8 fois sur 9 et 9 fois sur 9.
+Mesure de la recherche du constat type (Q4, index bilingue) : les notes 01 et 29 ont servi au
+réglage des mots-clés (optimiste) et atteignent le rang 1. Sur les notes non vues du banc
+(21-28 et 30, 9 notes), le bon constat sort en rang 1 dans 8 cas sur 9 (top1) et dans les 3
+premiers dans 9 cas sur 9 (top3).
 
 ## Banc
 
@@ -245,6 +249,13 @@ réels (< 3 min/fiche, pic ≤ 6 Go) se vérifient hors nuit, sur le poste cible
 - Pas de verrou inter-processus entre un lot CLI et un lot UI : les lancer en même temps peut
   charger un second llama-server. Un lot CLI en cours apparaît en lecture seule dans l'UI et est
   refusé par `waveaudit exporter`. Le moteur est relancé à la première régénération après un lot.
+- Arrêt de l'UI (Ctrl+C) : le llama-server est tué, en moins de 15 s mesurées en test. Sous un
+  système autre que Windows, cette borne n'est pas garantie au pire cas (dépend du délai
+  d'arrêt du processus moteur).
+- Régénérer une fiche d'un lot depuis une autre instance de l'UI (deux processus sur le même
+  dossier) n'est pas détecté : le verrou de régénération n'est vu que dans le processus qui l'a
+  posé. Le document exporté n'en est pas affecté (la fiche courante reste celle d'avant la
+  régénération).
 - Toute donnée client réelle est hors périmètre.
 
 ## Contenu du dépôt

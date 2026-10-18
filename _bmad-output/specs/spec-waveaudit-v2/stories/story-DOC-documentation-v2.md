@@ -110,5 +110,22 @@ pas à la racine : c'est l'emplacement réel du fichier, déjà lié par le READ
   réel plutôt que déplacé ou dupliqué, pour ne pas casser ce lien ni créer deux versions : un
   déplacement est hors périmètre d'une story de documentation sans changement de structure
   demandé ailleurs.
-- `incident` ne connaît pas `--annee` par défaut documentée comme « année courante » (déjà
-  exact dans le README existant, revérifié, non modifié).
+- `incident` connaît bien `--annee` (option avec valeur par défaut « année courante » quand
+  l'option est omise, `cli.py`) ; déjà exact dans le README existant, revérifié, non modifié.
+  [revue DOC] Formulation précédente ambiguë, lue comme « incident ne connaît pas --annee », ce
+  qui est faux ; corrigée.
+
+## Revue
+
+- high | second avis | guide étape 2 de Camille disait ouvrir la relecture dès la première fiche prête, contredit `relecture.js` (ouverture seulement quand le lot n'est plus `en_cours`) | corrigé | reformulé sur le comportement réel.
+- high | second avis | README/guide : libellés et raccourcis de l'écran de relecture (tiroir, candidats, `Ctrl+Alt+↓`, « Exporter un brouillon », « Enregistré ») écrits avant W3b | vérifié conforme | chaque libellé et raccourci retrouvé à l'identique dans `relecture.js`/`lot.html`, aucune correction de texte nécessaire au-delà du constat ci-dessus.
+- medium | second avis | README « rang 1 atteint 8 fois sur 9 et 9 fois sur 9 » confondait top1 et top3 | corrigé | distingue désormais top1 = 8/9, top3 = 9/9 (`bilan-modeles.md`).
+- medium | second avis | guide étape 4 de Karim proposait un dossier vide ou un `.csv` (reconnu) comme journal non reconnu | corrigé | remplacé par `notes.txt`, vérifié non reconnu par `journal_reconnu`.
+- medium | second avis | guide étape 1 de Karim faisait déposer un dossier alors que le champ est un sélecteur de fichiers multiple | corrigé | étape reformulée, fichiers listés.
+- medium | second avis | guide étape 5 de Camille supposait une note non rattachée dans le jeu de démo, alors qu'aucune des 30 notes ne le donne (`test_les_30_notes_de_demonstration_sont_rattachables`) | corrigé | étape reformulée pour ajouter une note hors sujet reproductible.
+- low | second avis | libellés « Génération en cours », « Enregistrement… », « Exporter un brouillon » à vérifier | vérifié conforme | aucune correction.
+- low | second avis | limites manquantes : borne d'arrêt UI non garantie à 10 s hors Windows, régénération dans une autre instance non détectable | corrigé | deux puces ajoutées à « Limites du POC ».
+- low | second avis | seuil de repli modèle (RAM ≥ 4,5 Go) absent du README | corrigé | phrase ajoutée, seuil non remesuré en v2 noté.
+- low | second avis | spec DOC:113 « incident ne connaît pas --annee » faux | corrigé | reformulé ci-dessus.
+- — | reviewer | « Points à vérifier en recette » du guide incomplète au regard de `revues/story-W3b.md` | corrigé | puces ajoutées sans doublon (Enregistrement…/Enregistré et `aria-live`, conflit à deux onglets, serveur arrêté pendant une saisie, confirmation de changement de candidat détaillée, export brouillon par `Blob`, lien « Télécharger le rapport », opacité des dialogues, piège de focus Tab).
+- — | reviewer | Complexité | — | 0 constat (story de documentation seule, aucune structure de code modifiée).
