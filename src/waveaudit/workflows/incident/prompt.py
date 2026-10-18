@@ -9,7 +9,9 @@ from waveaudit.domaine.ports import Message
 LONGUEUR_MAX_PREUVE = 300
 _CHAMPS_REGLE = {"id", "titre", "description", "impact", "recommandation"}
 
-_BALISE = re.compile(r"<(?=\s*/?\s*(?:regle|preuves)\b)", re.IGNORECASE)
+# [revue Q1] motif du §8, blancs étendus aux caractères de format invisibles (U+200B, etc.).
+_BLANCS = r"[\s­᠎​-‏‪-‮⁠-⁤﻿]*"
+_BALISE = re.compile(rf"<(?={_BLANCS}/?{_BLANCS}(?:regle|preuves)\b)", re.IGNORECASE)
 
 
 def echapper(texte: str) -> str:
@@ -31,8 +33,10 @@ CONSIGNE = (
 
 def ligne_preuve(evenement: Evenement) -> str:
     """`horodatage hote message`, message aux blancs réduits et coupé à 300 caractères."""
-    message = echapper(" ".join(evenement.message.split())[:LONGUEUR_MAX_PREUVE])
-    return f"{evenement.horodatage.isoformat(timespec='seconds')} {evenement.hote} {message}"
+    message = " ".join(evenement.message.split())[:LONGUEUR_MAX_PREUVE]
+    # [revue Q1] toute la ligne : l'hôte vient aussi des journaux (§8, « chaque ligne de preuve »).
+    ligne = f"{evenement.horodatage.isoformat(timespec='seconds')} {evenement.hote} {message}"
+    return echapper(ligne)
 
 
 def construire(

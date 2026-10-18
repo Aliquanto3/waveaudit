@@ -70,4 +70,8 @@ Tests relus, restants verts sans modification :
 
 ## Revue
 
-En attente (second avis puis reviewer).
+- moyen | second avis 1 | hôte non échappé dans la ligne de preuve | corrigé (ligne entière échappée).
+- faible | second avis 2 | caractères de format invisibles (U+200B…) | corrigé (blancs étendus).
+- faible | second avis 3 | règle non échappée | rejeté (catalogue maîtrisé).
+- faible | second avis 4 | `_moteur` modifié | rejeté (autorisé par invoke_dev_with).
+- Détail : `_bmad-output/implementation-artifacts/revues/story-Q1.md`.

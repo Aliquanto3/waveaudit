@@ -8,7 +8,9 @@ from waveaudit.domaine.ports import Message
 
 MARQUE_TRONCATURE = "[…tronqué]"
 
-_BALISE = re.compile(r"<(?=\s*/?\s*(?:note|constat)\b)", re.IGNORECASE)
+# [revue Q1] motif du §8, blancs étendus aux caractères de format invisibles (U+200B, etc.).
+_BLANCS = r"[\s­᠎​-‏‪-‮⁠-⁤﻿]*"
+_BALISE = re.compile(rf"<(?={_BLANCS}/?{_BLANCS}(?:note|constat)\b)", re.IGNORECASE)
 
 
 def echapper(texte: str) -> str:

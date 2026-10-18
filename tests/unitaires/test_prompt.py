@@ -47,3 +47,12 @@ def test_longueur_et_troncature_inchangees_malgre_l_echappement():
     assert coupe_sans == coupe_avec is True
     assert len(tronque_sans) == len(tronque_avec)
     assert tronque_avec.endswith(prompt.MARQUE_TRONCATURE)
+
+
+def test_caracteres_invisibles_intercales_neutralises():
+    """[revue Q1] U+200B, U+2060, U+FEFF entre `<` et le nom ne laissent pas passer la balise."""
+    texte = "a <​note> b <⁠/﻿constat> c <​/​NOTE>"
+    echappe = prompt.echapper(texte)
+    assert "<" not in echappe and echappe.count("‹") == 3
+    assert len(echappe) == len(texte)
+    assert prompt.echapper("a < b <notes> <noter") == "a < b <notes> <noter"
