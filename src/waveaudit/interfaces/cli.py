@@ -60,7 +60,7 @@ def _charger_config(chemin: Path | None = None):  # noqa: ANN201 - Configuration
 def _codes_retour(commande: str) -> Iterator[None]:
     """Traduit les erreurs du bloc en codes retour (contrats §4), message d'une ligne, trace
     dans `logging`. `typer.Exit` (sous-classe d'`Exception`) est relancée telle quelle."""
-    from waveaudit.application.lot import _sans_chemin
+    from waveaudit.application.lot import sans_chemin
     from waveaudit.domaine.erreurs import (
         ConfigurationInvalide,
         ConnexionInterdite,
@@ -74,7 +74,7 @@ def _codes_retour(commande: str) -> Iterator[None]:
     except typer.Exit:
         raise
     except (EntreeInvalide, ConfigurationInvalide) as erreur:
-        _echouer(_sans_chemin(str(erreur)), 2)
+        _echouer(sans_chemin(str(erreur)), 2)
     except MoteurInjoignable as erreur:
         _echouer(str(erreur), 3)
     except ConnexionInterdite as erreur:
@@ -89,7 +89,7 @@ def _codes_retour(commande: str) -> Iterator[None]:
         _echouer(f"{commande} : accès refusé en écriture ou en lecture ({cible})", 4)
     except Exception as erreur:  # erreurs httpx, OSError, CalledProcessError...
         _log.exception("%s : échec", commande)
-        _echouer(f"{commande} : échec ({_sans_chemin(str(erreur))})", 4)
+        _echouer(f"{commande} : échec ({sans_chemin(str(erreur))})", 4)
 
 
 def _module_optionnel(nom: str):  # noqa: ANN201 - module | None, import tardif

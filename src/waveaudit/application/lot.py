@@ -34,7 +34,12 @@ Abonne = Callable[[EvenementLot], None]
 FICHES = "fiches.json"
 JOURNAL = "journal.jsonl"
 RAPPORT = "rapport.docx"
-_ID_LOT = re.compile(r"[0-9A-Za-z][0-9A-Za-z-]*")
+# Identifiant de lot fourni : 64 caractères au plus, comparé par `fullmatch` (§9 v2, revue A3).
+MOTIF_ID_LOT = re.compile(r"[0-9A-Za-z][0-9A-Za-z-]{0,63}")
+# Noms de périphérique réservés par Windows : `mkdir` y « réussit » sans créer de dossier.
+_NOMS_RESERVES = frozenset(
+    {"con", "prn", "aux", "nul"} | {f"{p}{i}" for p in ("com", "lpt") for i in range(10)}
+)
 # Chemin absolu Windows (C:\..., \\serveur\...) ou POSIX (/a/b) dans un message d'erreur.
 # Un espace reste dans le chemin si le mot suivant contient encore un séparateur
 # (« C:\Users\Prénom Nom\x.md absent ») ; un chemin entre apostrophes est pris en entier.
@@ -45,7 +50,7 @@ _CHEMIN_ABSOLU = re.compile(
 )
 
 
-def _sans_chemin(message: str) -> str:
+def sans_chemin(message: str) -> str:
     """Remplace chaque chemin absolu par son nom de fichier (AD-8 : jamais de chemin absolu)."""
     return _CHEMIN_ABSOLU.sub(lambda m: Path(m.group().rstrip(".:")).name or "…", message)
 
@@ -54,8 +59,46 @@ def _maintenant() -> datetime:
     return datetime.now().astimezone()
 
 
-def _sorties(config: Configuration) -> Path:
+def dossier_sorties(config: Configuration) -> Path:
+    """Dossier des sorties de lot : `config.chemins.var / "sorties"`."""
     return config.chemins.var / "sorties"
+
+
+def _id_utilisable(id_lot: str) -> bool:
+    return bool(MOTIF_ID_LOT.fullmatch(id_lot)) and id_lot.casefold() not in _NOMS_RESERVES
+
+
+def verifier_id_lot(id_lot: str, config: Configuration) -> Path:
+    """Vérifie un identifiant de lot fourni et **crée** son dossier de sortie, renvoyé.
+
+    Ne sert qu'au lancement d'un lot ou d'un incident. Motif invalide ou nom réservé Windows
+    -> `EntreeInvalide`.
+    """
+    if not MOTIF_ID_LOT.fullmatch(id_lot):
+        raise EntreeInvalide(f"identifiant de lot invalide : {id_lot!r}")
+    dossier = dossier_sorties(config) / id_lot
+    if id_lot.casefold() not in _NOMS_RESERVES:
+        try:
+            dossier.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
+    # Nom réservé Windows (NUL…) : mkdir « réussit » sans créer de dossier.
+    if id_lot.casefold() in _NOMS_RESERVES or not dossier.is_dir():
+        raise EntreeInvalide(f"identifiant de lot inutilisable : {id_lot!r}")
+    return dossier
+
+
+def dossier_lot_existant(id_lot: str, config: Configuration) -> Path | None:
+    """Dossier de sortie existant du lot `id_lot`, ou None ; sans effet de bord (aucun mkdir).
+
+    None si l'identifiant ne vérifie pas `MOTIF_ID_LOT`, est un nom réservé Windows ou ne
+    désigne pas un dossier existant de `dossier_sorties(config)`. Seul accès des lectures
+    (routes web, `lots.py`, `exporter`) : un GET ne crée jamais de dossier.
+    """
+    if not _id_utilisable(id_lot):
+        return None
+    dossier = dossier_sorties(config) / id_lot
+    return dossier if dossier.is_dir() else None
 
 
 def nouvel_id_lot(var: Path) -> str:
@@ -74,7 +117,7 @@ def nouvel_id_lot(var: Path) -> str:
         return candidat
 
 
-class _Emetteur:
+class Emetteur:
     """Écrit chaque événement dans `journal.jsonl` (une ligne, flush), puis appelle l'abonné."""
 
     def __init__(self, journal: JournalLot, abonne: Abonne | None) -> None:
@@ -130,20 +173,12 @@ def executer_lot(
     if requete.id_lot is None:
         id_lot = nouvel_id_lot(config.chemins.var)
     else:
-        if not _ID_LOT.fullmatch(requete.id_lot):
-            raise EntreeInvalide(f"identifiant de lot invalide : {requete.id_lot!r}")
         id_lot = requete.id_lot
-        try:
-            (_sorties(config) / id_lot).mkdir(parents=True, exist_ok=True)
-        except OSError:
-            pass
-        # Nom réservé Windows (NUL…) : mkdir « réussit » sans créer de dossier.
-        if not (_sorties(config) / id_lot).is_dir():
-            raise EntreeInvalide(f"identifiant de lot inutilisable : {id_lot!r}")
-    dossier_sortie = _sorties(config) / id_lot
+        verifier_id_lot(id_lot, config)
+    dossier_sortie = dossier_sorties(config) / id_lot
 
     with JournalLot(dossier_sortie / JOURNAL) as journal:
-        emetteur = _Emetteur(journal, abonne)
+        emetteur = Emetteur(journal, abonne)
         try:
             with composition.ouvrir(config, requete.modele, id_lot=id_lot) as (ports, info):
                 ports.moteur.sonder()
@@ -184,7 +219,7 @@ def executer_lot(
         except BaseException as erreur:
             emetteur.emettre(
                 TypeEvenement.LOT_ECHOUE,
-                details={"erreur": type(erreur).__name__, "message": _sans_chemin(str(erreur))},
+                details={"erreur": type(erreur).__name__, "message": sans_chemin(str(erreur))},
             )
             raise
         duree_lot = round(time.perf_counter() - debut, 3)

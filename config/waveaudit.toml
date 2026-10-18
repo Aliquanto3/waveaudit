@@ -10,6 +10,7 @@ temperature = 0.2
 seed = 42
 max_tokens = 700
 mode_json = "json_schema"    # §22 : "json_schema" | "json_object" ; le manifeste prime
+repeat_penalty = 0.0         # 0.0 = non envoyé (défaut du serveur) ; sinon 0 < x <= 2.0 ; le manifeste prime
 longueur_max_rubrique = 1200
 taille_max_note = 6000       # caractères du corps envoyés au modèle
 ctx = 4096
@@ -30,6 +31,9 @@ regles = "donnees/regles"     # règles de détection du workflow incident
 [ui]
 hote = "127.0.0.1"
 port = 8765
+inactivite_moteur_s = 300.0  # > 0 ; arrêt du moteur à la demande après cette inactivité
+[fiches]
+langue = "fr"                # "fr" | "en" ; langue des lots sans choix explicite
 [incident]                   # workflow CERT (contrats §21)
 decalage_syslog = "+02:00"   # fixe, sans heure d'été ; motif ^[+-]\d{2}:\d{2}$
 max_preuves = 10             # >= 1 ; preuves citées dans le prompt et le rapport

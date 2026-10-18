@@ -159,6 +159,85 @@ def test_adaptateurs_sans_couche_superieure():
     assert fautes == []
 
 
+MODULE_LOT = "waveaudit.application.lot"
+TESTS = Path(__file__).resolve().parents[1]
+
+
+def _noms_prives_de_lot(source: str, nom_fichier: str, paquet: list[str]) -> list[str]:
+    """Noms `_…` de `waveaudit.application.lot` importés ou lus (`lot._x`) dans `source`."""
+    arbre = ast.parse(source, filename=nom_fichier)
+    alias_module: set[str] = set()
+    fautes: list[str] = []
+    for noeud in ast.walk(arbre):
+        if isinstance(noeud, ast.ImportFrom):
+            if noeud.level:
+                base = paquet[: len(paquet) - noeud.level + 1]
+                module = ".".join(base + ([noeud.module] if noeud.module else []))
+            else:
+                module = noeud.module or ""
+            for alias in noeud.names:
+                if module == MODULE_LOT and alias.name.startswith("_"):
+                    fautes.append(f"{nom_fichier}:{noeud.lineno} importe {alias.name}")
+                if f"{module}.{alias.name}" == MODULE_LOT:
+                    alias_module.add(alias.asname or alias.name)
+        elif isinstance(noeud, ast.Import):
+            for alias in noeud.names:
+                if alias.name == MODULE_LOT and alias.asname:
+                    alias_module.add(alias.asname)
+    for noeud in ast.walk(arbre):
+        if (
+            isinstance(noeud, ast.Attribute)
+            and noeud.attr.startswith("_")
+            and not noeud.attr.startswith("__")
+            and (
+                (isinstance(noeud.value, ast.Name) and noeud.value.id in alias_module)
+                or ast.unparse(noeud.value) == MODULE_LOT  # import sans alias, nom qualifié
+            )
+        ):
+            fautes.append(f"{nom_fichier}:{noeud.lineno} lit {ast.unparse(noeud)}")
+    return fautes
+
+
+def test_noms_prives_de_lot_non_importes_hors_de_lot():
+    """CAP-16 (§9 v2) : hors de `application/lot.py`, aucun nom `_…` de `lot.py`, tests compris."""
+    fautes = []
+    for fichier in FICHIERS:
+        if fichier.relative_to(PAQUET).as_posix() == "application/lot.py":
+            continue
+        paquet = _nom_module(fichier).split(".")
+        if fichier.name != "__init__.py":
+            paquet = paquet[:-1]
+        source = fichier.read_text(encoding="utf-8")
+        fautes += _noms_prives_de_lot(source, fichier.name, paquet)
+    for fichier in sorted(TESTS.rglob("*.py")):
+        source = fichier.read_text(encoding="utf-8")
+        fautes += _noms_prives_de_lot(source, fichier.name, ["tests"])
+    assert fautes == []
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from waveaudit.application.lot import _ID_LOT\n",
+        "from waveaudit.application import lot\nlot._sans_chemin('x')\n",
+        "import waveaudit.application.lot as l\nl._Emetteur\n",
+        "from waveaudit.application import lot as module_lot\nmodule_lot._sorties\n",
+        "import waveaudit.application.lot\nwaveaudit.application.lot._sans_chemin('x')\n",
+    ],
+)
+def test_noms_prives_de_lot_detectes(source):
+    """Contrôle de l'analyseur de la règle précédente."""
+    assert _noms_prives_de_lot(source, "exemple.py", ["tests"]) != []
+
+
+def test_noms_publics_de_lot_admis():
+    source = (
+        "from waveaudit.application.lot import MOTIF_ID_LOT, Emetteur, sans_chemin\n"
+        "from waveaudit.application import lot\nlot.dossier_sorties\nlot.__name__\n"
+    )
+    assert _noms_prives_de_lot(source, "exemple.py", ["tests"]) == []
+
+
 def test_analyse_detecte_les_imports():
     """Contrôle de l'analyseur lui-même : imports relatifs, `from x import y`, fonctions."""
     fichier = PAQUET / "workflows" / "registre.py"

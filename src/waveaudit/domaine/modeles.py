@@ -8,6 +8,10 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validato
 
 _CONFIG = ConfigDict(extra="forbid", frozen=True)
 
+# [v2] Langue d'un lot de fiches (contrats §23).
+Langue = Literal["fr", "en"]
+LANGUES: tuple[Langue, ...] = ("fr", "en")
+
 
 class Statut(StrEnum):
     OK = "ok"
@@ -24,6 +28,24 @@ class Reference(BaseModel):
     url: str
 
 
+class TextesConstat(BaseModel):
+    """Textes d'un constat type dans une langue (contrats §1 v2)."""
+
+    model_config = _CONFIG
+
+    titre: str
+    description: str
+    impact: str
+    recommandation: str
+
+    @field_validator("titre", "description", "impact", "recommandation")
+    @classmethod
+    def _non_vide(cls, valeur: str) -> str:
+        if not valeur.strip():
+            raise ValueError("texte vide")
+        return valeur
+
+
 class ConstatType(BaseModel):
     model_config = _CONFIG
 
@@ -38,6 +60,23 @@ class ConstatType(BaseModel):
     cvss_vecteur: str
     references: list[Reference] = Field(min_length=1)
     source: str  # origine et licence
+    # [v2] textes anglais ; None toléré par le modèle, refusé par CatalogueYaml et verifier (§15)
+    en: TextesConstat | None = None
+
+    def textes(self, langue: Langue) -> TextesConstat:
+        """Textes du constat dans `langue` : champs racine en "fr", bloc `en` en "en"."""
+        if langue == "fr":
+            return TextesConstat(
+                titre=self.titre,
+                description=self.description,
+                impact=self.impact,
+                recommandation=self.recommandation,
+            )
+        if langue == "en":
+            if self.en is None:
+                raise ValueError(f"le constat {self.id} n'a pas de textes anglais")
+            return self.en
+        raise ValueError(f"langue inconnue : {langue}")
 
 
 class Note(BaseModel):
@@ -110,6 +149,9 @@ class CodeMotif(StrEnum):
     NOTE_INVALIDE = "note_invalide"
     AUCUN_CONSTAT = "aucun_constat"
     INDICATEUR_RETIRE = "indicateur_retire"  # workflow incident (contrats §21)
+    REPETITION = "repetition"  # [v2] §6 étape 5, detail = nom de la rubrique
+    LANGUE = "langue"  # [v2] §6 étape 6, detail = "<rubrique> : …"
+    LOT_INTERROMPU = "lot_interrompu"  # [v2] §25, entrée jamais traitée d'un lot interrompu
 
 
 class Motif(BaseModel):
@@ -206,6 +248,7 @@ class RequeteLot(BaseModel):
     modele: str | None = None  # surcharge moteur.modele (local-gere) ou moteur.modele_api (externe)
     id_lot: str | None = None  # None : généré par le lot
     copie_rapport: Path | None = None  # -o : copie de rapport.docx en plus de var/sorties/<id>/
+    langue: Langue | None = None  # [v2] None : config.fiches.langue (§23)
 
 
 class ResultatLot(BaseModel):

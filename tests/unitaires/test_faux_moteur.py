@@ -1,9 +1,18 @@
 import json
+import re
 
 import httpx
 import pytest
 
-from tests.faux_moteur import REFERENCES_INVENTEES, REFERENCES_INVENTEES_INCIDENT, SANS_CONSTAT
+from tests.faux_moteur import (
+    REFERENCES_INVENTEES,
+    REFERENCES_INVENTEES_INCIDENT,
+    REPETITION,
+    SANS_CONSTAT,
+    SCENARIOS,
+    TEXTE_ANGLAIS,
+    TEXTE_FRANCAIS,
+)
 
 CONSTAT = {
     "id": "WEB-XSS-REFLECHI",
@@ -219,3 +228,143 @@ def test_sans_balise_regle_ni_constat(faux_moteur):
     with _client() as client:
         reponse = client.post(f"{faux_moteur().base_url}/chat/completions", json=corps)
     assert reponse.json()["choices"][0]["message"]["content"] == SANS_CONSTAT
+
+
+# --- Scénarios v2 (contrats §13 v2, story S0) : modes fiche et incident -----------------------
+
+MOTS_EN = {"the", "of", "and", "is", "are", "to", "in", "for", "with", "that", "this", "by", "not"}
+MOTS_FR = {"le", "la", "les", "un", "une", "des", "du", "de", "et", "ne", "pas", "par", "dans"}
+
+
+def _poster(base_url: str, corps: dict) -> dict:
+    with _client() as client:
+        reponse = client.post(f"{base_url}/chat/completions", json=corps)
+    assert reponse.status_code == 200
+    return json.loads(reponse.json()["choices"][0]["message"]["content"])
+
+
+def _avec_schema(corps: dict, rubrique: str, longueur: int) -> dict:
+    copie = json.loads(json.dumps(corps))
+    schema = {"type": "object", "properties": {rubrique: {"type": "string", "maxLength": longueur}}}
+    copie["response_format"] = {
+        "type": "json_schema",
+        "json_schema": {"name": "sortie_fiche", "strict": True, "schema": schema},
+    }
+    return copie
+
+
+def _mots(texte: str) -> list[str]:
+    return [m.lower() for m in re.findall(r"(?<!\w)[^\W\d_]+(?!\w)", texte)]
+
+
+def test_scenarios_v2_declares():
+    for scenario in (
+        "repetition",
+        "langue_anglaise",
+        "langue_francaise",
+        "ecriture_etrangere",
+        "url_de_la_note",
+    ):
+        assert scenario in SCENARIOS
+
+
+def test_nominal_constat_anglais(faux_moteur):
+    """Lot `en` : le <constat> reçu est en anglais, la sortie suit."""
+    constat = CONSTAT | {
+        "titre": "Reflected XSS",
+        "description": "Type description.",
+        "impact": "Type impact.",
+        "recommandation": "Type recommendation.",
+    }
+    corps = json.loads(json.dumps(CORPS))
+    corps["messages"][-1]["content"] = (
+        f"<constat>{json.dumps(constat)}</constat><note>Asset: x\nobservations</note>"
+    )
+    sortie = _poster(faux_moteur().base_url, corps)
+    assert sortie["titre"] == "[adapté] Reflected XSS"
+    assert sortie["description"] == "[adapté] Type description."
+
+
+def test_repetition_longueur_par_defaut(faux_moteur):
+    sortie = json.loads(_contenu(faux_moteur("repetition").base_url))
+    assert sortie["description"] == (REPETITION * 60)[:1200]
+    assert len(sortie["description"]) == 1200
+    assert sortie | {"description": None} == _sortie_attendue() | {"description": None}
+
+
+def test_repetition_longueur_du_schema(faux_moteur):
+    moteur = faux_moteur("repetition")
+    sortie = _poster(moteur.base_url, _avec_schema(CORPS, "description", 300))
+    assert sortie["description"] == (REPETITION * 60)[:300]
+
+
+def test_repetition_incident(faux_moteur):
+    moteur = faux_moteur("repetition")
+    sortie = _poster(moteur.base_url, _avec_schema(CORPS_INCIDENT, "recit", 800))
+    assert sortie == RECIT_NOMINAL | {"recit": (REPETITION * 60)[:800]}
+
+
+def test_langue_anglaise(faux_moteur):
+    sortie = json.loads(_contenu(faux_moteur("langue_anglaise").base_url))
+    attendu = _sortie_attendue()
+    assert sortie["titre"] == attendu["titre"] and sortie["cvss"] == attendu["cvss"]
+    for rubrique in ("description", "impact", "recommandation"):
+        assert sortie[rubrique] == TEXTE_ANGLAIS
+    assert sum(m in MOTS_EN for m in _mots(TEXTE_ANGLAIS)) >= 3
+    assert sum(m in MOTS_FR for m in _mots(TEXTE_ANGLAIS)) == 0
+
+
+def test_langue_anglaise_incident(faux_moteur):
+    sortie = json.loads(_contenu_incident(faux_moteur("langue_anglaise").base_url))
+    assert sortie == RECIT_NOMINAL | {
+        "recit": TEXTE_ANGLAIS,
+        "impact": TEXTE_ANGLAIS,
+        "recommandation": TEXTE_ANGLAIS,
+    }
+
+
+def test_langue_francaise(faux_moteur):
+    sortie = json.loads(_contenu(faux_moteur("langue_francaise").base_url))
+    assert sortie["titre"] == _sortie_attendue()["titre"]
+    for rubrique in ("description", "impact", "recommandation"):
+        assert sortie[rubrique] == TEXTE_FRANCAIS
+    assert sum(m in MOTS_FR for m in _mots(TEXTE_FRANCAIS)) >= 3
+    assert sum(m in MOTS_EN for m in _mots(TEXTE_FRANCAIS)) == 0
+
+
+def test_langue_francaise_incident(faux_moteur):
+    sortie = json.loads(_contenu_incident(faux_moteur("langue_francaise").base_url))
+    assert sortie == RECIT_NOMINAL | {
+        "recit": TEXTE_FRANCAIS,
+        "impact": TEXTE_FRANCAIS,
+        "recommandation": TEXTE_FRANCAIS,
+    }
+
+
+def test_ecriture_etrangere(faux_moteur):
+    sortie = json.loads(_contenu(faux_moteur("ecriture_etrangere").base_url))
+    assert sortie == _sortie_attendue() | {"description": "[adapté] Description type.経"}
+
+
+def test_ecriture_etrangere_incident(faux_moteur):
+    sortie = json.loads(_contenu_incident(faux_moteur("ecriture_etrangere").base_url))
+    assert sortie == RECIT_NOMINAL | {"recit": RECIT_NOMINAL["recit"] + "経"}
+
+
+def test_url_de_la_note(faux_moteur):
+    corps = json.loads(json.dumps(CORPS))
+    corps["messages"][-1]["content"] = corps["messages"][-1]["content"].replace(
+        "observations", "voir https://app.exemple.test/login?id=1). puis https://autre.test/"
+    )
+    sortie = _poster(faux_moteur("url_de_la_note").base_url, corps)
+    assert sortie["description"] == "[adapté] Description type. https://app.exemple.test/login?id=1"
+
+
+def test_url_de_la_note_sans_url(faux_moteur):
+    sortie = json.loads(_contenu(faux_moteur("url_de_la_note").base_url))
+    assert sortie == _sortie_attendue()
+
+
+def test_url_de_la_note_incident_sans_modification(faux_moteur):
+    sortie = json.loads(_contenu_incident(faux_moteur("url_de_la_note").base_url))
+    assert sortie == RECIT_NOMINAL

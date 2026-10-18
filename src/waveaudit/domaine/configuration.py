@@ -9,6 +9,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from waveaudit.domaine.modeles import Langue
+
 _CONFIG = ConfigDict(extra="forbid")
 
 
@@ -26,6 +28,8 @@ class ConfigMoteur(BaseModel):
     seed: int = 42
     max_tokens: int = 700
     mode_json: Literal["json_schema", "json_object"] = "json_schema"  # §22
+    # [v2] 0.0 = non envoyé (défaut du serveur) ; sinon 0 < x <= 2.0 ; le manifeste prime (§11)
+    repeat_penalty: float = Field(0.0, ge=0.0, le=2.0)
     longueur_max_rubrique: int = 1200
     taille_max_note: int = 6000  # caractères du corps envoyés au modèle
     ctx: int = 4096
@@ -62,6 +66,16 @@ class ConfigUi(BaseModel):
 
     hote: str = "127.0.0.1"
     port: int = 8765
+    # [v2] arrêt du moteur à la demande après cette inactivité, en secondes (§24)
+    inactivite_moteur_s: float = Field(300.0, gt=0.0)
+
+
+class ConfigFiches(BaseModel):
+    """[v2] Workflow fiches (contrats §2, §23)."""
+
+    model_config = _CONFIG
+
+    langue: Langue = "fr"  # langue des lots sans choix explicite
 
 
 class ConfigIncident(BaseModel):
@@ -83,4 +97,5 @@ class Configuration(BaseModel):
     recherche: ConfigRecherche = ConfigRecherche()
     chemins: ConfigChemins = ConfigChemins()
     ui: ConfigUi = ConfigUi()
+    fiches: ConfigFiches = ConfigFiches()
     incident: ConfigIncident = ConfigIncident()

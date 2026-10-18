@@ -204,8 +204,9 @@ def test_dossier_sans_fichier_route(config_test, tmp_path):
     assert [e["type"] for e in _journal(sortie)] == [T.LOT_ECHOUE]
 
 
-# Revue C5 : `application.incident` réutilise des noms privés de `lot.py` (`_ID_LOT`,
-# `_Emetteur`, `_sans_chemin`, `_sorties`) ; ces tests cassent si leur comportement change.
+# Revue C5, S0 (v2) : `application.incident` réutilise les noms publics de `lot.py`
+# (`MOTIF_ID_LOT`, `Emetteur`, `sans_chemin`, `dossier_sorties`, `verifier_id_lot`) ;
+# ces tests cassent si leur comportement change.
 @pytest.mark.parametrize("id_lot", ["../evasion", "-tiret", "a b", "NUL"])
 def test_id_lot_refuse(config_test, id_lot):
     with pytest.raises(EntreeInvalide):

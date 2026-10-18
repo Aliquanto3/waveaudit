@@ -1,8 +1,11 @@
 # Manifeste des artefacts installés par `waveaudit installer` (contrats §11, AD-12).
 # `destination` est relatif à var/ : un dossier si extraire = true, sinon le fichier final.
 # `executable` est le chemin de l'exécutable dans `destination`, pour le rôle moteur seulement.
-# Facultatifs, modèles seulement : `mode_json` (§22, prime sur moteur.mode_json) et
-# `reflexion` (false : chat_template_kwargs.enable_thinking = false ; absent : rien n'est envoyé).
+# Ordre des entrées : moteur, défaut, repli, puis candidats (contrats §11 v2).
+# Facultatifs, modèles seulement : `mode_json` (§22, prime sur moteur.mode_json),
+# `reflexion` (false : chat_template_kwargs.enable_thinking = false ; absent : rien n'est envoyé),
+# `repeat_penalty` (0 < x <= 2.0, prime sur moteur.repeat_penalty) et `duree_indicative_s`
+# (médiane par fiche mesurée au banc, bilan-modeles.md, affichée par l'UI).
 
 [[artefact]]
 nom = "llama-server-b11714"
@@ -31,10 +34,27 @@ destination = "modeles/granite-4.0-1b-Q4_K_M.gguf"
 extraire = false
 executable = ""
 prefixe_systeme = ""
+duree_indicative_s = 17.1
+
+[[artefact]]
+nom = "qwen3.5-0.8b-q4km"
+role = "modele_repli"
+version = "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0"
+url = "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/6ab461498e2023f6e3c1baea90a8f0fe38ab64d0/Qwen3.5-0.8B-Q4_K_M.gguf"
+sha256 = "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517"
+taille = 532517120
+licence = "Apache-2.0"
+source = "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF"
+destination = "modeles/Qwen3.5-0.8B-Q4_K_M.gguf"
+extraire = false
+executable = ""
+prefixe_systeme = ""
+reflexion = false            # V1 : réflexion par défaut, content vide (écart au §22)
+duree_indicative_s = 11.4
 
 [[artefact]]
 nom = "minicpm5-1b-q4km"
-role = "modele_repli"
+role = "candidat"
 version = "3d55fac80935ae6456986ad2384b5cbcc4d6c948"
 url = "https://huggingface.co/openbmb/MiniCPM5-1B-GGUF/resolve/3d55fac80935ae6456986ad2384b5cbcc4d6c948/MiniCPM5-1B-Q4_K_M.gguf"
 sha256 = "81b64d05a23b17b34c475f42b3e72fbde62d4b92cc34541f7a8031d0752deafa"
@@ -46,6 +66,7 @@ extraire = false
 executable = ""
 prefixe_systeme = ""
 reflexion = false            # V1 : réflexion par défaut, content vide (écart au §22)
+duree_indicative_s = 12.9
 
 [[artefact]]
 nom = "qwen3-1.7b-q4km"
@@ -60,18 +81,4 @@ destination = "modeles/Qwen3-1.7B-Q4_K_M.gguf"
 extraire = false
 executable = ""
 prefixe_systeme = "/no_think"
-
-[[artefact]]
-nom = "qwen3.5-0.8b-q4km"
-role = "candidat"
-version = "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0"
-url = "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/6ab461498e2023f6e3c1baea90a8f0fe38ab64d0/Qwen3.5-0.8B-Q4_K_M.gguf"
-sha256 = "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517"
-taille = 532517120
-licence = "Apache-2.0"
-source = "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF"
-destination = "modeles/Qwen3.5-0.8B-Q4_K_M.gguf"
-extraire = false
-executable = ""
-prefixe_systeme = ""
-reflexion = false            # V1 : réflexion par défaut, content vide (écart au §22)
+duree_indicative_s = 20.4

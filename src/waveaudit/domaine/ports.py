@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Literal, Protocol, TypedDict
 
 from waveaudit.domaine.incident import LectureJournaux, RapportIncident, Regle
-from waveaudit.domaine.modeles import ConstatType, Note, NoteInvalide, Rapport
+from waveaudit.domaine.modeles import ConstatType, Langue, Note, NoteInvalide, Rapport
 
 
 class Message(TypedDict):
@@ -18,7 +18,11 @@ class Moteur(Protocol):
         """GET {base_url}/models ; statut différent de 200 -> MoteurInjoignable."""
         ...
 
-    def generer_json(self, messages: list[Message], schema: dict, *, max_tokens: int) -> dict: ...
+    def generer_json(
+        self, messages: list[Message], schema: dict, *, max_tokens: int, seed: int | None = None
+    ) -> dict:
+        """[v2] seed : None = seed configurée (contrats §3, §5)."""
+        ...
 
 
 class Catalogue(Protocol):
@@ -35,8 +39,24 @@ class SourceNotes(Protocol):
     def lire(self, dossier: Path) -> list[Note | NoteInvalide]: ...
 
 
+@dataclass(frozen=True)
+class OptionsExport:
+    """[v2] Options d'export Word (contrats §27)."""
+
+    langue: Langue = "fr"
+    mode: Literal["lot", "final", "brouillon"] = "lot"  # "lot" = rapport.docx v0.1.0, inchangé
+    # Noms de note des fiches non validées : marquées « Non validée » en brouillon, listées en
+    # annexe en final, jamais dans le corps du rapport final ([revue A17]).
+    non_validees: frozenset[str] = frozenset()
+
+
 class Exporteur(Protocol):
-    def exporter(self, rapport: Rapport, chemin: Path) -> None: ...
+    def exporter(
+        self,
+        rapport: Rapport,
+        chemin: Path,
+        options: OptionsExport = OptionsExport(),  # noqa: B008 - dataclass figée, immuable
+    ) -> None: ...
 
 
 class MesureMemoire(Protocol):

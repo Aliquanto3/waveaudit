@@ -28,7 +28,35 @@ SCENARIOS = (
     "lent",
     "erreur_500",
     "injoignable",
+    # [v2] contrats §13 (story de socle v2)
+    "repetition",
+    "langue_anglaise",
+    "langue_francaise",
+    "ecriture_etrangere",
+    "url_de_la_note",
 )
+# [v2] Boucle de répétition : description (récit en incident) = REPETITION * 60, tronquée au
+# maxLength de la rubrique lu dans response_format.json_schema.schema (1 200 par défaut).
+REPETITION = "sans restriction d'accès, "
+LONGUEUR_REPETITION_DEFAUT = 1200
+# [v2] Textes fixes, au moins 3 mots-outils de leur langue (contrats §6 étape 6) par rubrique,
+# sans identifiant ni URL, plus de 20 caractères, sans répétition.
+TEXTE_ANGLAIS = (
+    "The application does not validate the input that is sent by the user, and this allows "
+    "an attacker to inject content into the page."
+)
+TEXTE_FRANCAIS = (
+    "L'application ne valide pas les données envoyées par l'utilisateur, ce qui permet à un "
+    "attaquant d'injecter du contenu dans la page."
+)
+ECRITURE_ETRANGERE = "経"
+_RUBRIQUES_LANGUE = {
+    "fiche": ("description", "impact", "recommandation"),
+    "incident": ("recit", "impact", "recommandation"),
+}
+_NOTE = re.compile(r"<note>(.*?)</note>", re.DOTALL)
+_URL = re.compile(r"https?://\S+")
+_PONCTUATION_FINALE = ".,;:)]}>\"'"
 REFERENCES_INVENTEES = " CWE-9999 CVE-2099-0001 https://exemple.invalid/x"
 DELAI_LENT_S = 3.0
 _CONSTAT = re.compile(r"<constat>(.*?)</constat>", re.DOTALL)
@@ -86,6 +114,47 @@ def _sortie_incident(corps: dict) -> dict | None:
     return {rubrique: "[adapté] " + regle[cle] for rubrique, cle in sources.items()}
 
 
+def _dernier_user(corps: dict) -> str:
+    messages = [m for m in corps.get("messages", []) if m.get("role") == "user"]
+    return messages[-1].get("content", "") if messages else ""
+
+
+def _longueur_max(corps: dict, rubrique: str) -> int:
+    """maxLength de `rubrique` dans le schéma envoyé, sinon LONGUEUR_REPETITION_DEFAUT."""
+    try:
+        schema = corps["response_format"]["json_schema"]["schema"]
+        return int(schema["properties"][rubrique]["maxLength"])
+    except (KeyError, TypeError, ValueError):
+        return LONGUEUR_REPETITION_DEFAUT
+
+
+def _url_de_la_note(corps: dict) -> str | None:
+    """Première URL de la balise <note> du dernier message user, ponctuation finale retirée."""
+    note = _NOTE.search(_dernier_user(corps))
+    url = _URL.search(note.group(1)) if note else None
+    return url.group().rstrip(_PONCTUATION_FINALE) if url else None
+
+
+def _appliquer_scenario_v2(scenario: str, sortie: dict, corps: dict, mode: str) -> None:
+    """Scénarios v2 (contrats §13). `mode` "incident" : `recit` au lieu de `description`.
+
+    `url_de_la_note` ne modifie rien en incident (pas de balise <note>).
+    """
+    principale = "description" if mode == "fiche" else "recit"
+    if scenario == "repetition":
+        sortie[principale] = (REPETITION * 60)[: _longueur_max(corps, principale)]
+    elif scenario in ("langue_anglaise", "langue_francaise"):
+        texte = TEXTE_ANGLAIS if scenario == "langue_anglaise" else TEXTE_FRANCAIS
+        for rubrique in _RUBRIQUES_LANGUE[mode]:
+            sortie[rubrique] = texte
+    elif scenario == "ecriture_etrangere":
+        sortie[principale] += ECRITURE_ETRANGERE
+    elif scenario == "url_de_la_note" and mode == "fiche":
+        url = _url_de_la_note(corps)
+        if url is not None:
+            sortie["description"] += " " + url
+
+
 def _completion(corps: dict, contenu: str) -> dict:
     return {
         "id": "chatcmpl-faux",
@@ -136,11 +205,13 @@ def creer_app(scenario: str, requetes: list[dict]) -> FastAPI:
             # vecteur_invalide : identique à nominal (aucune clé cvss en mode incident).
             if scenario == "references_inventees":
                 recit["recit"] += REFERENCES_INVENTEES_INCIDENT
+            _appliquer_scenario_v2(scenario, recit, corps, "incident")
             return JSONResponse(_completion(corps, json.dumps(recit, ensure_ascii=False)))
         if scenario == "references_inventees":
             sortie["description"] += REFERENCES_INVENTEES
         elif scenario == "vecteur_invalide":
             sortie["cvss"]["AV"] = "X"
+        _appliquer_scenario_v2(scenario, sortie, corps, "fiche")
         return JSONResponse(_completion(corps, json.dumps(sortie, ensure_ascii=False)))
 
     return app

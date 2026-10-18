@@ -8,6 +8,7 @@ from waveaudit.domaine import erreurs
 from waveaudit.domaine.cvss31 import metriques_depuis_vecteur, vecteur
 from waveaudit.domaine.erreurs import EntreeInvalide
 from waveaudit.domaine.modeles import (
+    LANGUES,
     Candidat,
     CodeMotif,
     ConstatType,
@@ -20,7 +21,9 @@ from waveaudit.domaine.modeles import (
     Note,
     Rapport,
     Reference,
+    RequeteLot,
     Statut,
+    TextesConstat,
     Tracabilite,
     TypeEvenement,
     schema_sortie,
@@ -237,3 +240,68 @@ def test_cvss31_vecteur_invalide(invalide):
 def test_registre_fiches():
     assert list(REGISTRE) == ["fiches"]
     assert callable(REGISTRE["fiches"])
+
+
+# --- v2 (contrats §1 v2, story S0) ---
+
+_CONSTAT_V2 = dict(
+    id="WEB-X",
+    titre="Titre français",
+    famille="web",
+    mots_cles=["x"],
+    description="Description française.",
+    impact="Impact français.",
+    recommandation="Recommandation française.",
+    cvss_vecteur=VECTEUR,
+    references=[Reference(id="CWE-79", titre="XSS", url="https://cwe.mitre.org/x")],
+    source="test",
+)
+
+
+def test_langues():
+    assert LANGUES == ("fr", "en")
+
+
+def test_textes_francais_depuis_les_champs_racine():
+    constat = ConstatType(**_CONSTAT_V2)
+    assert constat.en is None
+    assert constat.textes("fr") == TextesConstat(
+        titre="Titre français",
+        description="Description française.",
+        impact="Impact français.",
+        recommandation="Recommandation française.",
+    )
+
+
+def test_textes_anglais_leve_si_en_vaut_none():
+    with pytest.raises(ValueError):
+        ConstatType(**_CONSTAT_V2).textes("en")
+
+
+def test_textes_anglais():
+    en = TextesConstat(titre="Title", description="D.", impact="I.", recommandation="R.")
+    constat = ConstatType(**_CONSTAT_V2, en=en)
+    assert constat.textes("en") == en
+    assert constat.textes("fr").titre == "Titre français"
+
+
+@pytest.mark.parametrize("vide", ["", "   "])
+def test_textes_constat_non_vides(vide):
+    with pytest.raises(ValidationError):
+        TextesConstat(titre=vide, description="d", impact="i", recommandation="r")
+    with pytest.raises(ValidationError):
+        TextesConstat(titre="t", description="d", impact="i", recommandation="r", autre="x")
+
+
+def test_nouveaux_codes_motif():
+    assert CodeMotif.REPETITION == "repetition"
+    assert CodeMotif.LANGUE == "langue"
+    assert CodeMotif.LOT_INTERROMPU == "lot_interrompu"
+    assert CodeMotif.INDICATEUR_RETIRE == "indicateur_retire"
+
+
+def test_requete_lot_langue():
+    assert RequeteLot(dossier="notes").langue is None
+    assert RequeteLot(dossier="notes", langue="en").langue == "en"
+    with pytest.raises(ValidationError):
+        RequeteLot(dossier="notes", langue="de")
