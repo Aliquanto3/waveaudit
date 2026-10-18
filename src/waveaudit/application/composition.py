@@ -226,3 +226,8 @@ def processus_actif(pid: int, cree_le: datetime) -> bool:
     """[v2] `pid` existe encore et a été créé avant `cree_le` (écarte un pid réutilisé, §30)."""
     date_creation = memoire_psutil.date_creation_processus(pid)
     return date_creation is not None and date_creation <= cree_le.timestamp()
+
+
+def creer_exporteur(config: Configuration) -> ExportDocx:
+    """[v2] Seul point d'instanciation de l'exporteur hors `ouvrir` (contrats §27, CAP-13)."""
+    return ExportDocx(config.chemins.theme_prive)

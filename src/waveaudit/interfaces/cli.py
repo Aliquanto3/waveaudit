@@ -327,6 +327,35 @@ def banc(
 
 
 @app.command()
+def exporter(
+    lot: str = typer.Argument(..., help="Identifiant du lot (var/sorties/<id>/)"),
+    brouillon: bool = typer.Option(
+        False, "--brouillon", help="Exporte le brouillon (défaut : rapport final)"
+    ),
+    config: Path | None = typer.Option(
+        None, "--config", help="Fichier de configuration TOML supplémentaire"
+    ),
+) -> None:
+    """Exporte en Word le rapport final ou le brouillon d'un lot (contrats §27, CAP-13, CAP-17)."""
+    cfg = _charger_config(config)
+    mode = "brouillon" if brouillon else "final"
+
+    from waveaudit.securite.garde_reseau import garde
+
+    with garde(cfg.reseau.hotes_autorises):
+        from waveaudit.adaptateurs.export_docx import BANDEAU
+        from waveaudit.application.export import exporter_lot
+
+        typer.echo(BANDEAU)
+        with _codes_retour("exporter"):
+            chemin, non_validees = exporter_lot(cfg, lot, mode)
+        typer.echo(f"rapport : {chemin.name} (lot {lot})")
+        if mode == "final" and non_validees:
+            typer.echo(f"fiches non validées : {non_validees} (exclues, listées en annexe)")
+        typer.echo(BANDEAU)
+
+
+@app.command()
 def sbom() -> None:
     """Écrit le SBOM de l'environnement installé (contrats §11)."""
     config = _charger_config()
