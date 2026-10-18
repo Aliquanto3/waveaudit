@@ -86,4 +86,10 @@ W4 (détail dans `revues/story-W4.md`) : W3b ajoute à la fin de `style.css` san
 
 ## Bilan
 
-À remplir en fin d'exécution.
+Exécution terminée le 2026-10-18, hors REC. Stories intégrées : S0, Q1 à Q5, R1, R2, M1, X1, X2, W1 à W5 (W3a, W3b), L1, B1, LIB et ARR (ajoutées sur arbitrage), DOC. Aucune story bloquée.
+
+- Tests : suite complète 1079 verts (5 `slow` désélectionnés) ; tests `slow` 5/5 verts sur l'EliteBook (8 min), aucun llama-server restant ; CI verte sur 4c7254c (1079, harnais JS compris) ; ruff propre.
+- Modèles (Q5, `bilan-modeles.md` section v2) : granite-4.0-1b défaut (6/6 sur 3 seeds, recopie médiane 0,56 / max 0,64, 27,9 s par fiche) ; qwen3-1.7b candidat (ok min 5/6, médiane 6/6, recopie 0,45 / 0,46, 36,2 s) ; repeat_penalty 1.1.
+- Écarts à reporter au contrat (prochaine révision de `contrats.md`) : codes W1 hors §26 et `relecture_illisible` ; `occupation` d'`exporter_lot` (§27) ; `index` dans `occupation` ; `fermer(timeout)` (§24) ; tables de libellés `en` (§27, formats.md).
+- Restent pour la REC : relecture des 10 constats de Q3 sur un Word `en` ; points à vérifier dans un vrai navigateur (liste dans `docs/guide-testeurs.md`, « Points à vérifier en recette ») ; repli qwen3.5-0.8b avec peu de RAM ; dialogues à fond opaque.
+- Coût (mesure `mesures-couts/`, 2026-10-18, cadrage v2 compris) : 207 $ sur 180 agents, dont 48,6 $ pour 5 sessions principales ; 22 stories v2 exécutées le 18 pour 70,8 $ (médiane 2,81 $ par story, 106 appels, pic 162 k) ; expirations médianes 0 par sous-agent (TTL d'une heure non rentable) ; premier contexte médian des sous-agents 33,5 k.

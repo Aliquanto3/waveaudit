@@ -9,6 +9,35 @@ session,racine,description,jour,modele,agents,profondeur_max,appels,pic_ctx,cout
 2d242535,5e81c560,Rubric + reconcile spine review,2026-10-17,sonnet,1,1,6,73855,0.261,,0,0.0,0.372
 2d242535,bbe26c28,Extract SLM results from service-public,2026-10-17,haiku,1,1,10,47349,0.01,,0,0.0,0.013
 2d242535,4b39f9c1,Story 1 socle commun,2026-10-17,opus,1,1,32,140095,2.07,,0,0.0,2.49
+2fab9177,69b09de8,dev-story X2 export,2026-10-18,sonnet,1,1,84,168049,1.675,,0,0.0,1.926
+2fab9177,8d827ca6,dev-story DOC README guide,2026-10-18,sonnet,1,1,47,99963,0.704,,0,0.0,0.816
+2fab9177,03ce3c3d,dev-story ARR arrêt propre,2026-10-18,sonnet,1,1,78,145436,1.558,,0,0.0,1.776
+2fab9177,a7db875f,reviewer W2,2026-10-18,opus,1,1,36,130197,1.599,,0,0.0,1.929
+2fab9177,7b1ded81,reviewer W3b,2026-10-18,opus,1,1,41,179385,3.723,,1,0.815,3.479
+2fab9177,6a5d4079,dev-story W2 accueil,2026-10-18,sonnet,1,1,127,266162,3.434,,0,0.0,3.833
+2fab9177,94659a0e,second-avis LIB,2026-10-18,haiku,1,1,12,55372,0.013,,0,0.0,0.017
+2fab9177,5a27bb52,dev-story W4 incident UI,2026-10-18,sonnet,1,1,105,218238,2.558,,0,0.0,2.885
+2fab9177,d62efb90,dev-story W3b écran relecture,2026-10-18,sonnet,1,1,147,234667,4.17,,0,0.0,4.795
+2fab9177,72ee9e17,reviewer W3a,2026-10-18,opus,1,1,23,87453,1.273,,1,0.405,1.085
+2fab9177,22fe83f6,second-avis ARR,2026-10-18,haiku,1,1,9,58129,0.012,,0,0.0,0.017
+2fab9177,1bf760aa,second-avis Q5,2026-10-18,haiku,1,1,18,81598,0.024,,0,0.0,0.03
+2fab9177,479ab2fb,second-avis X2,2026-10-18,haiku,1,1,21,67351,0.018,,0,0.0,0.023
+2fab9177,4f94a3b0,reviewer DOC,2026-10-18,sonnet,1,1,50,97825,0.79,,0,0.0,0.937
+2fab9177,fb8ed9e2,dev-story Q5 rebanc,2026-10-18,opus,1,1,75,159563,3.478,,1,0.497,3.479
+2fab9177,d2f64674,dev-story W3a API relecture,2026-10-18,opus,1,1,56,185533,3.801,,1,0.9,3.433
+2fab9177,c38e867d,dev-story LIB libellés Word,2026-10-18,sonnet,1,1,59,130061,1.118,,0,0.0,1.275
+2fab9177,69f2a9e0,second-avis DOC,2026-10-18,haiku,1,1,16,84228,0.021,,0,0.0,0.027
+2fab9177,14259132,reviewer W4,2026-10-18,opus,1,1,31,120027,1.923,,1,0.542,1.698
+2fab9177,88a3a205,second-avis W3a,2026-10-18,haiku,1,1,20,94748,0.025,,0,0.0,0.033
+2fab9177,80b326ab,reviewer Q5,2026-10-18,opus,1,1,18,73069,0.632,,0,0.0,0.791
+2fab9177,cab6060d,reviewer X2,2026-10-18,opus,1,1,34,89909,1.199,,0,0.0,1.468
+2fab9177,557858ca,dev-story Q5 granite défaut,2026-10-18,sonnet,1,1,29,79345,0.453,,0,0.0,0.534
+2fab9177,4f92a392,second-avis W4,2026-10-18,haiku,1,1,13,72827,0.017,,0,0.0,0.022
+2fab9177,92b7ad5d,reviewer ARR,2026-10-18,opus,1,1,33,91335,1.102,,0,0.0,1.309
+2fab9177,2a2095fa,reviewer LIB,2026-10-18,opus,1,1,25,89123,1.434,,1,0.348,1.302
+2fab9177,1cbc4234,second-avis W2,2026-10-18,haiku,1,1,26,99997,0.032,,0,0.0,0.039
+2fab9177,3177d504,lookup motifs Word final,2026-10-18,haiku,1,1,6,31493,0.005,,0,0.0,0.007
+2fab9177,85ae1622,second-avis W3b,2026-10-18,haiku,1,1,22,109868,0.048,,0,0.0,0.06
 9e634cb6,10c8c92f,Story C6a Rapport incident Word,2026-10-17,sonnet,1,1,39,120917,0.812,,0,0.0,0.993
 9e634cb6,cbc3db34,Story 13 CLI complète,2026-10-17,sonnet,1,1,76,170188,1.697,,0,0.0,1.952
 9e634cb6,6a2a720c,Revue story C2,2026-10-17,opus,1,1,46,101330,1.398,,0,0.0,1.637
@@ -30,6 +59,7 @@ session,racine,description,jour,modele,agents,profondeur_max,appels,pic_ctx,cout
 9e634cb6,bd235051,Second avis story 3,2026-10-17,haiku,1,1,7,38897,0.007,,0,0.0,0.01
 9e634cb6,8faa7a60,Second avis story C3,2026-10-17,haiku,1,1,21,61999,0.019,,0,0.0,0.023
 9e634cb6,88b00409,Second avis story 10,2026-10-17,haiku,1,1,13,50356,0.012,,0,0.0,0.016
+9e634cb6,9c2d5bf0,Périmètre prévu vs livré,2026-10-18,haiku,1,1,5,34251,0.006,,0,0.0,0.009
 9e634cb6,5696d868,Second avis story 6,2026-10-17,haiku,1,1,8,44237,0.009,,0,0.0,0.013
 9e634cb6,7c01de3c,Story 4 Catalogue constats,2026-10-17,sonnet,1,1,56,133086,1.405,,0,0.0,1.605
 9e634cb6,6e5f1429,Revue story 3,2026-10-17,opus,1,1,16,61260,0.513,,0,0.0,0.632
@@ -90,3 +120,57 @@ session,racine,description,jour,modele,agents,profondeur_max,appels,pic_ctx,cout
 9e634cb6,01edf25b,Revue story 8,2026-10-17,opus,1,1,18,62131,0.643,,0,0.0,0.829
 9e634cb6,a686a3c1,Revue story 5,2026-10-17,opus,1,1,42,93938,1.175,,0,0.0,1.391
 9e634cb6,4d66a1fd,Revue story 13,2026-10-17,opus,1,1,24,75487,0.75,,0,0.0,0.912
+a52db37d,932fdd89,Revue R1,2026-10-18,opus,1,1,21,86381,0.814,,0,0.0,1.009
+a52db37d,dbe6755d,Second avis W5,2026-10-18,haiku,1,1,8,48178,0.01,,0,0.0,0.014
+a52db37d,eb441679,Second avis Q2,2026-10-18,haiku,1,1,9,45100,0.01,,0,0.0,0.013
+a52db37d,e21e1538,Q1 dev-story,2026-10-18,sonnet,1,1,71,122703,1.166,,0,0.0,1.349
+a52db37d,682b5419,Revue W1,2026-10-18,opus,1,1,24,92428,0.905,,0,0.0,1.117
+a52db37d,7b0a637a,B1 dev-story,2026-10-18,sonnet,1,1,87,149610,1.826,,1,0.251,1.81
+a52db37d,199a6552,M1 dev-story,2026-10-18,opus,1,1,23,83512,0.836,,0,0.0,1.026
+a52db37d,ab75c120,Second avis W1,2026-10-18,haiku,1,1,10,51772,0.01,,0,0.0,0.013
+a52db37d,a4afbec8,X1 dev-story,2026-10-18,sonnet,1,1,54,112831,1.038,,0,0.0,1.207
+a52db37d,a0dbe166,Revue Q1,2026-10-18,opus,1,1,15,64887,0.532,,0,0.0,0.662
+a52db37d,52a123c6,Second avis M1,2026-10-18,haiku,1,1,14,64540,0.016,,0,0.0,0.021
+a52db37d,7b536de9,Second avis S0,2026-10-18,haiku,1,1,16,89350,0.024,,0,0.0,0.031
+a52db37d,b7784c7f,Revue B1,2026-10-18,opus,1,1,23,82542,0.801,,0,0.0,0.984
+a52db37d,1e2cda57,Q3 dev-story,2026-10-18,sonnet,1,1,103,173380,2.094,,0,0.0,2.316
+a52db37d,04822522,W1 dev-story,2026-10-18,opus,1,1,50,136354,2.255,,0,0.0,2.601
+a52db37d,2f412c1c,R2 dev-story,2026-10-18,opus,1,1,44,173314,3.084,,1,0.555,3.011
+a52db37d,f9e16975,Revue S0,2026-10-18,opus,1,1,20,84488,0.71,,0,0.0,0.903
+a52db37d,c5515dcd,Second avis X1,2026-10-18,haiku,1,1,14,52706,0.012,,0,0.0,0.015
+a52db37d,cd84e5ae,Revue M1,2026-10-18,opus,1,1,21,73125,0.76,,0,0.0,0.919
+a52db37d,c31ffad8,Second avis L1,2026-10-18,haiku,1,1,18,66380,0.018,,0,0.0,0.023
+a52db37d,509369c1,W5 dev-story,2026-10-18,sonnet,1,1,53,165190,1.365,,0,0.0,1.613
+a52db37d,07790620,Q4 dev-story,2026-10-18,sonnet,1,1,57,104074,0.927,,0,0.0,1.083
+a52db37d,179274ef,Revue R2,2026-10-18,opus,1,1,27,103554,1.09,,0,0.0,1.341
+a52db37d,01bef820,Revue Q3,2026-10-18,sonnet,1,1,38,89530,0.723,,1,0.143,0.684
+a52db37d,208d7838,Second avis Q4,2026-10-18,haiku,1,1,5,34607,0.007,,0,0.0,0.009
+a52db37d,7d5d9b35,Revue Q2,2026-10-18,opus,1,1,18,69705,0.578,,0,0.0,0.722
+a52db37d,88a1ded2,Q2 dev-story,2026-10-18,sonnet,1,1,94,198644,2.203,,0,0.0,2.501
+a52db37d,4ced3e74,Second avis R2,2026-10-18,haiku,1,1,22,73898,0.021,,0,0.0,0.027
+a52db37d,df6c01fe,Revue W5,2026-10-18,opus,1,1,21,86058,0.984,,0,0.0,1.242
+a52db37d,dd29429b,Second avis Q3,2026-10-18,haiku,1,1,15,50078,0.014,,0,0.0,0.018
+a52db37d,5025560b,Second avis R1,2026-10-18,haiku,1,1,11,52825,0.012,,0,0.0,0.015
+a52db37d,ca25773d,Revue Q4,2026-10-18,opus,1,1,22,80286,0.888,,0,0.0,1.129
+a52db37d,4332dc7e,Second avis B1,2026-10-18,haiku,1,1,12,52680,0.011,,0,0.0,0.015
+a52db37d,43d3ce02,L1 dev-story,2026-10-18,sonnet,1,1,129,172716,2.322,,0,0.0,2.581
+a52db37d,b13ed5f3,R1 dev-story,2026-10-18,sonnet,1,1,41,111901,1.07,,0,0.0,1.367
+a52db37d,5324f0b9,Second avis Q1,2026-10-18,haiku,1,1,9,53336,0.01,,0,0.0,0.014
+a52db37d,2d3b7b4f,Revue L1,2026-10-18,opus,1,1,19,81570,0.677,,0,0.0,0.857
+a52db37d,20e021b6,S0 Socle v2 dev-story,2026-10-18,opus,1,1,60,198168,3.487,,0,0.0,4.081
+a52db37d,a1fcc08b,Revue X1,2026-10-18,opus,1,1,20,72934,0.68,,0,0.0,0.835
+ba40d211,f419ee0a,Draft SPEC v2 via bmad-spec,2026-10-18,opus,1,1,23,123094,1.605,,0,0.0,1.974
+ba40d211,aaf363cb,Map architecture contracts sections,2026-10-18,haiku,1,1,7,61744,0.011,,0,0.0,0.016
+ba40d211,b5edc9be,Draft DESIGN and EXPERIENCE spines,2026-10-18,sonnet,1,1,18,129129,0.733,,0,0.0,0.927
+ba40d211,ab8467a3,Adversarial lens review,2026-10-18,opus,1,1,15,166378,1.631,,0,0.0,2.067
+ba40d211,95798f3f,Integrate adversarial review findings,2026-10-18,opus,1,1,59,276614,4.878,,0,0.0,5.644
+ba40d211,bb4ee68b,Integrate UX review findings,2026-10-18,sonnet,1,1,53,128629,1.147,,0,0.0,1.302
+ba40d211,4bc69919,Edge-case hunter lens review,2026-10-18,opus,1,1,12,151650,1.039,,0,0.0,1.431
+ba40d211,60556073,Amend architecture for v2,2026-10-18,opus,1,1,68,349698,6.505,,0,0.0,7.554
+ba40d211,2fe8146e,Extract non-goals and locked decisions,2026-10-18,haiku,1,1,4,27105,0.005,,0,0.0,0.007
+ba40d211,8d8248fc,Verification gap lens review,2026-10-18,sonnet,1,1,22,140465,0.647,,0,0.0,0.857
+ba40d211,648f58ce,UX rubric walker review,2026-10-18,sonnet,1,1,7,73446,0.191,,0,0.0,0.265
+ba40d211,40f7c1fc,Wavestone theme and interactive prototype,2026-10-18,sonnet,1,1,44,145564,1.287,,0,0.0,1.468
+ba40d211,4583a67d,Apply spec open-question answers,2026-10-18,sonnet,1,1,19,88458,0.524,,0,0.0,0.656
+ba40d211,2d0da8a6,UX accessibility review,2026-10-18,sonnet,1,1,6,67999,0.249,,0,0.0,0.314
+ba40d211,3fd6eb12,Write stories.yaml for v2,2026-10-18,opus,1,1,27,159721,1.842,,0,0.0,2.258

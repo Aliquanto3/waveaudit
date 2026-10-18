@@ -4,12 +4,12 @@ Sortie réestimée à 2.2 caractères par token (réflexion masquée non compté
 
 | Périmètre | Agents | Coût | Écriture | Lecture | Sortie | Expirations | Coût avec l'autre TTL |
 |---|---|---|---|---|---|---|---|
-| Sessions principales | 2 | 24.92 $ | 22% | 57% | 21% | 0 | 52.24 $ |
-| Sous-agents | 91 | 65.30 $ | 34% | 37% | 29% | 3 | 77.48 $ |
+| Sessions principales | 5 | 48.61 $ | 29% | 50% | 21% | 1 | 95.96 $ |
+| Sous-agents | 175 | 158.44 $ | 34% | 40% | 27% | 12 | 182.43 $ |
 
 ## Contexte du premier appel des sous-agents, par jour (médiane)
 
 | Jour | Sous-agents | Premier contexte médian | Pic médian |
 |---|---|---|---|
 | 2026-10-17 | 89 | 33.4 k | 76 k |
-| 2026-10-18 | 2 | 24.6 k | 79 k |
+| 2026-10-18 | 86 | 33.8 k | 90 k |
