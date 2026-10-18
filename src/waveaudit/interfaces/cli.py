@@ -306,7 +306,11 @@ def banc(
         None, "--langue", help="Langue des fiches du lot mesuré (défaut : config)"
     ),
     seed: int | None = typer.Option(
-        None, "--seed", help="Seed du moteur pour ce banc (défaut : config)"
+        None,
+        "--seed",
+        min=0,
+        max=2**32 - 1,
+        help="Seed du moteur pour ce banc, de 0 à 2**32-1 (défaut : config)",
     ),
 ) -> None:
     """Exécute un lot instrumenté (mémoire, durées, recopie) — contrats §20, §29."""

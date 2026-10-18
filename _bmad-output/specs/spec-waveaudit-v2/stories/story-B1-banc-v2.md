@@ -97,3 +97,10 @@ sources:
 ## Revue
 
 - Aucun point d'arrêt dédié (pas de contenu métier ajouté, seulement le banc et ses tests).
+- Revue reviewer (détail : `implementation-artifacts/revues/story-B1.md`) :
+  - low, second avis 1 : rubrique complétée comptée dans la recopie — rejeté (conforme à §29, biais prudent), écart à arbitrer avant Q5.
+  - low, second avis 2 : `creer_catalogue` en fin de `composition.py` — corrigé.
+  - low, second avis 3 : `--seed` borné à 0..2**32-1 (code 2 sinon) — corrigé.
+  - low, second avis 4 : oracles exacts (recopie, ok, a_revoir, motifs) et test CLI `--seed` — corrigé.
+  - low, reviewer : console `ok X/N` avec N = notes du lot (écartées comprises) — corrigé.
+  - Complexité : 0 constat.

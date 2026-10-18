@@ -168,6 +168,7 @@ def executer_banc(
     echantillonneur = _Echantillonneur(mesure, os.getpid())
     durees: list[tuple[str, float]] = []
     info: dict[str, str] = {}
+    total_notes: list[int] = []
 
     def abonne(evenement: EvenementLot) -> None:
         if evenement.type == TypeEvenement.LOT_DEMARRE:
@@ -175,6 +176,7 @@ def executer_banc(
             echantillonneur.demarrer(pid_moteur if isinstance(pid_moteur, int) else None)
             info["modele"] = str(evenement.details.get("modele", ""))
             info["langue"] = str(evenement.details.get("langue", ""))
+            total_notes.append(evenement.total)
         elif evenement.type in (
             TypeEvenement.FICHE_TERMINEE,
             TypeEvenement.FICHE_NON_TRAITEE,
@@ -244,5 +246,7 @@ def executer_banc(
         f"{rubrique} {'null' if valeur is None else f'{valeur:.2f}'}"
         for rubrique, valeur in recopie_par_rubrique.items()
     )
-    print(f"ok {ok}/{len(fiches)}, recopie {recopie_txt} ({rubriques_txt})")
+    # Dénominateur : notes du lot (une note écartée ne gonfle pas le taux ok affiché, CAP-7).
+    total = total_notes[0] if total_notes else len(fiches)
+    print(f"ok {ok}/{total}, recopie {recopie_txt} ({rubriques_txt})")
     return chemin

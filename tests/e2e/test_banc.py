@@ -16,6 +16,7 @@ from waveaudit.application.config import racine_projet
 from waveaudit.domaine.erreurs import MoteurInjoignable
 from waveaudit.domaine.modeles import (
     Candidat,
+    CodeMotif,
     Cvss,
     EntreeEcartee,
     EvenementLot,
@@ -354,3 +355,68 @@ def test_seed_defaut_est_celle_de_la_configuration(config_test, tmp_path):
 
     donnees = json.loads(chemin.read_text(encoding="utf-8"))
     assert donnees["seed"] == config_test.moteur.seed
+
+
+def _fiche_texte(constat_id: str, textes, motifs: list[Motif]) -> Fiche:
+    return Fiche(
+        titre=textes.titre,
+        description=textes.description,
+        impact=textes.impact,
+        recommandation=textes.recommandation,
+        cvss=_cvss(),
+        references=[],
+        statut=Statut.A_REVOIR if motifs else Statut.OK,
+        motifs=motifs,
+        tracabilite=Tracabilite(
+            note="n.md",
+            constat_id=constat_id,
+            candidats=[Candidat(id=constat_id, score=1.0)],
+            constat_attendu=None,
+        ),
+    )
+
+
+def test_recopie_valeurs_exactes(config_test):
+    """[revue B1] Oracle indépendant de la formule : texte identique au catalogue -> 1,0 ; texte
+    vide -> 0,0 ; repli exclu ; moyenne non pondérée ; rubrique complétée comptée (contrat §29 :
+    « chaque fiche qui n'est pas un repli et chaque rubrique »)."""
+    catalogue = composition.creer_catalogue(config_test)
+    constat = catalogue.constats()[0]
+    textes = constat.textes("fr")
+    identique = _fiche_texte(constat.id, textes, [])
+    vide = identique.model_copy(
+        update={"titre": "", "description": "", "impact": "", "recommandation": ""}
+    )
+    repli = identique.model_copy(
+        update={"titre": "", "motifs": [Motif(code=CodeMotif.REPLI_MOTEUR, detail="")]}
+    )
+    completee = identique.model_copy(
+        update={"motifs": [Motif(code=CodeMotif.RUBRIQUE_COMPLETEE, detail="titre")]}
+    )
+
+    assert banc._recopie([identique, vide, repli], catalogue, "fr") == (
+        0.5,
+        {"titre": 0.5, "description": 0.5, "impact": 0.5, "recommandation": 0.5},
+        1,
+    )
+    assert banc._recopie([completee], catalogue, "fr")[0] == 1.0
+
+
+def test_ok_a_revoir_motifs_repli(config_test, faux_moteur, tmp_path):
+    """[revue B1] Repli : `a_revoir` et motif de repli comptés, aucune fiche `ok`."""
+    dossier = _dossier_une_note(tmp_path)
+    config = _vers(config_test, faux_moteur("json_invalide"))
+
+    donnees = json.loads(banc.executer_banc(dossier, config, None).read_text(encoding="utf-8"))
+
+    assert (donnees["ok"], donnees["a_revoir"]) == (0, 1)
+    assert donnees["motifs"] == {"repli_sortie_invalide": 1}
+
+
+def test_ok_nominal_sans_motif(config_test, tmp_path):
+    """[revue B1] Faux moteur nominal : une fiche `ok`, aucun motif."""
+    dossier = _dossier_une_note(tmp_path)
+
+    donnees = json.loads(banc.executer_banc(dossier, config_test, None).read_text(encoding="utf-8"))
+
+    assert (donnees["ok"], donnees["a_revoir"], donnees["motifs"]) == (1, 0, {})
