@@ -65,3 +65,10 @@ sources:
 - Point d'arrêt de la story : Anaël valide (ou infirme) le choix du modèle par défaut sur les
   chiffres du bilan avant fusion. README et docs à réaligner par DOC (défaut qwen3-1.7b).
 - `ram_min_defaut_go = 4.5` non remesuré avec qwen3-1.7b en défaut.
+
+## Revue
+
+- medium, second avis 1 : CAP-6 non tenu pour qwen3-1.7b (seed 242, 5/6) non dit dans la Décision — corrigé dans le bilan (CAP-6 par modèle explicite, rejeu hors protocole non compté) ; promotion conforme à CAP-7, gardée ; point à arbitrer par Anaël.
+- low, second avis 2 : diagnostic de charge présenté comme hypothèse — corrigé.
+- low, second avis 3, 4, 5 : README (DOC), `ram_min_defaut_go`, repli et MiniCPM5 non rebancés — reportés.
+- Détail : `implementation-artifacts/revues/story-Q5.md`.

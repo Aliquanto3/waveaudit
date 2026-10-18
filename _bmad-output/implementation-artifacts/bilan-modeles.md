@@ -178,10 +178,11 @@ vérifie qu'elle atteint le vrai moteur.
 
 - **qwen3-1.7b, seed 242 :** la note 11 sort en repli (`repli_moteur`, « moteur injoignable
   (timed out) ») après 254,9 s : la requête a dépassé `timeout_s = 180`. Ce n'est ni une sortie
-  dégénérée ni une autre langue : la fiche est décomptée, sans exception. Diagnostic hors banc :
-  la même requête (même consigne, même seed 242, `repeat_penalty = 1.1`) rejouée directement sur
+  dégénérée ni une autre langue : la fiche est décomptée, sans exception. Hypothèse (charge du
+  poste, non démontrée : un seul rejeu, pas de mesure de charge pendant le run fautif) : la même
+  requête (même consigne, même seed 242, `repeat_penalty = 1.1`) rejouée directement sur
   llama-server finit en 68 s (492 jetons, 8,8 jetons/s, contre 11 jetons/s d'habitude) ; le
-  poste avait alors environ 47 % de CPU pris par d'autres processus (agents de sécurité et
+  poste avait, au moment du rejeu, environ 47 % de CPU pris par d'autres processus (agents de sécurité et
   d'inventaire). Le run complet rejoué donne 6/6. Les agrégats ci-dessous comptent le **premier**
   run ; le run rejoué est donné à part.
 - **Relecture à la main :** aucune fiche des 7 runs ne porte `repetition` ni `langue` ; aucune
@@ -197,22 +198,42 @@ vérifie qu'elle atteint le vrai moteur.
 | Modèle | ok min / médiane | Recopie médiane / max | Médiane des durées médianes | CAP-6 (recopie < 0,7 ; 6/6 sur chaque seed) | CAP-7 (≥ 5/6, < 0,6, < 40 s) |
 |---|---|---|---|---|---|
 | granite-4.0-1b | 6/6 / 6/6 | 0,56 / 0,64 | 27,9 s | tenu | — |
-| qwen3-1.7b | 5/6 / 6/6 | 0,45 / 0,46 | 36,2 s | recopie tenue ; ok non tenu à la seed 242 (1 `repli_moteur` par délai dépassé), 6/6 au run rejoué | **tenu** (6/6, 0,45, 36,2 s) |
-| qwen3-1.7b (242 rejoué) | 6/6 / 6/6 | 0,44 / 0,46 | 37,8 s | tenu | tenu |
+| qwen3-1.7b | 5/6 / 6/6 | 0,45 / 0,46 | 36,2 s | **non tenu** : recopie tenue, 5/6 à la seed 242 (1 `repli_moteur` par délai dépassé) ; 6/6 au run rejoué, hors protocole | **tenu** (6/6, 0,45, 36,2 s) |
+| qwen3-1.7b (242 rejoué) | 6/6 / 6/6 | 0,44 / 0,46 | 37,8 s | tenu (hors protocole, non compté) | tenu |
 
 Référence v0.1.0 (prompt livré, 1 seed) : recopie 0,93 (granite) et 0,78 (qwen3-1.7b).
 
 ### Décision des rôles (CAP-7, appliquée mécaniquement)
 
 **qwen3-1.7b-q4km devient `modele_defaut`, granite-4.0-1b-q4km devient `candidat`** : sur les
-médianes des 3 seeds, qwen3-1.7b a 6/6 `ok` (≥ 5/6), une recopie de 0,45 (< 0,6) et une médiane
-de 36,2 s par fiche (< 40 s). La décision ne dépend pas du run rejoué (37,8 s avec lui).
+médianes des 3 seeds du protocole (lots `20261018-121558`, `-122630`, `-123036`, premier run de
+la seed 242 compté avec son repli), qwen3-1.7b a 6/6 `ok` (≥ 5/6), une recopie de 0,45 (< 0,6)
+et une médiane de 36,2 s par fiche (< 40 s). La décision ne dépend pas du run rejoué (37,8 s
+avec lui). CAP-7 ne fait pas de CAP-6 une condition de la promotion : la promotion est conforme
+à la lettre de CAP-7.
+
+**État de CAP-6 par modèle (runs du protocole seuls ; `ok` compté tel quel, seuls `repetition`
+et `langue` confirmés à la main seraient exclus, il n'y en a aucun) :**
+- granite-4.0-1b : **tenu** (6/6 sur les seeds 42, 142, 242 ; recopie médiane 0,56 < 0,7) ;
+- qwen3-1.7b : **non tenu** : recopie médiane 0,45 < 0,7 tenue, mais 5/6 à la seed 242 (note
+  11, `repli_moteur` par délai dépassé, motif que CAP-6 n'exclut pas). Le run rejoué de la seed
+  242 (6/6, `20261018-124111`) est hors protocole (`mesures-qualite.md` ne prévoit pas de rejeu)
+  et n'est pas compté.
+
+Le modèle promu par défaut est donc le seul des deux à ne pas tenir CAP-6 sur le protocole.
+
+**Point à arbitrer par Anaël (avant fusion) :** valider qwen3-1.7b par défaut (CAP-7 tenu,
+CAP-6 manqué d'une fiche sur un délai dépassé, attribué à la charge du poste sans preuve), ou
+l'infirmer (granite reste défaut, il tient CAP-6). Les agents de sécurité et d'inventaire qui
+chargeaient le poste sont aussi ceux des postes de consultants : un délai de 180 s dépassé avec
+qwen3-1.7b (36 s de médiane, 1,3 fois granite) peut se reproduire en usage. Autre voie : rebanc
+de qwen3-1.7b seed 242 poste au repos, compté s'il est consigné comme reprise du protocole.
+
 Réserves pour Anaël, qui peut infirmer ce choix :
 - la marge sur la durée est mince : une seed à 40,1 s, et le seul repli du rebanc est un délai
   dépassé de qwen3-1.7b sur un poste chargé ;
 - qwen3-1.7b est plus lourd (pic total 2 469 à 2 858 Mio contre 2 496 à 2 573 Mio pour
-  granite) ; le
-  seuil `ram_min_defaut_go = 4.5` n'a pas été remesuré ;
+  granite) ; le seuil `ram_min_defaut_go = 4.5` n'a pas été remesuré ;
 - les durées passent de 17-20 s (v0.1.0) à 28-36 s par fiche : la consigne révisée produit des
   rubriques plus longues et propres au cas.
 
