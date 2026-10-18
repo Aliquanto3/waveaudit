@@ -54,26 +54,38 @@ télécharge en plus les modèles candidats du manifeste.
 ## Utilisation — CLI
 
 ```
-uv run waveaudit fiches <dossier-de-notes> [-o FICHIER] [--modele NOM] [--config FICHIER]
+uv run waveaudit fiches <dossier-de-notes> [-o FICHIER] [--modele NOM] [--langue fr|en] [--config FICHIER]
 ```
 
 Traite les notes `.md`/`.txt` du dossier et produit un rapport Word de fiches de vulnérabilité
 dans `var/sorties/<id-du-lot>/rapport.docx` (et, avec `-o`, une copie supplémentaire). `--modele`
 choisit un modèle du manifeste (mode `local-gere`) ou surcharge le nom envoyé à l'API (mode
-`externe`). `--config` ajoute un fichier TOML de configuration supplémentaire.
+`externe`). `--langue` choisit la langue des fiches et du rapport (défaut : configuration).
+`--config` ajoute un fichier TOML de configuration supplémentaire.
+
+Exporter à nouveau le rapport d'un lot déjà traité, final ou brouillon, sans relancer le moteur :
+
+```
+uv run waveaudit exporter <id-du-lot> [--brouillon] [--config FICHIER]
+```
 
 Autres commandes (`uv run waveaudit --help` pour le détail) :
 
 | Commande | Rôle |
 |---|---|
 | `installer [--candidats]` | Télécharge et vérifie les artefacts du manifeste |
-| `fiches DOSSIER [...]` | Lot CLI décrit ci-dessus |
-| `incident DOSSIER [...]` | Analyse de journaux CERT décrite ci-dessous |
+| `fiches DOSSIER [--langue fr\|en] [...]` | Lot CLI décrit ci-dessus |
+| `incident DOSSIER [--annee N] [...]` | Analyse de journaux CERT décrite ci-dessous (toujours en français) |
 | `ui [--port N] [--config F]` | Démarre l'interface web locale |
-| `banc DOSSIER [--modele NOM]` | Lot instrumenté (temps par fiche, pic mémoire) |
+| `banc DOSSIER [--modele NOM] [--langue fr\|en]` | Lot instrumenté (temps par fiche, pic mémoire, recopie) |
+| `exporter LOT [--brouillon] [--config F]` | Exporte en Word le rapport final ou le brouillon d'un lot |
 | `catalogue verifier [--config F]` | Contrôle le catalogue de constats types |
 | `sbom` | Écrit le SBOM (CycloneDX) de l'environnement installé |
 | `version` | Affiche la version installée |
+
+Codes retour (`uv run waveaudit <commande> ...; echo $?`) : `0` lot terminé, `2` entrée ou
+configuration invalide (dont `--modele` inconnu), `3` moteur injoignable, `4` connexion interdite
+ou permission refusée (ex. `-o` sur un fichier verrouillé), `5` empreinte d'artefact invalide.
 
 ## Utilisation — interface web
 
@@ -83,8 +95,12 @@ uv run waveaudit ui
 
 Démarre une interface web strictement locale (`http://127.0.0.1:8765` par défaut, `--port` pour
 changer). Elle n'accepte que les requêtes dont l'en-tête `Host` et `Origin` visent la boucle
-locale. On y dépose un dossier de notes, on suit la progression du lot en direct, puis on
-télécharge le rapport Word une fois le lot terminé.
+locale. À l'accueil, on choisit le workflow (fiches ou incident), le modèle et la langue (fr/en,
+fiches seulement), puis on dépose les fichiers. On suit la progression du lot en direct, on
+relit et corrige chaque fiche à l'écran, on change de candidat si besoin, puis on télécharge le
+rapport Word final ou un brouillon. Interrompre l'UI (Ctrl+C) arrête proprement le llama-server
+en cours et marque un lot en cours `interrompu` (les fiches déjà produites restent relisibles et
+exportables).
 
 ## Utilisation — CERT (analyse d'incident)
 
@@ -99,7 +115,11 @@ détecté un récit en français (titre, récit, impact, recommandation) par le 
 `rapport-incident.docx` (et, avec `-o`, une copie supplémentaire). `--annee` complète les
 journaux sans année explicite dans leurs horodatages (année courante par défaut). Sans aucun
 fait détecté, le rapport l'indique et le moteur n'est jamais ouvert (code 0, même si le moteur
-est injoignable).
+est injoignable). Ce rapport reste en français, en CLI comme dans l'UI.
+
+Dans l'interface web, le workflow « Incident » refuse à l'envoi un dépôt sans journal reconnu
+(`aucun_journal_reconnu`) : aucun lot n'est créé. Un dépôt reconnu mais sans aucune détection
+produit un rapport téléchargeable qui l'indique (« Aucune détection sur ce dépôt »).
 
 Le dossier `donnees/demo/incident/` fournit un jeu de démonstration (données fictives) :
 
@@ -180,11 +200,26 @@ Les artefacts installés sont épinglés par version et empreinte dans `config/a
 |---|---|---|---|
 | Moteur | llama-server (llama.cpp) | MIT | github.com/ggml-org/llama.cpp |
 | Modèle par défaut | Granite 4.0 1B (GGUF Q4_K_M) | Apache-2.0 | huggingface.co/ibm-granite |
-| Modèle de repli (RAM basse) | MiniCPM5 1B (GGUF Q4_K_M) | Apache-2.0 | huggingface.co/openbmb |
-| Candidats (`--candidats`) | Qwen3 1.7B, Qwen3.5 0.8B (GGUF Q4_K_M) | Apache-2.0 | huggingface.co/unsloth |
+| Modèle de repli (RAM basse) | Qwen3.5 0.8B (GGUF Q4_K_M) | Apache-2.0 | huggingface.co/unsloth |
+| Candidats (choisissables à l'accueil) | Qwen3 1.7B, MiniCPM5 1B (GGUF Q4_K_M) | Apache-2.0 | huggingface.co/unsloth, huggingface.co/openbmb |
 
-Tous sous licence permissive. Le choix final entre candidats se fait hors nuit, avec
-`slm-quality-bench`.
+Tous sous licence permissive. `repeat_penalty = 1.1` pour granite et qwen3-1.7b. Sans `--modele`
+ni modèle choisi à l'accueil, granite (par défaut) n'est retenu que si la RAM disponible au
+lancement est ≥ 4,5 Go (`ram_min_defaut_go`, `config/waveaudit.toml`) ; sous ce seuil, repli
+automatique sur qwen3.5-0.8b. Seuil fixé au POC, non remesuré en v2.
+
+Rebanc EliteBook (v2, détail dans
+`_bmad-output/implementation-artifacts/bilan-modeles.md`) : **granite-4.0-1b reste le modèle
+par défaut**, sur arbitrage — il tient le critère CAP-6 (6/6 fiches ok sur 3 seeds, recopie
+médiane 0,56, médiane 27,9 s/fiche). **qwen3-1.7b** adapte davantage (recopie 0,45) mais, à une
+seed, une fiche sort en repli sur un délai dépassé (5/6, CAP-6 non tenu) ; il reste candidat,
+choisissable à l'accueil. qwen3.5-0.8b (repli) et minicpm5-1b (candidat) n'ont pas été rebancés
+en v2.
+
+Mesure de la recherche du constat type (Q4, index bilingue) : les notes 01 et 29 ont servi au
+réglage des mots-clés (optimiste) et atteignent le rang 1. Sur les notes non vues du banc
+(21-28 et 30, 9 notes), le bon constat sort en rang 1 dans 8 cas sur 9 (top1) et dans les 3
+premiers dans 9 cas sur 9 (top3).
 
 ## Banc
 
@@ -200,15 +235,27 @@ réels (< 3 min/fiche, pic ≤ 6 Go) se vérifient hors nuit, sur le poste cible
 
 ## Limites du POC
 
-- Français uniquement, sortie Word, par lot (jamais en chat ni édition dans l'UI : la retouche se
-  fait dans Word).
+- Sortie Word, par lot ; la correction d'une fiche se fait dans l'écran de relecture de l'UI
+  (pas de chat), l'export final liste en annexe les fiches restées non validées.
 - Jamais de génération ex nihilo : toute fiche part d'un constat type du catalogue ; aucune
   référence absente du catalogue.
+- Rapport de fiches en français ou en anglais (`--langue`, ou choix à l'accueil de l'UI) ;
+  rapport d'incident toujours en français, y compris ses codes bruts d'annexe.
 - Données publiques ou fictives seulement ; le bandeau « Démonstration — données fictives »
   figure sur toute sortie.
 - Pas de chat interactif, pas d'assistant bureautique générique, pas de fine-tuning, pas de
   génération d'exploits, pas d'import des formats d'outils (Burp, Nessus), pas d'usage
   multi-utilisateur ni serveur.
+- Pas de verrou inter-processus entre un lot CLI et un lot UI : les lancer en même temps peut
+  charger un second llama-server. Un lot CLI en cours apparaît en lecture seule dans l'UI et est
+  refusé par `waveaudit exporter`. Le moteur est relancé à la première régénération après un lot.
+- Arrêt de l'UI (Ctrl+C) : le llama-server est tué, en moins de 15 s mesurées en test. Sous un
+  système autre que Windows, cette borne n'est pas garantie au pire cas (dépend du délai
+  d'arrêt du processus moteur).
+- Régénérer une fiche d'un lot depuis une autre instance de l'UI (deux processus sur le même
+  dossier) n'est pas détecté : le verrou de régénération n'est vu que dans le processus qui l'a
+  posé. Le document exporté n'en est pas affecté (la fiche courante reste celle d'avant la
+  régénération).
 - Toute donnée client réelle est hors périmètre.
 
 ## Contenu du dépôt
@@ -218,7 +265,8 @@ réels (< 3 min/fiche, pic ≤ 6 Go) se vérifient hors nuit, sur le poste cible
 - `_bmad/`, `.claude/skills/` : méthode [BMAD](https://github.com/bmad-code-org/BMAD-METHOD) pour la spécification et le développement.
 - `.claude/cost-kit/` : contrôle rapide de [agent-cost-kit](https://github.com/Aliquanto3/agent-cost-kit).
 - `theme-prive/` (ignoré par git, absent du dépôt public) : charte et logo Wavestone pour le
-  thème du rapport Word ; le dépôt fonctionne sans lui (thème générique).
+  thème du rapport Word (`modele.docx`) et de l'UI (`theme-prive/web/logo.svg`) ; le dépôt
+  fonctionne sans lui (thème générique, palette publique Wavestone, sans logo).
 
 ## Licence
 
