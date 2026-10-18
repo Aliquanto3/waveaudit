@@ -26,6 +26,20 @@
     Encoder toute donnée réinjectée selon son contexte de sortie (HTML,
     attribut, JavaScript), appliquer une politique de sécurité du contenu
     (CSP) stricte et valider les entrées côté serveur.
+  en:
+    titre: Reflected script injection (reflected XSS)
+    description: >-
+      A request parameter is echoed back in the page without encoding
+      suited to the HTML context, which allows injecting a script that
+      the victim's browser runs the moment a crafted link is opened.
+    impact: >-
+      Session theft, actions carried out without the user's knowledge, or
+      redirection to a malicious site, within the vulnerable page's
+      context.
+    recommandation: >-
+      Encode every piece of reinjected data according to its output
+      context (HTML, attribute, JavaScript), apply a strict content
+      security policy (CSP), and validate input on the server side.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N
   references:
     - id: CWE-79
@@ -58,6 +72,19 @@
   recommandation: >-
     Encoder systématiquement les données affichées, filtrer ou assainir le
     contenu enrichi autorisé et mettre en place une CSP restrictive.
+  en:
+    titre: Persistent script injection (stored XSS)
+    description: >-
+      Data entered by a user is saved and then displayed to other
+      visitors without encoding, which runs arbitrary script in their
+      browser as soon as the page is shown.
+    impact: >-
+      Large-scale account compromise, since the attack reaches every
+      visitor of the infected page without any further action on their
+      part.
+    recommandation: >-
+      Systematically encode displayed data, filter or sanitize any
+      allowed rich content, and put a restrictive CSP in place.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:H/A:N
   references:
     - id: CWE-79
@@ -95,6 +122,18 @@
   recommandation: >-
     Utiliser systématiquement des requêtes préparées ou un ORM paramétré, et
     appliquer le principe de moindre privilège au compte de base de données.
+  en:
+    titre: SQL injection in application queries
+    description: >-
+      User input is concatenated directly into an SQL query, which lets
+      an attacker alter the logic of the query executed by the database.
+    impact: >-
+      Reading, modifying, or deleting data, bypassing authentication, or
+      even executing commands depending on the application account's
+      privileges.
+    recommandation: >-
+      Systematically use prepared statements or a parameterized ORM, and
+      apply the principle of least privilege to the database account.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
   references:
     - id: CWE-89
@@ -126,6 +165,18 @@
   recommandation: >-
     Associer un jeton anti-CSRF imprévisible à chaque action sensible et
     positionner les cookies de session en SameSite=Lax ou Strict.
+  en:
+    titre: Cross-site request forgery (CSRF)
+    description: >-
+      A sensitive server-side action is triggered by a plain HTTP request
+      with no token tied to the session, which lets a third-party site
+      replay it without the authenticated victim's knowledge.
+    impact: >-
+      Execution of unwanted actions in the victim's name, such as a
+      password change, a transfer, or a change of rights.
+    recommandation: >-
+      Attach an unpredictable anti-CSRF token to every sensitive action
+      and set session cookies to SameSite=Lax or Strict.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:H/A:N
   references:
     - id: CWE-352
@@ -162,6 +213,19 @@
     Vérifier côté serveur, à chaque accès, que l'utilisateur courant est
     autorisé sur la ressource demandée, indépendamment de l'identifiant
     fourni.
+  en:
+    titre: Insecure direct object reference (IDOR)
+    description: >-
+      An identifier supplied by the client (account number, document
+      number) is used to access a resource without checking that the
+      authenticated user is entitled to it.
+    impact: >-
+      Access to or modification of data belonging to other users by
+      simply changing an identifier in the request.
+    recommandation: >-
+      Check on the server side, on every access, that the current user
+      is authorized on the requested resource, independently of the
+      identifier supplied.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:L/A:N
   references:
     - id: CWE-639
@@ -194,6 +258,19 @@
     Restreindre les destinations autorisées par liste blanche, bloquer les
     plages d'adresses privées et de métadonnées, et désactiver les
     redirections automatiques non contrôlées.
+  en:
+    titre: Server-side request forgery (SSRF)
+    description: >-
+      The server makes an HTTP request to a URL supplied by the user
+      without restricting the possible destinations, which allows
+      reaching internal resources normally unreachable.
+    impact: >-
+      Access to internal services, to cloud instance metadata, or
+      pivoting toward other systems on the internal network.
+    recommandation: >-
+      Restrict allowed destinations with an allow list, block private
+      address ranges and metadata ranges, and disable uncontrolled
+      automatic redirects.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:L/A:N
   references:
     - id: CWE-918
@@ -225,6 +302,19 @@
   recommandation: >-
     Résoudre le chemin final et vérifier qu'il reste sous le répertoire
     autorisé, ou utiliser un identifiant indirect plutôt qu'un chemin brut.
+  en:
+    titre: Path traversal
+    description: >-
+      A file name supplied by the user is used to build a disk path
+      without neutralizing directory climb-up sequences, which allows
+      escaping the intended folder.
+    impact: >-
+      Reading sensitive files outside the expected scope (configuration,
+      secrets, source code), or even writing if the function allows it.
+    recommandation: >-
+      Resolve the final path and check that it remains under the
+      authorized directory, or use an indirect identifier rather than a
+      raw path.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
   references:
     - id: CWE-22
@@ -257,6 +347,18 @@
     Contrôler le contenu réel du fichier, renommer et stocker les fichiers
     téléversés hors des répertoires exécutables, et limiter les extensions
     acceptées.
+  en:
+    titre: Unrestricted file upload
+    description: >-
+      The upload feature accepts files without checking their actual
+      type or storing them out of execution reach, which allows planting
+      a script the web server can execute.
+    impact: >-
+      Arbitrary code execution on the server through a webshell dropped
+      and then called directly.
+    recommandation: >-
+      Check the file's actual content, rename and store uploaded files
+      outside executable directories, and restrict accepted extensions.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
   references:
     - id: CWE-434
@@ -288,6 +390,18 @@
     Régénérer l'identifiant de session à chaque changement de niveau de
     privilège (connexion, élévation) et refuser les identifiants fournis par
     le client.
+  en:
+    titre: User session fixation
+    description: >-
+      The session identifier is not regenerated after authentication,
+      which allows an attacker to impose a known value before login and
+      then use it once the victim is authenticated.
+    impact: >-
+      Hijacking of a legitimate user's session without ever knowing their
+      password.
+    recommandation: >-
+      Regenerate the session identifier at every privilege level change
+      (login, escalation) and reject identifiers supplied by the client.
   cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:L/A:N
   references:
     - id: CWE-384
@@ -320,6 +434,19 @@
     Ajouter les en-têtes CSP, HSTS, X-Frame-Options et
     X-Content-Type-Options adaptés à l'application via le serveur ou le
     reverse proxy.
+  en:
+    titre: Missing HTTP security headers
+    description: >-
+      HTTP responses do not carry the headers that harden browser
+      behaviour (CSP, HSTS, X-Frame-Options, X-Content-Type-Options),
+      leaving the client without default protection.
+    impact: >-
+      Facilitates other attacks such as clickjacking, injected script
+      execution, or downgrade to HTTP.
+    recommandation: >-
+      Add the CSP, HSTS, X-Frame-Options, and X-Content-Type-Options
+      headers suited to the application, through the server or the
+      reverse proxy.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:N/A:N
   references:
     - id: CWE-693
@@ -350,6 +477,18 @@
   recommandation: >-
     Restreindre `Access-Control-Allow-Origin` à une liste explicite d'origines
     de confiance et n'autoriser les identifiants que pour celles-ci.
+  en:
+    titre: Permissive cross-origin resource sharing (CORS)
+    description: >-
+      The CORS policy dynamically reflects the requester's origin or
+      allows any origin while also accepting credentials, which lets a
+      third-party site read responses meant for the user.
+    impact: >-
+      Exfiltration of sensitive data toward an attacking site through an
+      authenticated cross-origin request.
+    recommandation: >-
+      Restrict `Access-Control-Allow-Origin` to an explicit list of
+      trusted origins and allow credentials only for those.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N
   references:
     - id: CWE-942
@@ -379,6 +518,17 @@
   recommandation: >-
     Limiter les redirections à une liste de chemins ou de domaines connus,
     ou afficher une page d'avertissement avant toute redirection externe.
+  en:
+    titre: Uncontrolled open redirect
+    description: >-
+      A user-controlled parameter determines the redirect URL without
+      checking that it belongs to the application's own scope.
+    impact: >-
+      Diversion toward a phishing site, relying on the trust placed in
+      the legitimate domain.
+    recommandation: >-
+      Limit redirects to a known list of paths or domains, or show a
+      warning page before any external redirect.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:N/A:N
   references:
     - id: CWE-601
@@ -409,6 +559,18 @@
   recommandation: >-
     Afficher des messages d'erreur génériques côté client et journaliser le
     détail uniquement côté serveur.
+  en:
+    titre: Information disclosure through error messages
+    description: >-
+      Application errors return the full trace or technical details
+      (paths, queries, versions) directly to the client instead of a
+      generic message.
+    impact: >-
+      Gives an attacker information that facilitates the preparation of
+      targeted attacks (vulnerable versions, internal structure).
+    recommandation: >-
+      Show generic error messages on the client side and log the detail
+      only on the server side.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
   references:
     - id: CWE-209
@@ -440,6 +602,18 @@
   recommandation: >-
     Introduire une limitation de débit par compte et par source, un
     verrouillage temporaire progressif et une détection des essais massifs.
+  en:
+    titre: Authentication without protection against repeated attempts
+    description: >-
+      The login form accepts an unlimited number of attempts without
+      delay, lockout, or rate limiting, which allows massively testing
+      username and password combinations.
+    impact: >-
+      Account compromise through automated attempts, in particular using
+      credential lists from third-party leaks.
+    recommandation: >-
+      Introduce rate limiting per account and per source, a progressive
+      temporary lockout, and detection of mass attempts.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N
   references:
     - id: CWE-307
@@ -471,6 +645,18 @@
   recommandation: >-
     Désactiver la résolution des entités externes et des DTD dans la
     configuration du parseur XML utilisé par l'application.
+  en:
+    titre: XML external entity injection (XXE)
+    description: >-
+      The XML parser resolves external entities declared in a document
+      supplied by the user, which allows reading local files or
+      triggering network requests from the server.
+    impact: >-
+      Disclosure of local files, denial of service, or SSRF depending on
+      the parser's configuration.
+    recommandation: >-
+      Disable the resolution of external entities and DTDs in the
+      configuration of the XML parser used by the application.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:L
   references:
     - id: CWE-611
@@ -502,6 +688,18 @@
   recommandation: >-
     Éviter de désérialiser des données non fiables, préférer des formats
     simples (JSON) et signer ou chiffrer les objets sérialisés sensibles.
+  en:
+    titre: Deserialization of untrusted data
+    description: >-
+      The application deserializes a structure supplied by the client
+      without checking its origin or integrity, which allows
+      reconstructing objects that hijack the application logic.
+    impact: >-
+      Arbitrary code execution on the server depending on the classes
+      available in the application, or deep alteration of its state.
+    recommandation: >-
+      Avoid deserializing untrusted data, prefer simple formats (JSON),
+      and sign or encrypt sensitive serialized objects.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
   references:
     - id: CWE-502
@@ -536,6 +734,19 @@
     Utiliser un secret long et aléatoire (ou une clé asymétrique), rejeter
     l'algorithme `none` et vérifier explicitement l'algorithme attendu côté
     serveur.
+  en:
+    titre: JWT signed with a weak or predictable secret
+    description: >-
+      The JWT is signed with a short, default, or guessable secret, or
+      the application accepts the `none` algorithm, which allows
+      breaking the signature or forging a token accepted as authentic.
+    impact: >-
+      Impersonation of any identity or privilege escalation by forging a
+      token accepted as valid.
+    recommandation: >-
+      Use a long, random secret (or an asymmetric key), reject the
+      `none` algorithm, and explicitly check the expected algorithm on
+      the server side.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:N
   references:
     - id: CWE-347
@@ -570,6 +781,21 @@
     Définir l'en-tête `Content-Security-Policy: frame-ancestors` (ou
     `X-Frame-Options`) sur les pages sensibles pour interdire leur inclusion
     dans un cadre tiers.
+  en:
+    titre: Clickjacking through frame overlay
+    description: >-
+      The sensitive page does not set a protection against being
+      displayed in a frame (`X-Frame-Options` or `frame-ancestors`),
+      which allows overlaying it, invisible, on a trap page to hijack
+      the victim's clicks.
+    impact: >-
+      Execution of sensitive actions without the victim's knowledge,
+      believing they are clicking on a harmless element of the trap
+      page.
+    recommandation: >-
+      Set the `Content-Security-Policy: frame-ancestors` header (or
+      `X-Frame-Options`) on sensitive pages to forbid their inclusion in
+      a third-party frame.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:N
   references:
     - id: CWE-1021
@@ -603,6 +829,18 @@
     Ne jamais construire de gabarit à partir d'une entrée utilisateur ;
     passer les données en paramètres du template plutôt qu'en code de
     template.
+  en:
+    titre: Server-side template injection (SSTI)
+    description: >-
+      User input is inserted directly into a template evaluated by the
+      server-side template engine, which allows running expressions or
+      even arbitrary code.
+    impact: >-
+      Arbitrary code execution on the server, depending on the
+      capabilities of the template engine in use.
+    recommandation: >-
+      Never build a template from user input; pass data as template
+      parameters rather than as template code.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
   references:
     - id: CWE-1336
@@ -635,6 +873,19 @@
   recommandation: >-
     Désactiver l'introspection GraphQL en production ou la restreindre aux
     environnements de développement authentifiés.
+  en:
+    titre: GraphQL introspection accessible in production
+    description: >-
+      The GraphQL API accepts introspection queries in production,
+      revealing the entire schema, types, queries, and mutations
+      available.
+    impact: >-
+      Facilitates the discovery of undocumented sensitive features and
+      fields, speeding up the preparation of targeted attacks on the
+      API.
+    recommandation: >-
+      Disable GraphQL introspection in production or restrict it to
+      authenticated development environments.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
   references:
     - id: CWE-200

@@ -54,6 +54,10 @@ IDENTIFIANTS_FIGES: frozenset[str] = frozenset(
 
 TOTAL_MINIMAL = 30
 
+# [v2] champs du bloc anglais obligatoire (contrats §15, CAP-8).
+_CHAMPS_EN = ("titre", "description", "impact", "recommandation")
+_CHAMPS_EN_LISTE = ", ".join(f"en.{champ}" for champ in _CHAMPS_EN)
+
 # Formes canoniques de référence acceptées (contrats §15) : CWE-79, CAPEC-63, WSTG-INPV-01,
 # A03:2021, ANSSI-<SIGLE>, CERTFR-AAAA-XXX-NNN.
 _RE_REFERENCE = re.compile(
@@ -81,6 +85,22 @@ class CatalogueYaml:
         doublons: set[str] = set()
         for fichier in sorted(self._dossier.glob("*.yaml")):
             for index, entree in _lire_fichier(fichier):
+                # [v2] le bloc `en` brut est examiné avant pydantic : un `en` incomplet ou à
+                # champ vide serait sinon refusé par `ConstatType.model_validate` avec le
+                # message générique « constat type invalide », avant d'atteindre le contrôle
+                # `constat.en is None` ci-dessous (contrats §15).
+                bloc_en = entree.get("en") if isinstance(entree, dict) else None
+                if isinstance(entree, dict) and bloc_en is None:
+                    raise ConfigurationInvalide(
+                        f"{fichier.name}:{index}: textes anglais manquants ({_CHAMPS_EN_LISTE})"
+                    )
+                if isinstance(bloc_en, dict):
+                    manquants = _champs_en_manquants(bloc_en)
+                    if manquants:
+                        liste = ", ".join(f"en.{champ}" for champ in manquants)
+                        raise ConfigurationInvalide(
+                            f"{fichier.name}:{index}: textes anglais manquants ({liste})"
+                        )
                 try:
                     constat = ConstatType.model_validate(entree)
                 except ValidationError as erreur:
@@ -107,6 +127,11 @@ class CatalogueYaml:
             return self._charger()[id]
         except KeyError:
             raise EntreeInvalide(f"constat type inconnu : {id!r}") from None
+
+
+def _champs_en_manquants(bloc_en: dict) -> list[str]:
+    """[v2] Champs du bloc `en` brut (mapping YAML, avant pydantic) manquants ou vides."""
+    return [champ for champ in _CHAMPS_EN if not str(bloc_en.get(champ, "")).strip()]
 
 
 def _resumer(erreur: Exception) -> str:
@@ -156,6 +181,25 @@ def verifier(dossier: Path) -> list[str]:
 
         for index, entree in entrees:
             cle = entree.get("id", index) if isinstance(entree, dict) else index
+
+            # [v2] bloc `en` brut examiné avant pydantic, même raison qu'à `_charger` :
+            # sinon un `en` incomplet est rejeté par `model_validate` avant qu'une erreur
+            # §15 par champ ne puisse être produite ici.
+            bloc_en = entree.get("en") if isinstance(entree, dict) else None
+            if isinstance(entree, dict) and bloc_en is None:
+                erreurs.append(
+                    f"{fichier.name}:{cle}: textes anglais manquants ({_CHAMPS_EN_LISTE})"
+                )
+                continue
+            if isinstance(bloc_en, dict):
+                manquants = _champs_en_manquants(bloc_en)
+                if manquants:
+                    for champ in manquants:
+                        erreurs.append(
+                            f"{fichier.name}:{cle}: textes anglais manquants (en.{champ})"
+                        )
+                    continue
+
             try:
                 constat = ConstatType.model_validate(entree)
             except ValidationError as erreur:

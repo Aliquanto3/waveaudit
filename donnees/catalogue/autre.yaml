@@ -23,6 +23,18 @@
     Journaliser les événements de sécurité clés de façon centralisée et
     horodatée, et mettre en place des alertes sur les comportements
     anormaux.
+  en:
+    titre: Insufficient logging and detection
+    description: >-
+      Significant security events (logins, failed authentications,
+      administrative actions) are not logged in a usable way, or are not
+      forwarded to any monitoring system.
+    impact: >-
+      Late or absent detection of an intrusion, and difficulty
+      reconstructing the course of an incident afterwards.
+    recommandation: >-
+      Log key security events centrally with timestamps, and set up
+      alerts for abnormal behaviour.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:N
   references:
     - id: CWE-778
@@ -54,6 +66,18 @@
   recommandation: >-
     Déployer une authentification multifacteur sur les accès sensibles, en
     priorité pour les comptes à privilèges et les accès distants.
+  en:
+    titre: Missing multi-factor authentication on sensitive access
+    description: >-
+      Sensitive access points (VPN, administration portal, privileged
+      account) require only a password, without a second authentication
+      factor.
+    impact: >-
+      Account compromise as soon as the password alone is obtained,
+      through phishing, a data leak, or credential reuse.
+    recommandation: >-
+      Deploy multi-factor authentication on sensitive access points,
+      starting with privileged accounts and remote access.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N
   references:
     - id: CWE-308

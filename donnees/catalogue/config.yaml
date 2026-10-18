@@ -19,6 +19,18 @@
     Changer systématiquement les identifiants par défaut lors de la mise en
     service et interdire leur réutilisation via la politique de mots de
     passe.
+  en:
+    titre: Default credentials left unchanged
+    description: >-
+      A device or application remains reachable with the credentials
+      shipped by the vendor or manufacturer, never changed since
+      installation.
+    impact: >-
+      Immediate access with full privileges, since these credentials are
+      publicly documented.
+    recommandation: >-
+      Systematically change default credentials during deployment and
+      forbid their reuse through the password policy.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
   references:
     - id: CWE-1392
@@ -48,6 +60,18 @@
     Déplacer les secrets vers un gestionnaire dédié (coffre-fort,
     variables d'environnement protégées) et purger l'historique de
     versionnage le cas échéant.
+  en:
+    titre: Secrets stored in cleartext
+    description: >-
+      A password, API key, or private key is stored as plain text in a
+      configuration file, a script, or a code repository, without
+      encryption or a secrets manager.
+    impact: >-
+      Immediate recovery of the secret by anyone who accesses the file,
+      the repository, or a backup of it.
+    recommandation: >-
+      Move secrets to a dedicated manager (vault, protected environment
+      variables) and purge the version history where applicable.
   cvss_vecteur: CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
   references:
     - id: CWE-312
@@ -74,6 +98,17 @@
   recommandation: >-
     Désactiver le listage automatique de répertoire sur le serveur web et
     retirer les fichiers sensibles du répertoire public.
+  en:
+    titre: Directory listing enabled
+    description: >-
+      The web server returns the list of files in a directory when no
+      index page is present, exposing its contents.
+    impact: >-
+      Discovery of files not meant to be public (backups, source code,
+      logs), facilitating further attacks.
+    recommandation: >-
+      Disable automatic directory listing on the web server and remove
+      sensitive files from the public directory.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
   references:
     - id: CWE-548
@@ -101,6 +136,18 @@
   recommandation: >-
     Désactiver le mode de débogage en production et vérifier la
     configuration des environnements de déploiement.
+  en:
+    titre: Debug mode active in production
+    description: >-
+      The application runs with debug mode enabled in the production
+      environment, exposing detailed internal information, sometimes an
+      interactive console, when an error occurs.
+    impact: >-
+      Disclosure of internal information or even code execution through a
+      debug console reachable from outside.
+    recommandation: >-
+      Disable debug mode in production and check the configuration of the
+      deployment environments.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N
   references:
     - id: CWE-489
@@ -129,6 +176,18 @@
   recommandation: >-
     Stocker les sauvegardes hors du répertoire public servi par le serveur
     web et vérifier régulièrement l'absence de fichiers oubliés.
+  en:
+    titre: Publicly accessible backup file
+    description: >-
+      A backup file (archive, database export, `.bak` file) remains
+      publicly accessible on the web server, often forgotten after a
+      maintenance operation.
+    impact: >-
+      Full disclosure of the backed-up content, sometimes including
+      credentials or personal data.
+    recommandation: >-
+      Store backups outside the public directory served by the web
+      server and regularly check for forgotten files.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
   references:
     - id: CWE-530
@@ -158,6 +217,18 @@
     Séparer explicitement les profils de configuration CORS par
     environnement et vérifier le profil effectivement chargé en
     production.
+  en:
+    titre: Debug CORS configuration left active in production
+    description: >-
+      The configuration profile used in production keeps the permissive
+      CORS settings meant for development, allowing any origin to
+      consume the API.
+    impact: >-
+      Exposes the API to cross-origin requests never intended for
+      production, facilitating data exfiltration by a third-party site.
+    recommandation: >-
+      Explicitly separate CORS configuration profiles per environment and
+      check which profile is actually loaded in production.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N
   references:
     - id: CWE-942
