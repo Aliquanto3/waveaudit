@@ -131,8 +131,15 @@ def _tokeniser(texte: str) -> list[str]:
 
 
 def _document(constat: ConstatType) -> list[str]:
-    """Titre ×3, mots-clés joints ×3, description ×1, concaténés."""
-    morceaux = [constat.titre] * 3 + [" ".join(constat.mots_cles)] * 3 + [constat.description]
+    """Index bilingue (contrats §7 v2) : titre fr ×3, en.titre ×3 (si présent), mots-clés
+    joints ×3, description fr ×1, en.description ×1 (si présent), concaténés."""
+    morceaux = [constat.titre] * 3
+    if constat.en is not None:
+        morceaux += [constat.en.titre] * 3
+    morceaux += [" ".join(constat.mots_cles)] * 3
+    morceaux.append(constat.description)
+    if constat.en is not None:
+        morceaux.append(constat.en.description)
     jetons: list[str] = []
     for morceau in morceaux:
         jetons.extend(_tokeniser(morceau))
