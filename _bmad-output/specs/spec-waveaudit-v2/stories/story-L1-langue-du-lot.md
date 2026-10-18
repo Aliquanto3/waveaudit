@@ -96,3 +96,6 @@ sources:
 
 - Aucun point d'arrêt dédié : la story n'ajoute pas de contenu métier au catalogue, seulement
   du code et des tests.
+- Revue (reviewer) : un trou de test moyen corrigé (la langue du lot atteint le workflow,
+  vérifiée au niveau du lot par mutation) ; constats faibles jugés dans
+  `_bmad-output/implementation-artifacts/revues/story-L1.md`.
