@@ -1,0 +1,1388 @@
+<!--
+  WaveAudit — prototype interactif (voie rapide, données fictives).
+  Les spines (DESIGN.md, EXPERIENCE.md) priment sur ce fichier en cas de conflit : ce prototype
+  illustre leur comportement, il ne le définit pas. Fichier autonome : CSS et JS inline, aucune
+  ressource externe, aucune requête réseau. Navigation simulée par état JS (pas de hash routing
+  réseau), minuteries accélérées pour simuler la génération.
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WaveAudit — prototype</title>
+<style>
+/* ===== Tokens (DESIGN.md) — palette officielle Wavestone ===== */
+:root{
+  --primaire:#451DC7; --primaire-fonce:#250F6B; --primaire-doux:#EDE7FE;
+  --accent:#04F06A; --accent-doux:#CAFEE0; --accent-texte:#036B38;
+  --encre:#0A0A14; --encre-douce:#4A4A5E;
+  --gris:#8A8A9E; --gris-texte:#616670;
+  --trait:#E6E6EC; --fond-creme:#F6F5FA;
+  --attention:#FFCA4A; --attention-doux:#FBE9CF; --attention-texte:#8A5A00;
+  --danger:#FF2A49; --danger-doux:#F8DEDC; --danger-texte:#B3261E;
+  --texte-sur-vif:#0A0A14;
+  --focus-outline:2px solid var(--primaire); --focus-offset:2px;
+  --font:'Aptos','Segoe UI',system-ui,sans-serif;
+  --font-mono:'Cascadia Mono',Consolas,monospace;
+  --r-sm:12px; --r-md:16px; --r-lg:22px; --r-full:9999px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font); color:var(--encre); background:#FFFFFF;
+  font-size:14px; line-height:1.5;
+}
+button{font-family:var(--font);}
+h1,h2,h3,p,ul,ol{margin:0;}
+.surtitre{
+  font-size:12px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--gris-texte);
+}
+.petit{font-size:12px; color:var(--gris-texte);}
+.mono{font-family:var(--font-mono); font-size:13px;}
+a{color:var(--primaire);}
+
+/* ===== Bandeau démonstration ===== */
+.bandeau{
+  background:var(--primaire-fonce); color:#FFFFFF; font-size:12px;
+  text-align:center; padding:6px var(--sp-4); letter-spacing:0.02em;
+}
+
+/* ===== En-tête ===== */
+.en-tete{
+  display:flex; align-items:center; justify-content:space-between;
+  height:56px; padding:0 var(--sp-5); background:#FFFFFF; border-bottom:1px solid var(--trait);
+}
+.en-tete .marque{display:flex; align-items:center; gap:var(--sp-2);}
+.en-tete .nom{font-size:22px; font-weight:600; line-height:1.25;}
+.en-tete .lot-bloc{font-size:12px; color:var(--encre-douce); text-align:right;}
+#logo-prive{height:28px; display:none;}
+
+/* ===== Layout général ===== */
+main{min-height:60vh;}
+.page{padding:var(--sp-6) var(--sp-5); max-width:1200px; margin:0 auto;}
+.page-large{max-width:none; padding:var(--sp-5);}
+.titre-page{font-size:22px; font-weight:600; margin-bottom:var(--sp-5);}
+
+/* ===== Boutons ===== */
+.btn{
+  font-size:14px; font-weight:600; padding:10px 18px; border-radius:var(--r-sm);
+  border:1px solid transparent; cursor:pointer; transition:background .15s var(--ease);
+}
+.btn-primaire{background:var(--primaire); color:#FFFFFF;}
+.btn-primaire:hover{background:var(--primaire-fonce);}
+.btn-primaire:disabled{background:var(--trait); color:var(--gris-texte); cursor:not-allowed;}
+.btn-secondaire{background:transparent; color:var(--primaire); border-color:var(--trait);}
+.btn-secondaire:hover{background:var(--primaire-doux);}
+.btn-danger{background:var(--danger); color:#FFFFFF;}
+.btn-texte{background:none; border:none; color:var(--primaire); font-weight:600; cursor:pointer; padding:4px;}
+:focus-visible{outline:var(--focus-outline); outline-offset:var(--focus-offset);}
+button:focus:not(:focus-visible){outline:none;}
+
+/* ===== Accueil ===== */
+.choix-workflow{display:flex; gap:var(--sp-4); margin-bottom:var(--sp-6);}
+.carte-workflow{
+  flex:1; border:1px solid var(--trait); border-radius:var(--r-md); padding:var(--sp-5);
+  cursor:pointer; background:#FFFFFF; text-align:left;
+}
+.carte-workflow[aria-pressed="true"]{border-color:var(--primaire); background:var(--primaire-doux);}
+.carte-workflow h3{font-size:16px; margin-bottom:var(--sp-2);}
+.carte-depot{
+  border:2px dashed var(--trait); border-radius:var(--r-lg); background:var(--fond-creme);
+  padding:var(--sp-6); text-align:center; margin-bottom:var(--sp-5);
+}
+.carte-depot.actif{border-color:var(--primaire); background:var(--primaire-doux);}
+.carte-depot[aria-disabled="true"]{opacity:.55; cursor:not-allowed;}
+.liste-fichiers{list-style:none; padding:0; margin:var(--sp-4) 0 0; text-align:left; max-width:460px; margin-inline:auto;}
+.liste-fichiers li{
+  display:flex; justify-content:space-between; align-items:center; padding:var(--sp-2) var(--sp-3);
+  border:1px solid var(--trait); border-radius:var(--r-sm); margin-bottom:var(--sp-2); background:#fff;
+}
+.erreur-fichier{color:var(--danger-texte); font-size:13px; margin-top:var(--sp-2);}
+.ligne-selecteurs{display:flex; gap:var(--sp-5); margin-bottom:var(--sp-5); flex-wrap:wrap;}
+.champ-selecteur{display:flex; flex-direction:column; gap:var(--sp-1); min-width:260px;}
+.champ-selecteur label{font-size:12px; color:var(--gris-texte); font-weight:600;}
+select, textarea, input[type=text]{
+  font-family:var(--font); font-size:14px; border:1px solid var(--trait); border-radius:var(--r-sm);
+  padding:8px 10px; background:#fff; color:var(--encre);
+}
+select:focus, textarea:focus, input:focus{border-color:var(--primaire);}
+.option-indispo{color:var(--gris-texte);}
+.bandeau-erreur{
+  background:var(--danger-doux); border:1px solid var(--danger); color:var(--danger-texte);
+  border-radius:var(--r-sm); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-5);
+}
+.bandeau-info{
+  background:var(--primaire-doux); border:1px solid var(--primaire); color:var(--primaire-fonce);
+  border-radius:var(--r-sm); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-5);
+}
+
+/* ===== Lots récents ===== */
+table.lots{width:100%; border-collapse:collapse;}
+table.lots th{text-align:left; font-size:12px; color:var(--gris-texte); padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--trait);}
+table.lots td{padding:var(--sp-3); border-bottom:1px solid var(--trait);}
+table.lots tr{cursor:pointer;}
+table.lots tr:hover td{background:var(--fond-creme);}
+
+/* ===== Pastilles ===== */
+.pastille{
+  display:inline-flex; align-items:center; gap:6px; border-radius:var(--r-full);
+  padding:3px 10px; font-size:12px; font-weight:600;
+}
+.pastille.ok{background:var(--accent-doux); color:var(--accent-texte);}
+.pastille.a-revoir{background:var(--attention-doux); color:var(--attention-texte);}
+.pastille.validee{background:var(--primaire-doux); color:var(--primaire);}
+.pastille.ecartee{background:var(--trait); color:var(--encre-douce);}
+.pastille.en-generation{background:var(--trait); color:var(--encre-douce);}
+.pastille.en-cours{background:var(--primaire-doux); color:var(--primaire);}
+.pastille.termine{background:var(--accent-doux); color:var(--accent-texte);}
+.pastille.echoue{background:var(--danger-doux); color:var(--danger-texte);}
+.pastille .puce{width:7px; height:7px; border-radius:50%; background:currentColor; flex:0 0 auto;}
+@media (prefers-reduced-motion:no-preference){
+  .pastille.en-generation .puce{animation:pulse 1.1s infinite;}
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+/* ===== Suivi ===== */
+.suivi-barre{height:8px; border-radius:var(--r-full); background:var(--trait); overflow:hidden; margin-bottom:var(--sp-2);}
+.suivi-barre > div{height:100%; background:var(--accent); border-radius:var(--r-full); transition:width .4s var(--ease);}
+@media (prefers-reduced-motion:reduce){ .suivi-barre > div{transition:none;} }
+.suivi-compteur{font-size:13px; color:var(--gris-texte); margin-bottom:var(--sp-4);}
+.journal{list-style:none; padding:0; margin:0; max-height:280px; overflow:auto; border:1px solid var(--trait); border-radius:var(--r-sm);}
+.journal li{display:flex; gap:var(--sp-2); padding:var(--sp-2) var(--sp-3); font-size:12px; border-bottom:1px solid var(--trait);}
+.journal li:last-child{border-bottom:none;}
+
+/* ===== Relecture ===== */
+.relecture-shell{display:flex; height:calc(100vh - 56px*2 - 30px*2); min-height:560px;}
+.tiroir{width:260px; flex:0 0 260px; border-right:1px solid var(--trait); display:flex; flex-direction:column; overflow:hidden;}
+.tiroir.replie{width:0; flex:0 0 0; border-right:none;}
+.tiroir-tete{display:flex; align-items:center; justify-content:space-between; padding:var(--sp-3); border-bottom:1px solid var(--trait);}
+.tiroir-liste{list-style:none; margin:0; padding:0; overflow:auto; flex:1;}
+.tiroir-liste [role=option]{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2);
+  padding:var(--sp-3); cursor:pointer; border-bottom:1px solid var(--trait); font-size:13px;
+}
+.tiroir-liste [role=option][aria-selected=true]{background:var(--primaire-doux);}
+.tiroir-liste [role=option]:hover{background:var(--fond-creme);}
+.tiroir-nom{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.relecture-corps{flex:1; display:flex; flex-direction:column; min-width:0;}
+.candidats{display:flex; border-bottom:1px solid var(--trait); padding:0 var(--sp-4);}
+.candidats [role=tab]{
+  background:none; border:none; border-bottom:3px solid transparent; padding:var(--sp-3) var(--sp-4);
+  font-size:13px; color:var(--encre-douce); cursor:pointer; display:flex; gap:6px; align-items:baseline;
+}
+.candidats [role=tab][aria-selected=true]{color:var(--primaire); border-bottom-color:var(--primaire); font-weight:600;}
+.candidats .score{font-family:var(--font-mono); font-size:12px; color:var(--gris-texte);}
+.deux-colonnes{flex:1; display:flex; min-height:0; overflow:hidden;}
+.panneau-note{
+  flex:1 1 50%; background:var(--fond-creme); padding:var(--sp-4); overflow:auto;
+  font-family:var(--font-mono); font-size:13px; white-space:pre-wrap; border-right:1px solid var(--trait);
+}
+.panneau-fiche{flex:1 1 50%; padding:var(--sp-4); overflow:auto; position:relative;}
+.panneau-fiche[aria-busy=true]{pointer-events:none;}
+.panneau-fiche .voile{
+  position:absolute; inset:0; background:rgba(255,255,255,.72); display:none;
+  align-items:center; justify-content:center; font-weight:600; color:var(--primaire); z-index:2;
+}
+.panneau-fiche[aria-busy=true] .voile{display:flex;}
+.champ-fiche{margin-bottom:var(--sp-4);}
+.champ-fiche label{display:block; font-size:12px; font-weight:600; color:var(--gris-texte); margin-bottom:4px;}
+.champ-fiche textarea{width:100%; min-height:70px; resize:vertical;}
+.champ-fiche.description textarea{min-height:110px;}
+.ligne-cvss{display:flex; gap:var(--sp-3); align-items:center; flex-wrap:wrap;}
+.ligne-cvss input{font-family:var(--font-mono); width:300px;}
+.severite-pastille{
+  font-family:var(--font-mono); font-size:12px; font-weight:700; padding:4px 10px; border-radius:var(--r-full);
+}
+.severite-faible{background:var(--accent-doux); color:var(--accent-texte);}
+.severite-moyenne{background:var(--attention-doux); color:var(--attention-texte);}
+.severite-elevee{background:var(--danger-doux); color:var(--danger-texte);}
+.severite-critique{background:var(--danger); color:var(--texte-sur-vif);}
+.cvss-erreur{color:var(--danger-texte); font-size:12px; margin-top:4px;}
+input[aria-invalid=true]{border-color:var(--danger);}
+.refs{list-style:none; padding:0; margin:0;}
+.refs li{display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--trait); font-size:13px;}
+.encart-motifs{
+  background:var(--attention-doux); border:1px solid var(--attention); color:var(--attention-texte);
+  border-radius:var(--r-sm); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-4);
+}
+.encart-motifs h4{font-size:13px; margin-bottom:4px;}
+.encart-motifs ul{margin:0; padding-left:18px;}
+.encart-motifs li{margin-bottom:2px;}
+.ecartee-choix{padding:var(--sp-5); text-align:center;}
+.ecartee-choix .options{display:flex; gap:var(--sp-3); justify-content:center; margin-top:var(--sp-4); flex-wrap:wrap;}
+
+.barre-actions{
+  display:flex; justify-content:flex-end; align-items:center; gap:var(--sp-3);
+  padding:var(--sp-3) var(--sp-4); border-top:1px solid var(--trait); background:#fff;
+}
+.indicateur-enreg{font-size:12px; color:var(--encre-douce); margin-right:auto;}
+.raison-desactive{font-size:12px; color:var(--danger-texte);}
+
+/* ===== Boîte de confirmation ===== */
+.overlay{
+  position:fixed; inset:0; background:rgba(10,10,20,.4); display:flex; align-items:center;
+  justify-content:center; z-index:50;
+}
+.overlay[hidden]{display:none;}
+.boite{
+  background:#fff; border-radius:var(--r-md); padding:var(--sp-5); max-width:420px; width:90%;
+  box-shadow:0 12px 32px rgba(10,10,20,.18);
+}
+.boite h2{font-size:16px; margin-bottom:var(--sp-3);}
+.boite p{margin-bottom:var(--sp-4); font-size:14px; color:var(--encre-douce);}
+.boite .actions{display:flex; justify-content:flex-end; gap:var(--sp-3);}
+
+/* ===== Export confirmation toast ===== */
+.toast{
+  position:fixed; bottom:48px; right:var(--sp-5); background:var(--encre); color:#fff;
+  padding:var(--sp-3) var(--sp-4); border-radius:var(--r-sm); font-size:13px; max-width:320px;
+  box-shadow:0 8px 20px rgba(10,10,20,.25); z-index:60;
+}
+.toast[hidden]{display:none;}
+
+/* ===== Incident ===== */
+.cartes-severite{display:flex; gap:var(--sp-3); margin-bottom:var(--sp-5); flex-wrap:wrap;}
+.carte-severite{
+  border:1px solid var(--trait); border-radius:var(--r-md); padding:var(--sp-4); min-width:150px;
+  cursor:pointer; background:#fff; text-align:left;
+}
+.carte-severite[aria-pressed=true]{border-color:var(--primaire); background:var(--primaire-doux);}
+.carte-severite .nb{font-size:20px; font-weight:700;}
+table.detections{width:100%; border-collapse:collapse; font-size:13px;}
+table.detections th{text-align:left; color:var(--gris-texte); font-size:12px; padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--trait);}
+table.detections td{padding:var(--sp-3); border-bottom:1px solid var(--trait); vertical-align:top;}
+.recit{color:var(--encre-douce); font-size:13px; margin-top:4px;}
+
+/* ===== Guide de la démo ===== */
+#guide{
+  position:fixed; right:var(--sp-4); bottom:84px; width:300px; background:#fff;
+  border:1px solid var(--trait); border-radius:var(--r-md); box-shadow:0 8px 24px rgba(10,10,20,.15);
+  z-index:40; font-size:13px;
+}
+#guide-tete{
+  width:100%; display:flex; justify-content:space-between; align-items:center; padding:var(--sp-3) var(--sp-4);
+  background:var(--primaire-doux); border:none; border-radius:var(--r-md) var(--r-md) 0 0; cursor:pointer; font-weight:600;
+}
+#guide[data-ouvert="false"] #guide-tete{border-radius:var(--r-md);}
+#guide-corps{padding:var(--sp-4); max-height:50vh; overflow:auto;}
+#guide[data-ouvert="false"] #guide-corps{display:none;}
+#guide ol{padding-left:18px; margin:0 0 var(--sp-3);}
+#guide li{margin-bottom:var(--sp-2);}
+#guide button.lien-scenario{background:none; border:none; color:var(--primaire); text-decoration:underline; cursor:pointer; padding:0; font-size:13px;}
+
+.visually-hidden{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<div class="bandeau" role="note">DÉMONSTRATION — données fictives, aucune mission réelle. Aucune donnée n'est envoyée sur un réseau.</div>
+
+<header class="en-tete">
+  <div class="marque">
+    <img id="logo-prive" src="../../../../theme-prive/web/logo.svg" alt="" onerror="this.style.display='none'">
+    <span class="nom">WaveAudit</span>
+  </div>
+  <div class="lot-bloc" id="en-tete-lot" hidden></div>
+</header>
+
+<main id="main"></main>
+
+<div class="bandeau" role="note">DÉMONSTRATION — données fictives, aucune mission réelle. Aucune donnée n'est envoyée sur un réseau.</div>
+
+<!-- Boîte de confirmation générique -->
+<div class="overlay" id="overlay-confirm" hidden role="presentation">
+  <div class="boite" role="alertdialog" aria-modal="true" aria-labelledby="confirm-titre" aria-describedby="confirm-texte">
+    <h2 id="confirm-titre">Confirmer</h2>
+    <p id="confirm-texte"></p>
+    <div class="actions">
+      <button class="btn btn-secondaire" id="confirm-annuler">Annuler</button>
+      <button class="btn btn-danger" id="confirm-valider">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+<section id="guide" data-ouvert="false" aria-label="Guide de la démonstration">
+  <button id="guide-tete" aria-expanded="false" aria-controls="guide-corps">
+    <span>Guide de la démo</span><span aria-hidden="true">▾</span>
+  </button>
+  <div id="guide-corps">
+    <p class="petit" style="margin-bottom:8px;">Scénarios à essayer :</p>
+    <ol id="guide-liste"></ol>
+  </div>
+</section>
+
+<div aria-live="polite" class="visually-hidden" id="live-sobre"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ===================== Données fictives ===================== */
+
+var MODELES = [
+  {id:"granite", nom:"granite-3-8b", duree:"≈18 s / fiche", memoire:"6 Go", defaut:true, dispo:true},
+  {id:"qwen3-8b", nom:"qwen3-8b", duree:"≈24 s / fiche", memoire:"9 Go", defaut:false, dispo:true},
+  {id:"mistral-small", nom:"mistral-small", duree:"≈31 s / fiche", memoire:"11 Go", defaut:false, dispo:true},
+  {id:"qwen3-4b", nom:"qwen3-4b", duree:"≈11 s / fiche", memoire:"4 Go", defaut:false, dispo:false}
+];
+
+function candidat(id, titre, description, impact, recommandation, vecteur, refs, motifs){
+  return {id:id, titre:titre, description:description, impact:impact, recommandation:recommandation,
+          vecteur:vecteur, refs:refs.slice(), motifs:motifs||[]};
+}
+
+function note(id, nomFichier, texte, candidats, defautIdx, statutInit){
+  return {
+    id:id, nomFichier:nomFichier, texte:texte, candidats:candidats, candidatActif:defautIdx,
+    statut: statutInit || (candidats[defautIdx].motifs.length ? "a-revoir" : "ok"),
+    champs: JSON.parse(JSON.stringify(candidats[defautIdx])),
+    valideeSnapshot: null
+  };
+}
+
+function notesDemo(){
+  return [
+    note("n01","01-xss-reflechi.md",
+      "## Constat 01 — Formulaire de recherche\n\nLe paramètre `q` du moteur de recherche interne\n(`/recherche?q=`) est réfléchi sans échappement dans la page de résultats.\nPreuve : `q=<script>alert(1)<\/script>` renvoie le script tel quel dans le DOM.\nTesté sur Chrome et Edge, environnement de préproduction.\n\nImpact démontré : vol de session possible via un lien piégé.", [
+        candidat("c1","XSS réfléchi — moteur de recherche interne",
+          "Le paramètre « q » du moteur de recherche interne est réfléchi sans échappement HTML dans la page de résultats, permettant l'injection de script côté client.",
+          "Un attaquant peut voler la session d'un utilisateur authentifié via un lien piégé, ou défigurer la page pour de l'hameçonnage interne.",
+          "Échapper systématiquement les sorties HTML (encodage contextuel), poser l'en-tête Content-Security-Policy, valider le paramètre côté serveur.",
+          "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N", ["OWASP A03:2021 — Injection","CWE-79"], []),
+        candidat("c2","XSS DOM — rendu côté client des résultats",
+          "Le script de rendu des résultats insère la requête utilisateur via innerHTML sans assainissement, côté navigateur.",
+          "Exécution de script arbitraire dans le contexte de la victime, vol de jeton local.",
+          "Remplacer innerHTML par une insertion textuelle (textContent) ou une bibliothèque d'échappement.",
+          "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N", ["CWE-79"], []),
+        candidat("c3","Injection générique — entrée utilisateur non validée",
+          "Une entrée utilisateur transite sans validation ni échappement vers une sortie sensible.",
+          "Impact variable selon le point de sortie, potentiellement une exécution de script.",
+          "Mettre en place une politique de validation et d'échappement centralisée.",
+          "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:N/A:N", ["CWE-20"], [])
+      ], 0),
+    note("n11","11-kerberoasting.md",
+      "## Constat 11 — Compte de service AD\n\nLe compte `svc-sql01` porte un SPN et un mot de passe de 2019,\njamais renouvelé. Hashcat casse le ticket Kerberos extrait en 40 minutes\nsur un poste de travail standard (liste rockyou + règles).\n\nCompte membre du groupe « Opérateurs de sauvegarde ».", [
+        candidat("c1","Kerberoasting — compte de service SQL avec mot de passe faible",
+          "Le compte de service `svc-sql01`, porteur d'un SPN, utilise un mot de passe faible et ancien (2019), extractible et cassable hors ligne via Kerberoasting.",
+          "Compromission du compte, membre du groupe « Opérateurs de sauvegarde » : accès aux sauvegardes et rebond possible vers le contrôleur de domaine.",
+          "Renouveler le mot de passe (25+ caractères aléatoires ou gMSA), limiter les appartenances de groupe, surveiller les demandes de tickets de service anormales.",
+          "CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:N",
+          ["MITRE ATT&CK T1558.003"], ["Mot de passe du compte non vérifié automatiquement : confirmez l'ancienneté réelle avant publication."]),
+        candidat("c2","SPN exposé sur compte à privilèges",
+          "Un Service Principal Name est enregistré sur un compte disposant de privilèges élevés, l'exposant au Kerberoasting.",
+          "Un attaquant authentifié dans le domaine peut demander un ticket et tenter de casser le hash hors ligne.",
+          "Dissocier les SPN des comptes à privilèges, utiliser des comptes de service managés (gMSA).",
+          "CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:L/A:N", ["MITRE ATT&CK T1558.003"], []),
+        candidat("c3","Compte de service avec mot de passe non renouvelé",
+          "Un compte de service n'a pas vu son mot de passe renouvelé depuis plusieurs années.",
+          "Augmente la fenêtre d'exploitation en cas de fuite ou de cassage hors ligne.",
+          "Mettre en place une politique de rotation régulière pour les comptes de service.",
+          "CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N", ["CWE-262"], [])
+      ], 0),
+    note("n16","16-tls-obsolete.md",
+      "## Constat 16 — Portail extranet\n\n`extranet.exemple.local:443` accepte encore TLS 1.0 et TLS 1.1,\nainsi que les suites de chiffrement CBC sans Forward Secrecy.\nScan `testssl.sh` du 14/10, grade C.\n\nAucune dépréciation planifiée trouvée dans le ticket d'exploitation.", [
+        candidat("c1","TLS obsolète — portail extranet",
+          "Le portail extranet accepte TLS 1.0 et TLS 1.1 ainsi que des suites de chiffrement sans Forward Secrecy, affaiblissant la confidentialité des échanges.",
+          "Un attaquant en position d'interception peut dégrader la connexion vers un protocole faible (downgrade) et plus facilement déchiffrer le trafic capturé.",
+          "Désactiver TLS 1.0/1.1, ne garder que des suites AEAD avec Forward Secrecy (TLS 1.2+ ECDHE), revalider avec testssl.sh.",
+          "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N", ["CWE-327","OWASP A02:2021 — Cryptographic Failures"], []),
+        candidat("c2","Suites de chiffrement faibles sans Forward Secrecy",
+          "Des suites CBC sans Forward Secrecy restent actives sur le point d'entrée HTTPS.",
+          "Le trafic capturé aujourd'hui pourrait être déchiffré plus tard si une clé est compromise.",
+          "Restreindre la configuration serveur aux suites recommandées par l'ANSSI.",
+          "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N", ["CWE-327"], []),
+        candidat("c3","Chiffrement réseau insuffisant — générique",
+          "Un service réseau expose un chiffrement en deçà des recommandations actuelles.",
+          "Confidentialité des échanges non garantie face à un attaquant disposant de capacités de cassage.",
+          "Mettre à jour la configuration cryptographique du service selon le référentiel en vigueur.",
+          "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:N", ["CWE-310"], [])
+      ], 0),
+    note("n22","22-chemin-bloodhound.md",
+      "## Constat 22 — Chemin d'élévation AD\n\nBloodHound : `j.martin` (utilisateur standard) → `GenericAll` sur\n`GRP-HELPDESK` → membre `GRP-HELPDESK` → `WriteDacl` sur l'OU Serveurs\n→ contrôle du contrôleur de domaine.\nChemin confirmé en boîte grise avec un compte de test.", [
+        candidat("c1","Chemin d'élévation de privilèges vers le contrôleur de domaine (BloodHound)",
+          "Un chemin d'ACL permet à un utilisateur standard d'obtenir, par enchaînement de droits (GenericAll, appartenance à un groupe, WriteDacl), le contrôle du contrôleur de domaine.",
+          "Compromission complète du domaine Active Directory à partir d'un compte utilisateur standard, sans élévation technique (0-day), uniquement par abus de droits existants.",
+          "Corriger la chaîne de droits identifiée (retirer GenericAll et WriteDacl superflus), revoir périodiquement les ACL sensibles avec BloodHound.",
+          "CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H", ["MITRE ATT&CK T1484.001"], []),
+        candidat("c2","Délégation sans contrainte exploitable",
+          "Une délégation Kerberos sans contrainte est configurée sur un compte accessible, permettant la capture d'un TGT.",
+          "Un attaquant peut usurper l'identité d'un compte à privilèges élevés après interaction.",
+          "Remplacer par une délégation contrainte ou basée sur les ressources.",
+          "CVSS:3.1/AV:A/AC:H/PR:L/UI:R/S:C/C:H/I:H/A:N", ["MITRE ATT&CK T1558.001"], []),
+        candidat("c3","ACL abusive sur objet Active Directory",
+          "Un objet Active Directory sensible porte une permission excessive accordée à un groupe large.",
+          "Permet potentiellement une élévation de privilèges par abus de droits.",
+          "Revoir les permissions déléguées sur les objets sensibles de l'annuaire.",
+          "CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:L/A:N", ["CWE-269"], [])
+      ], 0),
+    note("n26","26-export-nfs.md",
+      "## Constat 26 — Serveur de fichiers NAS-03\n\n`showmount -e nas-03.exemple.local` liste `/export/sauvegardes`\nmonté sans restriction d'IP (`*`) et avec `no_root_squash`.\nUn poste quelconque du réseau interne peut monter ce partage en lecture/écriture.", [
+        candidat("c1","Export NFS ouvert avec no_root_squash",
+          "Le partage NFS `/export/sauvegardes` est exporté à l'ensemble du réseau (`*`) sans restriction d'IP et avec l'option `no_root_squash`, permettant à tout client de monter le partage avec les droits root.",
+          "Un poste compromis sur le réseau interne peut lire ou altérer l'intégralité des sauvegardes, voire déposer des fichiers exécutés avec des droits élevés selon l'usage qui en est fait.",
+          "Restreindre l'export à une liste d'IP autorisées, activer root_squash, chiffrer et cloisonner le réseau de sauvegarde.",
+          "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:L", ["CWE-732","MITRE ATT&CK T1021.002 (apparenté)"], []),
+        candidat("c2","Absence de restriction root_squash sur partage réseau",
+          "L'option no_root_squash est active sur un export réseau, annulant l'isolement des droits root du client.",
+          "Un client malveillant monté en root obtient les mêmes droits côté serveur.",
+          "Activer root_squash par défaut sur tous les exports, sauf besoin documenté et justifié.",
+          "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N", ["CWE-732"], []),
+        candidat("c3","Partage réseau accessible sans contrôle d'accès — générique",
+          "Un partage réseau est accessible sans restriction d'adresse source ni d'authentification renforcée.",
+          "Exposition de données à toute machine du segment réseau concerné.",
+          "Mettre en place une liste de contrôle d'accès sur le partage.",
+          "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N", ["CWE-284"], [])
+      ], 0),
+    note("n29","29-ssti-gabarit.md",
+      "## Constat 29 — Génération de documents\n\nLe module de génération de devis accepte un gabarit personnalisé.\nPayload `{{7*7}}` renvoie `49` dans le PDF généré : moteur Jinja2\ncôté serveur, pas de bac à sable (`{{ self.__class__... }}` en cours de test).", [
+        candidat("c1","Server-Side Template Injection (SSTI) — génération de devis",
+          "Le module de génération de devis évalue un gabarit Jinja2 fourni par l'utilisateur sans isolation (sandbox), permettant l'exécution de code côté serveur.",
+          "Exécution de code arbitraire sur le serveur applicatif, pouvant conduire à une compromission complète du serveur et à un rebond vers le réseau interne.",
+          "Interdire les gabarits utilisateur en Jinja2 natif, utiliser un moteur sans accès réflexif (ex. logic-less template) ou un bac à sable strict et testé, valider en liste blanche.",
+          "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H", ["CWE-1336","OWASP A03:2021 — Injection"], []),
+        candidat("c2","Injection de gabarit côté serveur — accès lecture seule démontré",
+          "Une injection de gabarit permet de lire des attributs internes du moteur de rendu, sans exécution de code confirmée au moment du test.",
+          "Fuite d'informations internes à l'application, premier pas vers une exécution de code.",
+          "Corriger l'évaluation du gabarit ; revalider après correction qu'aucune exécution de code n'est possible.",
+          "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:N/A:N", ["CWE-1336"], ["Exécution de code non confirmée en boîte noire : seule la lecture d'attributs a été démontrée pendant le test."]),
+        candidat("c3","Exécution de code à distance — générique",
+          "Une entrée utilisateur est évaluée par un interpréteur côté serveur sans isolation suffisante.",
+          "Compromission potentielle du serveur hébergeant l'application.",
+          "Isoler ou supprimer l'évaluation dynamique d'entrées utilisateur.",
+          "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H", ["CWE-94"], [])
+      ], 0)
+  ];
+}
+
+function noteEcartee(){
+  return {
+    id:"n33", nomFichier:"33-fuite-identifiants-git.md", ecartee:true,
+    texte:"## Observation 33 — Dépôt interne\n\nUn historique git de l'outillage interne contient un fichier `.env`\nsupprimé en commit n+1 mais toujours présent dans l'historique :\nidentifiants de connexion à une base de préproduction.\n\nAucune règle du catalogue ne couvre ce cas précisément : entrée non rattachée,\nà qualifier manuellement.",
+    candidatsPossibles:[
+      {id:"g1", nom:"Secrets exposés dans l'historique Git"},
+      {id:"g2", nom:"Identifiants en clair dans un fichier de configuration"},
+      {id:"g3", nom:"Fuite d'informations — générique"}
+    ],
+    statut:"ecartee"
+  };
+}
+
+function detectionsIncident(){
+  return [
+    {id:"d1", technique:"T1110 — Force brute", hote:"BASTION01", plage:"02:14 – 02:47", severite:"elevee",
+     titre:"Tentatives de force brute sur le compte « administrateur »",
+     recit:"Entre 02:14 et 02:47, 418 tentatives d'authentification échouées ont visé le compte « administrateur » du bastion BASTION01, depuis une seule adresse IP source interne, avant une connexion réussie à 02:47."},
+    {id:"d2", technique:"T1078 — Comptes valides", hote:"BASTION01", plage:"02:47", severite:"elevee",
+     titre:"Authentification réussie après la série d'échecs",
+     recit:"Immédiatement après la série de tentatives échouées, une connexion a réussi avec le compte « administrateur », suggérant la découverte du mot de passe par force brute."},
+    {id:"d3", technique:"T1003.001 — Dumping LSASS", hote:"BASTION01", plage:"03:10", severite:"critique",
+     titre:"Accès au processus LSASS",
+     recit:"À 03:10, un outil non référencé a ouvert une poignée sur le processus LSASS avec les droits nécessaires à l'extraction d'identifiants en mémoire."},
+    {id:"d4", technique:"T1021.001 — RDP", hote:"SRV-FILES02", plage:"03:25", severite:"moyenne",
+     titre:"Rebond RDP vers le serveur de fichiers",
+     recit:"À 03:25, une connexion RDP a été établie depuis BASTION01 vers SRV-FILES02 avec le compte compromis, dix minutes après l'accès à LSASS."},
+    {id:"d5", technique:"T1070.001 — Effacement des journaux", hote:"BASTION01", plage:"03:40", severite:"elevee",
+     titre:"Effacement du journal de sécurité Windows",
+     recit:"À 03:40, le journal de sécurité Windows de BASTION01 a été effacé, interrompant la visibilité sur les actions suivantes de l'attaquant."}
+  ];
+}
+
+/* ===================== État global ===================== */
+
+var state = {
+  vue: "accueil",
+  workflowChoisi: "fiches",
+  fichiersDeposes: [],
+  erreurDepot: null,
+  modeleChoisi: "granite",
+  langueChoisie: "fr",
+  lotDejaEnCours: false,
+  lots: [
+    {id:"l-nord", type:"fiches", nom:"Mission Nord", notes:12, statut:"termine", heure:"08:40"},
+    {id:"l-sud", type:"fiches", nom:"Mission Sud", notes:8, statut:"en-cours", heure:"09:14"},
+    {id:"l-q3", type:"fiches", nom:"Audit interne Q3", notes:6, statut:"echoue", heure:"hier 17:02"},
+    {id:"i-bastion", type:"incident", nom:"Bastion DC-SRV", notes:3, statut:"termine", heure:"hier 22:10"}
+  ],
+  relecture: {
+    notes: notesDemo(),
+    ecartee: noteEcartee(),
+    indexActif: 0,
+    tiroirReplie: false
+  },
+  suivi: {total:12, fait:0, evenements:[], timer:null, enErreur:false},
+  incidentSuivi: {total:3, fait:0, evenements:[], timer:null},
+  incidentResultat: {detections: detectionsIncident(), filtreSeverite:null},
+  focusAvant: null,
+  enregistrementTimer: null
+};
+
+/* ===================== Utilitaires ===================== */
+
+function $(sel, root){ return (root||document).querySelector(sel); }
+function $all(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
+function el(tag, attrs, children){
+  var n = document.createElement(tag);
+  attrs = attrs || {};
+  Object.keys(attrs).forEach(function(k){
+    if(k === "html"){ n.innerHTML = attrs[k]; }
+    else if(k.indexOf("on") === 0 && typeof attrs[k] === "function"){ n.addEventListener(k.slice(2), attrs[k]); }
+    else if(k === "text"){ n.textContent = attrs[k]; }
+    else { n.setAttribute(k, attrs[k]); }
+  });
+  (children||[]).forEach(function(c){ if(c) n.appendChild(c); });
+  return n;
+}
+function annoncer(texte){
+  var live = $("#live-sobre");
+  live.textContent = "";
+  window.setTimeout(function(){ live.textContent = texte; }, 30);
+}
+function toast(msg){
+  var t = $("#toast");
+  t.textContent = msg;
+  t.hidden = false;
+  window.clearTimeout(t._timer);
+  t._timer = window.setTimeout(function(){ t.hidden = true; }, 4200);
+}
+
+/* ===================== CVSS 3.1 (calcul réel) ===================== */
+
+var CVSS_W = {
+  AV:{N:0.85,A:0.62,L:0.55,P:0.2},
+  AC:{L:0.77,H:0.44},
+  UI:{N:0.85,R:0.62},
+  C:{H:0.56,L:0.22,N:0}, I:{H:0.56,L:0.22,N:0}, A:{H:0.56,L:0.22,N:0},
+  PR_U:{N:0.85,L:0.62,H:0.27},
+  PR_C:{N:0.85,L:0.68,H:0.5}
+};
+function roundup(n){
+  var int_input = Math.round(n*100000);
+  if(int_input % 10000 === 0){ return int_input/100000; }
+  return (Math.floor(int_input/10000)+1)/10;
+}
+function parseVecteur(v){
+  if(!v || v.indexOf("CVSS:3.1/") !== 0) return null;
+  var parts = v.slice(9).split("/");
+  var m = {};
+  for(var i=0;i<parts.length;i++){
+    var kv = parts[i].split(":");
+    if(kv.length !== 2) return null;
+    m[kv[0]] = kv[1];
+  }
+  var requis = ["AV","AC","PR","UI","S","C","I","A"];
+  for(var j=0;j<requis.length;j++){ if(!(requis[j] in m)) return null; }
+  if(["N","A","L","P"].indexOf(m.AV) < 0) return null;
+  if(["L","H"].indexOf(m.AC) < 0) return null;
+  if(["N","L","H"].indexOf(m.PR) < 0) return null;
+  if(["N","R"].indexOf(m.UI) < 0) return null;
+  if(["U","C"].indexOf(m.S) < 0) return null;
+  if(["N","L","H"].indexOf(m.C) < 0 || ["N","L","H"].indexOf(m.I) < 0 || ["N","L","H"].indexOf(m.A) < 0) return null;
+  return m;
+}
+function calculerCVSS(vecteurTexte){
+  var m = parseVecteur(vecteurTexte);
+  if(!m) return null;
+  var scopeChanged = m.S === "C";
+  var pr = scopeChanged ? CVSS_W.PR_C[m.PR] : CVSS_W.PR_U[m.PR];
+  var iss = 1 - ((1-CVSS_W.C[m.C]) * (1-CVSS_W.I[m.I]) * (1-CVSS_W.A[m.A]));
+  var impact = scopeChanged
+    ? 7.52*(iss-0.029) - 3.25*Math.pow(iss-0.02, 15)
+    : 6.42*iss;
+  var exploitabilite = 8.22 * CVSS_W.AV[m.AV] * CVSS_W.AC[m.AC] * pr * CVSS_W.UI[m.UI];
+  var base;
+  if(impact <= 0){ base = 0; }
+  else { base = scopeChanged ? roundup(Math.min(1.08*(impact+exploitabilite), 10)) : roundup(Math.min(impact+exploitabilite, 10)); }
+  var severite;
+  if(base === 0) severite = "aucune";
+  else if(base < 4) severite = "faible";
+  else if(base < 7) severite = "moyenne";
+  else if(base < 9) severite = "elevee";
+  else severite = "critique";
+  return {score: base.toFixed(1), severite: severite};
+}
+
+/* ===================== Boîte de confirmation (piège de focus) ===================== */
+
+function confirmer(texte, onValider, labelValider){
+  var overlay = $("#overlay-confirm");
+  $("#confirm-texte").textContent = texte;
+  var btnValider = $("#confirm-valider");
+  btnValider.textContent = labelValider || "Confirmer";
+  state.focusAvant = document.activeElement;
+  overlay.hidden = false;
+  var btnAnnuler = $("#confirm-annuler");
+  btnAnnuler.focus();
+
+  function fermer(){
+    overlay.hidden = true;
+    document.removeEventListener("keydown", surKeydown, true);
+    btnValider.removeEventListener("click", surValider);
+    btnAnnuler.removeEventListener("click", surAnnuler);
+    if(state.focusAvant && state.focusAvant.focus) state.focusAvant.focus();
+  }
+  function surValider(){ fermer(); onValider(); }
+  function surAnnuler(){ fermer(); }
+  function surKeydown(e){
+    if(e.key === "Escape"){ e.preventDefault(); fermer(); return; }
+    if(e.key === "Tab"){
+      var focusables = [btnAnnuler, btnValider];
+      var idx = focusables.indexOf(document.activeElement);
+      if(e.shiftKey && document.activeElement === btnAnnuler){ e.preventDefault(); btnValider.focus(); }
+      else if(!e.shiftKey && document.activeElement === btnValider){ e.preventDefault(); btnAnnuler.focus(); }
+      else if(idx === -1){ e.preventDefault(); btnAnnuler.focus(); }
+    }
+  }
+  btnValider.addEventListener("click", surValider);
+  btnAnnuler.addEventListener("click", surAnnuler);
+  document.addEventListener("keydown", surKeydown, true);
+}
+
+/* ===================== Rendu : en-tête ===================== */
+
+function majEnTete(){
+  var bloc = $("#en-tete-lot");
+  if(state.vue === "suivi" || state.vue === "relecture"){
+    bloc.hidden = false;
+    var r = state.relecture;
+    var validees = r.notes.filter(function(n){return n.statut==="validee";}).length;
+    bloc.textContent = "Mission Nord · " + r.notes.length + " notes · " + validees + " validée(s)";
+  } else if(state.vue === "incident-suivi" || state.vue === "incident-resultat"){
+    bloc.hidden = false;
+    bloc.textContent = "Bastion DC-SRV · journaux d'incident";
+  } else {
+    bloc.hidden = true;
+  }
+}
+
+/* ===================== Vue : Accueil ===================== */
+
+function rendreAccueil(){
+  var page = el("div", {class:"page"});
+  page.appendChild(el("h1", {class:"titre-page", text:"Nouveau lot"}));
+
+  if(state.lotDejaEnCours){
+    var sud = state.lots.filter(function(l){return l.id==="l-sud";})[0];
+    page.appendChild(el("div", {class:"bandeau-erreur", role:"alert"}, [
+      el("p", {html:"Un lot est déjà en cours (lancé à " + sud.heure + "). Attendez sa fin ou " +
+        "<button class=\"btn-texte\" id=\"lien-lot-en-cours\">reprenez-le</button>."})
+    ]));
+  }
+
+  var choix = el("div", {class:"choix-workflow", role:"group", "aria-label":"Choix du workflow"});
+  ["fiches","incident"].forEach(function(wf){
+    var actif = state.workflowChoisi === wf;
+    var carte = el("button", {
+      class:"carte-workflow", type:"button", "aria-pressed": actif ? "true":"false",
+      onclick:function(){ state.workflowChoisi = wf; render(); }
+    }, [
+      el("h3", {text: wf==="fiches" ? "Fiches" : "Incident"}),
+      el("p", {class:"petit", text: wf==="fiches"
+        ? "Notes de pentest → rapport de constats, relecture et correction."
+        : "Journaux (bastion, postes) → rapport de détections CERT."})
+    ]);
+    choix.appendChild(carte);
+  });
+  page.appendChild(choix);
+
+  var disabledDepot = state.lotDejaEnCours;
+  var carteDepot = el("div", {
+    class:"carte-depot" + (state.dragOver ? " actif":""),
+    "aria-disabled": disabledDepot ? "true":"false",
+    ondragover:function(e){ if(disabledDepot) return; e.preventDefault(); state.dragOver = true; render(); },
+    ondragleave:function(){ state.dragOver=false; render(); },
+    ondrop:function(e){
+      e.preventDefault(); state.dragOver = false;
+      if(disabledDepot){ render(); return; }
+      traiterFichiers(e.dataTransfer.files);
+    }
+  });
+  var titreDepot = state.workflowChoisi === "fiches" ? "notes de mission" : "journaux (bastion, postes)";
+  carteDepot.appendChild(el("p", {text:"Déposez vos " + titreDepot + " ici, ou cliquez pour choisir des fichiers."}));
+  var inputFile = el("input", {type:"file", multiple:"multiple", class:"visually-hidden", id:"input-fichiers",
+    disabled: disabledDepot ? "disabled" : null,
+    onchange:function(e){ traiterFichiers(e.target.files); e.target.value=""; }});
+  carteDepot.appendChild(inputFile);
+  var btnChoisir = el("button", {class:"btn btn-secondaire", type:"button", style:"margin-top:12px;",
+    disabled: disabledDepot ? "disabled" : null,
+    onclick:function(){ if(!disabledDepot) inputFile.click(); }, text:"Choisir des fichiers"});
+  carteDepot.appendChild(btnChoisir);
+
+  if(state.erreurDepot){
+    carteDepot.appendChild(el("p", {class:"erreur-fichier", role:"alert", text: state.erreurDepot}));
+  }
+  if(state.fichiersDeposes.length){
+    var liste = el("ul", {class:"liste-fichiers", "aria-label":"Fichiers déposés"});
+    state.fichiersDeposes.forEach(function(f, idx){
+      liste.appendChild(el("li", {}, [
+        el("span", {text: f.nom + " — " + f.taille}),
+        el("button", {class:"btn-texte", type:"button", "aria-label":"Retirer " + f.nom,
+          onclick:function(){ state.fichiersDeposes.splice(idx,1); render(); }, text:"Retirer"})
+      ]));
+    });
+    carteDepot.appendChild(liste);
+  }
+  page.appendChild(carteDepot);
+
+  if(state.workflowChoisi === "fiches"){
+    var ligne = el("div", {class:"ligne-selecteurs"});
+    var champModele = el("div", {class:"champ-selecteur"});
+    champModele.appendChild(el("label", {for:"select-modele", text:"Modèle"}));
+    var selectModele = el("select", {id:"select-modele", disabled: disabledDepot?"disabled":null,
+      onchange:function(e){ state.modeleChoisi = e.target.value; }});
+    MODELES.forEach(function(m){
+      var opt = el("option", {value:m.id, text: m.nom + " — " + m.duree + ", " + m.memoire + (m.dispo? "" : " (absent)")});
+      if(!m.dispo){ opt.disabled = true; opt.className="option-indispo"; }
+      if(m.id === state.modeleChoisi){ opt.selected = true; }
+      selectModele.appendChild(opt);
+    });
+    champModele.appendChild(selectModele);
+    ligne.appendChild(champModele);
+
+    var champLangue = el("div", {class:"champ-selecteur"});
+    champLangue.appendChild(el("label", {for:"select-langue", text:"Langue du lot"}));
+    var selectLangue = el("select", {id:"select-langue", disabled: disabledDepot?"disabled":null,
+      onchange:function(e){ state.langueChoisie = e.target.value; }});
+    [["fr","Français"],["en","English"]].forEach(function(p){
+      var opt = el("option", {value:p[0], text:p[1]});
+      if(p[0]===state.langueChoisie) opt.selected = true;
+      selectLangue.appendChild(opt);
+    });
+    champLangue.appendChild(selectLangue);
+    ligne.appendChild(champLangue);
+    page.appendChild(ligne);
+  }
+
+  var peutLancer = !disabledDepot && state.fichiersDeposes.length > 0;
+  page.appendChild(el("button", {class:"btn btn-primaire", type:"button", disabled: peutLancer?null:"disabled",
+    onclick: lancerLot, text: "Lancer le lot"}));
+
+  if(state.lots.some(function(l){return l.statut!=="en-cours";})){
+    page.appendChild(el("p", {style:"margin-top:24px;", html:"<a href=\"#\" id=\"lien-lots-recents\">Voir les lots récents →</a>"}));
+  }
+
+  var main = $("#main");
+  main.innerHTML = "";
+  main.appendChild(page);
+
+  var lienEnCours = $("#lien-lot-en-cours");
+  if(lienEnCours) lienEnCours.addEventListener("click", function(){ ouvrirSuivi("l-sud"); });
+  var lienLots = $("#lien-lots-recents");
+  if(lienLots) lienLots.addEventListener("click", function(e){ e.preventDefault(); state.vue="lots"; render(); });
+}
+
+function traiterFichiers(fileList){
+  state.erreurDepot = null;
+  var files = Array.prototype.slice.call(fileList);
+  for(var i=0;i<files.length;i++){
+    var f = files[i];
+    var nomValide = /^[A-Za-zÀ-ÿ0-9 ._-]+\.(md|txt|json|log)$/i.test(f.name);
+    if(!nomValide){
+      state.erreurDepot = "Le nom « " + f.name + " » n'est pas accepté. Utilisez des lettres, chiffres, espaces, points ou tirets, en .md, .txt, .json ou .log.";
+      render(); return;
+    }
+    if(f.size > 1024*1024){
+      state.erreurDepot = "Ce fichier dépasse 1 Mo (" + f.name + ", " + (f.size/1024/1024).toFixed(1) + " Mo). Réduisez-le ou retirez-le du dépôt.";
+      render(); return;
+    }
+    state.fichiersDeposes.push({nom:f.name, taille: f.size > 1024 ? (f.size/1024).toFixed(0)+" Ko" : f.size+" o"});
+  }
+  render();
+}
+
+function lancerLot(){
+  state.suivi = {total: state.workflowChoisi==="fiches" ? 12 : 1, fait:0, evenements:[], timer:null, enErreur:false};
+  state.vue = state.workflowChoisi === "fiches" ? "suivi" : "incident-suivi";
+  state.fichiersDeposes = [];
+  render();
+  if(state.workflowChoisi === "fiches") demarrerSuiviFiches(); else demarrerSuiviIncident();
+}
+
+function ouvrirSuivi(id){
+  var lot = state.lots.filter(function(l){return l.id===id;})[0];
+  if(!lot) return;
+  if(lot.statut === "echoue"){
+    state.vue = lot.type === "incident" ? "incident-suivi" : "suivi";
+    state.suivi = {total: 6, fait:4, evenements:[
+      {texte:"Fiche 1 démarrée", t:"09:02"},{texte:"Fiche 1 terminée", t:"09:02"},
+      {texte:"Fiche 2 démarrée", t:"09:03"},{texte:"Fiche 2 terminée", t:"09:03"},
+      {texte:"Fiche 3 démarrée", t:"09:04"},{texte:"Fiche 3 terminée", t:"09:04"},
+      {texte:"Fiche 4 démarrée", t:"09:05"},{texte:"Fiche 4 terminée", t:"09:05"},
+      {texte:"Fiche 5 démarrée", t:"09:06"}
+    ], timer:null, enErreur:true};
+    render();
+    return;
+  }
+  if(lot.statut === "en-cours" && lot.id==="l-sud"){
+    state.vue = "suivi";
+    state.suivi = {total:8, fait:3, evenements:[
+      {texte:"Fiche 1 démarrée", t:"09:14"},{texte:"Fiche 1 terminée", t:"09:14"},
+      {texte:"Fiche 2 démarrée", t:"09:15"},{texte:"Fiche 2 terminée", t:"09:15"},
+      {texte:"Fiche 3 démarrée", t:"09:16"}
+    ], timer:null, enErreur:false};
+    render();
+    demarrerSuiviFiches();
+    return;
+  }
+  if(lot.type === "incident"){ state.vue = "incident-resultat"; render(); return; }
+  state.vue = "relecture"; render();
+}
+
+/* ===================== Vue : Lots récents ===================== */
+
+function rendreLots(){
+  var page = el("div", {class:"page"});
+  page.appendChild(el("h1", {class:"titre-page", text:"Lots récents"}));
+  var table = el("table", {class:"lots"});
+  table.appendChild(el("thead", {}, [el("tr", {}, [
+    el("th", {text:"Lot"}), el("th", {text:"Type"}), el("th", {text:"Notes"}), el("th", {text:"Statut"}), el("th", {text:"Lancé"})
+  ])]));
+  var tbody = el("tbody");
+  state.lots.forEach(function(l){
+    var tr = el("tr", {tabindex:"0", onclick:function(){ ouvrirSuivi(l.id); },
+      onkeydown:function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); ouvrirSuivi(l.id);} }});
+    tr.appendChild(el("td", {text:l.nom}));
+    tr.appendChild(el("td", {text: l.type==="fiches" ? "Fiches" : "Incident"}));
+    tr.appendChild(el("td", {text:String(l.notes)}));
+    var statutLabel = {"en-cours":"En cours","termine":"Terminé","echoue":"Échoué"}[l.statut];
+    var statutClasse = {"en-cours":"en-cours","termine":"termine","echoue":"echoue"}[l.statut];
+    tr.appendChild(el("td", {}, [el("span", {class:"pastille " + statutClasse}, [
+      el("span", {class:"puce", "aria-hidden":"true"}), el("span", {text: statutLabel})
+    ])]));
+    tr.appendChild(el("td", {class:"petit", text:l.heure}));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  page.appendChild(table);
+  page.appendChild(el("p", {style:"margin-top:20px;", html:"<a href=\"#\" id=\"lien-accueil\">← Retour à l'accueil</a>"}));
+  var main = $("#main"); main.innerHTML=""; main.appendChild(page);
+  $("#lien-accueil").addEventListener("click", function(e){ e.preventDefault(); state.vue="accueil"; render(); });
+}
+
+/* ===================== Vue : Suivi (fiches) ===================== */
+
+function demarrerSuiviFiches(){
+  if(state.suivi.timer) return;
+  state.suivi.timer = window.setInterval(function(){
+    if(state.suivi.fait >= state.suivi.total){
+      window.clearInterval(state.suivi.timer); state.suivi.timer = null;
+      window.setTimeout(function(){ state.vue = "relecture"; render(); }, 500);
+      return;
+    }
+    state.suivi.fait++;
+    var n = state.suivi.fait;
+    var nomNote = n <= state.relecture.notes.length ? state.relecture.notes[n-1].nomFichier : ("fiche-" + n + ".md");
+    state.suivi.evenements.push({texte:"Fiche " + n + " (" + nomNote + ") générée", t:horodatage()});
+    if(state.suivi.fait % 2 === 0) annoncer(state.suivi.fait + " sur " + state.suivi.total + " fiches générées.");
+    render();
+  }, 650);
+}
+function horodatage(){
+  var d = new Date();
+  return (d.getHours()+"").padStart(2,"0") + ":" + (d.getMinutes()+"").padStart(2,"0") + ":" + (d.getSeconds()+"").padStart(2,"0");
+}
+
+function rendreSuivi(){
+  var page = el("div", {class:"page"});
+  page.appendChild(el("h1", {class:"titre-page", text:"Suivi du lot — Mission Nord"}));
+  if(state.suivi.enErreur){
+    page.appendChild(el("div", {class:"bandeau-erreur", role:"alert"}, [
+      el("p", {text:"Le moteur de génération ne répond pas. Vérifiez qu'il est démarré, puis réessayez."})
+    ]));
+  }
+  var pct = Math.round(100 * state.suivi.fait / state.suivi.total);
+  page.appendChild(el("div", {class:"suivi-barre"}, [el("div", {style:"width:"+pct+"%;"})]));
+  page.appendChild(el("p", {class:"suivi-compteur", text: state.suivi.fait + " / " + state.suivi.total + " fiches"}));
+  var journal = el("ul", {class:"journal", "aria-label":"Journal d'événements"});
+  state.suivi.evenements.slice().reverse().forEach(function(ev){
+    journal.appendChild(el("li", {}, [el("span", {class:"petit", text:ev.t}), el("span", {text:ev.texte})]));
+  });
+  page.appendChild(journal);
+  if(!state.suivi.enErreur && state.suivi.fait > 0){
+    page.appendChild(el("button", {class:"btn btn-secondaire", type:"button", style:"margin-top:16px;",
+      onclick:function(){ state.vue="relecture"; render(); }, text:"Ouvrir la relecture (fiches déjà prêtes)"}));
+  }
+  if(state.suivi.enErreur){
+    page.appendChild(el("p", {style:"margin-top:16px;", html:"<a href=\"#\" id=\"lien-reprendre\">Les fiches déjà terminées restent utilisables en relecture →</a>"}));
+  }
+  var main = $("#main"); main.innerHTML=""; main.appendChild(page);
+  var lienReprendre = $("#lien-reprendre");
+  if(lienReprendre) lienReprendre.addEventListener("click", function(e){ e.preventDefault(); state.vue="relecture"; render(); });
+}
+
+/* ===================== Vue : Relecture ===================== */
+
+function noteActive(){ return state.relecture.notes[state.relecture.indexActif]; }
+
+function enregistrerChamp(){
+  var ind = $("#indicateur-enreg");
+  if(!ind) return;
+  ind.textContent = "Enregistrement…";
+  window.clearTimeout(state.enregistrementTimer);
+  state.enregistrementTimer = window.setTimeout(function(){
+    var n = noteActive();
+    if(n.statut === "validee"){ n.statut = "a-revoir-repasse"; n.statut = "a-revoir"; }
+    var indNow = $("#indicateur-enreg");
+    if(indNow) indNow.textContent = "Enregistré";
+    annoncer("Enregistré");
+    majTiroirStatuts();
+  }, 800);
+}
+
+function majTiroirStatuts(){
+  $all("#tiroir-liste [role=option]").forEach(function(li){
+    var id = li.getAttribute("data-id");
+    var n = state.relecture.notes.filter(function(x){return x.id===id;})[0] ||
+      (state.relecture.ecartee.id===id ? state.relecture.ecartee : null);
+    if(!n) return;
+    var pastille = li.querySelector(".pastille");
+    if(pastille){
+      pastille.className = "pastille " + statutClasse(n.statut);
+      pastille.querySelector(".label-statut").textContent = statutLabel(n.statut);
+    }
+  });
+}
+
+function statutLabel(s){
+  return {ok:"Générée", "a-revoir":"À revoir", validee:"Validée", ecartee:"Écartée", "en-generation":"En génération"}[s] || s;
+}
+function statutClasse(s){ return s; }
+
+function changerCandidat(idxCandidat){
+  var n = noteActive();
+  if(n.candidatActif === idxCandidat) return;
+  var modifiee = JSON.stringify(n.champs) !== JSON.stringify(n.candidats[n.candidatActif]);
+  function appliquer(){
+    n.statut = "en-generation";
+    render();
+    window.setTimeout(function(){
+      n.candidatActif = idxCandidat;
+      n.champs = JSON.parse(JSON.stringify(n.candidats[idxCandidat]));
+      n.statut = n.champs.motifs.length ? "a-revoir" : "ok";
+      annoncer("Génération terminée pour " + n.candidats[idxCandidat].titre + ".");
+      render();
+    }, 1400);
+  }
+  if(modifiee){
+    confirmer("La fiche porte des corrections non enregistrées dans la génération précédente. Changer de candidat régénère la fiche et perd ces corrections. Continuer ?", appliquer, "Régénérer");
+  } else {
+    appliquer();
+  }
+}
+
+function rendreRelecture(){
+  var r = state.relecture;
+  var shell = el("div", {class:"relecture-shell page-large"});
+
+  // Tiroir
+  var tiroir = el("div", {class:"tiroir" + (r.tiroirReplie ? " replie":"")});
+  var tete = el("div", {class:"tiroir-tete"}, [
+    el("span", {class:"surtitre", text:"Fiches"}),
+    el("button", {class:"btn-texte", type:"button", "aria-label": r.tiroirReplie ? "Déplier le tiroir" : "Replier le tiroir",
+      onclick:function(){ r.tiroirReplie = !r.tiroirReplie; render(); }, text: r.tiroirReplie ? "▸" : "◂"})
+  ]);
+  tiroir.appendChild(tete);
+  if(!r.tiroirReplie){
+    var liste = el("ul", {class:"tiroir-liste", id:"tiroir-liste", role:"listbox", "aria-label":"Fiches du lot"});
+    r.notes.forEach(function(n, idx){
+      var selected = idx === r.indexActif && !r.ecarteeOuverte;
+      var opt = el("li", {role:"option", "aria-selected": selected?"true":"false", tabindex: selected?"0":"-1",
+        "data-id": n.id,
+        onclick:function(){ r.indexActif = idx; r.ecarteeOuverte=false; render(); },
+        onkeydown:function(e){ gererFlechesTiroir(e, idx); }
+      }, [
+        el("span", {class:"tiroir-nom", text:n.nomFichier}),
+        el("span", {class:"pastille " + n.statut}, [
+          el("span", {class:"puce", "aria-hidden":"true"}),
+          el("span", {class:"label-statut", text: statutLabel(n.statut)})
+        ])
+      ]);
+      liste.appendChild(opt);
+    });
+    var ec = r.ecartee;
+    var selectedEc = !!r.ecarteeOuverte;
+    liste.appendChild(el("li", {role:"option", "aria-selected": selectedEc?"true":"false", tabindex: selectedEc?"0":"-1",
+      "data-id": ec.id,
+      onclick:function(){ r.ecarteeOuverte = true; render(); },
+      onkeydown:function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); r.ecarteeOuverte=true; render(); } }
+    }, [
+      el("span", {class:"tiroir-nom", text:ec.nomFichier}),
+      el("span", {class:"pastille ecartee"}, [el("span", {class:"puce","aria-hidden":"true"}), el("span", {class:"label-statut", text:"Écartée"})])
+    ]));
+    tiroir.appendChild(liste);
+  }
+  shell.appendChild(tiroir);
+
+  // Corps
+  var corps = el("div", {class:"relecture-corps"});
+  if(r.ecarteeOuverte){
+    corps.appendChild(rendreEntreeEcartee());
+  } else {
+    var n = noteActive();
+    corps.appendChild(rendreCandidats(n));
+    var deux = el("div", {class:"deux-colonnes", lang: state.langueChoisie});
+    deux.appendChild(el("div", {class:"panneau-note", "aria-label":"Note source (lecture seule)", text:n.texte}));
+    deux.appendChild(rendreFormulaireFiche(n));
+    corps.appendChild(deux);
+    corps.appendChild(rendreBarreActions(n));
+  }
+  shell.appendChild(corps);
+
+  var main = $("#main"); main.innerHTML=""; main.appendChild(shell);
+  installerRaccourcisRelecture();
+}
+
+function gererFlechesTiroir(e, idx){
+  var r = state.relecture;
+  if(e.key === "ArrowDown" || e.key === "ArrowUp"){
+    e.preventDefault();
+    var total = r.notes.length + 1; // + écartée
+    var ordre = idx; // position actuelle si pas écartée
+    var nextIdx;
+    if(e.key === "ArrowDown"){ nextIdx = idx+1 >= r.notes.length ? "ecartee" : idx+1; }
+    else { nextIdx = idx-1 < 0 ? "ecartee" : idx-1; }
+    if(nextIdx === "ecartee"){ r.ecarteeOuverte = true; } else { r.indexActif = nextIdx; r.ecarteeOuverte=false; }
+    render();
+    window.setTimeout(function(){
+      var sel = $("#tiroir-liste [aria-selected=true]");
+      if(sel) sel.focus();
+    }, 0);
+  } else if(e.key === "Enter" || e.key === " "){
+    e.preventDefault(); r.indexActif = idx; r.ecarteeOuverte=false; render();
+  }
+}
+
+function rendreCandidats(n){
+  var tabs = el("div", {class:"candidats", role:"tablist", "aria-label":"Constats candidats"});
+  n.candidats.forEach(function(c, idx){
+    var selected = idx === n.candidatActif;
+    tabs.appendChild(el("button", {role:"tab", type:"button", "aria-selected": selected?"true":"false",
+      tabindex: selected?"0":"-1", id:"tab-"+c.id, "aria-controls":"panel-fiche",
+      onclick:function(){ changerCandidat(idx); },
+      onkeydown:function(e){
+        if(e.key==="ArrowRight"){ e.preventDefault(); var ni=(idx+1)%n.candidats.length; $("#tab-"+n.candidats[ni].id).focus(); }
+        if(e.key==="ArrowLeft"){ e.preventDefault(); var pi=(idx-1+n.candidats.length)%n.candidats.length; $("#tab-"+n.candidats[pi].id).focus(); }
+        if(e.key==="Enter"||e.key===" "){ e.preventDefault(); changerCandidat(idx); }
+      }
+    }, [
+      el("span", {text:c.id==="c1"?"Candidat 1":c.id==="c2"?"Candidat 2":"Candidat 3"}),
+      el("span", {class:"score", text: calculerCVSS(c.vecteur) ? calculerCVSS(c.vecteur).score : "—"})
+    ]));
+  });
+  return tabs;
+}
+
+function rendreFormulaireFiche(n){
+  var busy = n.statut === "en-generation";
+  var panneau = el("div", {class:"panneau-fiche", id:"panel-fiche", role:"tabpanel", "aria-busy": busy?"true":"false", lang: state.langueChoisie});
+  panneau.appendChild(el("div", {class:"voile", "aria-hidden":"true"}, [el("span",{text:"Génération en cours…"})]));
+
+  if(n.champs.motifs && n.champs.motifs.length && n.statut !== "validee"){
+    var encart = el("div", {class:"encart-motifs"}, [el("h4", {text:"Signalé à la génération"})]);
+    var ul = el("ul");
+    n.champs.motifs.forEach(function(m){ ul.appendChild(el("li", {text:m})); });
+    encart.appendChild(ul);
+    panneau.appendChild(encart);
+  }
+
+  [["titre","Titre"],["description","Description"],["impact","Impact"],["recommandation","Recommandation"]].forEach(function(f){
+    var champ = el("div", {class:"champ-fiche " + f[0]});
+    champ.appendChild(el("label", {for:"champ-"+f[0], text:f[1]}));
+    if(f[0] === "titre"){
+      champ.appendChild(el("input", {type:"text", id:"champ-"+f[0], value:n.champs[f[0]],
+        oninput:function(e){ n.champs.titre = e.target.value; enregistrerChamp(); }}));
+    } else {
+      var ta = el("textarea", {id:"champ-"+f[0], text:n.champs[f[0]],
+        oninput:function(e){ n.champs[f[0]] = e.target.value; enregistrerChamp(); }});
+      champ.appendChild(ta);
+    }
+    panneau.appendChild(champ);
+  });
+
+  var champCvss = el("div", {class:"champ-fiche"});
+  champCvss.appendChild(el("label", {for:"champ-cvss", text:"Vecteur CVSS"}));
+  var ligne = el("div", {class:"ligne-cvss"});
+  var inputCvss = el("input", {type:"text", id:"champ-cvss", class:"mono", value:n.champs.vecteur,
+    "aria-describedby":"cvss-erreur-txt",
+    oninput:function(e){
+      n.champs.vecteur = e.target.value;
+      var res = calculerCVSS(e.target.value);
+      inputCvss.setAttribute("aria-invalid", res ? "false":"true");
+      renderBadgeCvss(res);
+      enregistrerChamp();
+    }});
+  ligne.appendChild(inputCvss);
+  var badge = el("span", {id:"badge-cvss"});
+  ligne.appendChild(badge);
+  champCvss.appendChild(ligne);
+  champCvss.appendChild(el("p", {id:"cvss-erreur-txt", class:"cvss-erreur"}));
+  panneau.appendChild(champCvss);
+
+  function renderBadgeCvss(res){
+    var erreurTxt = $("#cvss-erreur-txt", panneau) || panneau.querySelector("#cvss-erreur-txt");
+    if(!res){
+      badge.innerHTML = "";
+      if(erreurTxt) erreurTxt.textContent = "Vecteur CVSS 3.1 invalide. Exemple : CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N.";
+      return;
+    }
+    if(erreurTxt) erreurTxt.textContent = "";
+    var classe = {faible:"severite-faible", moyenne:"severite-moyenne", elevee:"severite-elevee", critique:"severite-critique", aucune:"severite-faible"}[res.severite];
+    var label = {faible:"Faible", moyenne:"Moyenne", elevee:"Élevée", critique:"Critique", aucune:"Aucune"}[res.severite];
+    badge.innerHTML = "";
+    badge.appendChild(el("span", {class:"severite-pastille " + classe, text: res.score + " — " + label}));
+  }
+  renderBadgeCvss(calculerCVSS(n.champs.vecteur));
+
+  var refs = el("div", {class:"champ-fiche"});
+  refs.appendChild(el("label", {text:"Références"}));
+  var ulRefs = el("ul", {class:"refs"});
+  n.champs.refs.forEach(function(ref, idx){
+    ulRefs.appendChild(el("li", {}, [
+      el("span", {class:"mono", text:ref}),
+      el("button", {class:"btn-texte", type:"button", "aria-label":"Retirer la référence " + ref,
+        onclick:function(){ n.champs.refs.splice(idx,1); enregistrerChamp(); render(); }, text:"Retirer"})
+    ]));
+  });
+  refs.appendChild(ulRefs);
+  panneau.appendChild(refs);
+
+  return panneau;
+}
+
+function rendreBarreActions(n){
+  var barre = el("div", {class:"barre-actions"});
+  barre.appendChild(el("span", {class:"indicateur-enreg", id:"indicateur-enreg", "aria-live":"polite", text:"Enregistré"}));
+
+  var cvssOk = !!calculerCVSS(n.champs.vecteur);
+  var btnValider = el("button", {class:"btn btn-primaire", type:"button", id:"btn-valider",
+    disabled: cvssOk ? null : "disabled", "aria-describedby": cvssOk ? null : "raison-valider",
+    onclick: function(){ validerFiche(n); }, text:"Valider"});
+  if(!cvssOk){
+    barre.appendChild(el("span", {id:"raison-valider", class:"raison-desactive", text:"Corrigez le vecteur CVSS avant de valider."}));
+  }
+  barre.appendChild(el("button", {class:"btn btn-secondaire", type:"button", onclick:allerPrecedente, text:"◂ Précédente"}));
+  barre.appendChild(el("button", {class:"btn btn-secondaire", type:"button", onclick:allerSuivante, text:"Suivante ▸"}));
+  barre.appendChild(btnValider);
+
+  var validees = state.relecture.notes.filter(function(x){return x.statut==="validee";}).length;
+  var btnExport = el("button", {class:"btn btn-secondaire", type:"button",
+    disabled: validees>0 ? null : "disabled", "aria-describedby": validees>0 ? null : "raison-export",
+    onclick: exporterRapport, text:"Exporter"});
+  if(!validees){
+    barre.appendChild(el("span", {id:"raison-export", class:"raison-desactive", text:"Aucune fiche validée."}));
+  }
+  barre.appendChild(btnExport);
+  barre.appendChild(el("button", {class:"btn btn-secondaire", type:"button", onclick:exporterBrouillon, text:"Exporter un brouillon"}));
+  return barre;
+}
+
+function validerFiche(n){
+  n.statut = "validee";
+  render();
+  annoncer("Fiche validée.");
+}
+function allerSuivante(){
+  var r = state.relecture;
+  if(r.ecarteeOuverte){ r.ecarteeOuverte=false; r.indexActif=0; render(); return; }
+  if(r.indexActif < r.notes.length-1){ r.indexActif++; } else { r.ecarteeOuverte = true; }
+  render();
+}
+function allerPrecedente(){
+  var r = state.relecture;
+  if(r.ecarteeOuverte){ r.ecarteeOuverte=false; r.indexActif=r.notes.length-1; render(); return; }
+  if(r.indexActif > 0){ r.indexActif--; render(); }
+}
+
+function rendreEntreeEcartee(){
+  var ec = state.relecture.ecartee;
+  var panneau = el("div", {class:"deux-colonnes"});
+  panneau.appendChild(el("div", {class:"panneau-note", text:ec.texte}));
+  var droite = el("div", {class:"ecartee-choix"});
+  droite.appendChild(el("h2", {text:"Entrée non rattachée"}));
+  droite.appendChild(el("p", {class:"petit", text:"Aucune règle du catalogue ne correspond automatiquement. Choisissez un candidat pour générer sa fiche."}));
+  var opts = el("div", {class:"options"});
+  ec.candidatsPossibles.forEach(function(c){
+    opts.appendChild(el("button", {class:"btn btn-secondaire", type:"button",
+      onclick:function(){ genererDepuisEcartee(c); }, text:c.nom}));
+  });
+  droite.appendChild(opts);
+  panneau.appendChild(droite);
+  return panneau;
+}
+
+function genererDepuisEcartee(c){
+  var ec = state.relecture.ecartee;
+  ec.statut = "en-generation";
+  render();
+  window.setTimeout(function(){
+    var nouvelle = note("n33g", ec.nomFichier, ec.texte, [
+      candidat("g", c.nom, "Fiche générée à la demande sur « " + c.nom + "  », à partir d'une entrée initialement non rattachée.",
+        "Impact à préciser au regard du contexte applicatif.", "Qualifier et traiter selon la nature exacte de la fuite constatée.",
+        "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N", ["CWE-312"], [])
+    ], 0);
+    state.relecture.notes.push(nouvelle);
+    state.relecture.ecartee = null; // retirée de la liste une fois générée
+    state.relecture.indexActif = state.relecture.notes.length-1;
+    state.relecture.ecarteeOuverte = false;
+    annoncer("Fiche générée depuis l'entrée non rattachée.");
+    render();
+  }, 1400);
+}
+
+function installerRaccourcisRelecture(){
+  document.onkeydown = function(e){
+    if(state.vue !== "relecture") return;
+    var dansChamp = ["INPUT","TEXTAREA","SELECT"].indexOf(document.activeElement.tagName) >= 0;
+    if(e.ctrlKey && e.key === "Enter" && !state.relecture.ecarteeOuverte){
+      e.preventDefault(); validerFiche(noteActive()); return;
+    }
+    if(dansChamp) return;
+    if(e.ctrlKey && e.altKey && e.key === "ArrowDown"){ e.preventDefault(); allerSuivante(); }
+    if(e.ctrlKey && e.altKey && e.key === "ArrowUp"){ e.preventDefault(); allerPrecedente(); }
+  };
+}
+
+/* ===================== Export ===================== */
+
+function exporterRapport(){
+  toast("Téléchargement simulé : rapport-mission-nord.docx (fiches validées uniquement).");
+}
+function exporterBrouillon(){
+  toast("Téléchargement simulé : rapport-mission-nord-brouillon.docx (toutes les fiches, non validées marquées « non validée »).");
+}
+
+/* ===================== Vue : Incident ===================== */
+
+function demarrerSuiviIncident(){
+  if(state.incidentSuivi.timer) return;
+  state.incidentSuivi = {total:3, fait:0, evenements:[], timer:null};
+  state.incidentSuivi.timer = window.setInterval(function(){
+    if(state.incidentSuivi.fait >= state.incidentSuivi.total){
+      window.clearInterval(state.incidentSuivi.timer); state.incidentSuivi.timer=null;
+      window.setTimeout(function(){ state.vue="incident-resultat"; render(); }, 500);
+      return;
+    }
+    state.incidentSuivi.fait++;
+    var libs = ["Journaux Windows analysés","Journaux Linux analysés","Détections ATT&CK corrélées"];
+    state.incidentSuivi.evenements.push({texte: libs[state.incidentSuivi.fait-1], t: horodatage()});
+    render();
+  }, 700);
+}
+
+function rendreIncidentSuivi(){
+  var page = el("div", {class:"page"});
+  page.appendChild(el("h1", {class:"titre-page", text:"Suivi — Bastion DC-SRV"}));
+  var pct = Math.round(100*state.incidentSuivi.fait/state.incidentSuivi.total);
+  page.appendChild(el("div", {class:"suivi-barre"}, [el("div", {style:"width:"+pct+"%;"})]));
+  page.appendChild(el("p", {class:"suivi-compteur", text:state.incidentSuivi.fait + " / " + state.incidentSuivi.total}));
+  var journal = el("ul", {class:"journal", "aria-label":"Journal d'événements"});
+  state.incidentSuivi.evenements.slice().reverse().forEach(function(ev){
+    journal.appendChild(el("li", {}, [el("span", {class:"petit", text:ev.t}), el("span", {text:ev.texte})]));
+  });
+  page.appendChild(journal);
+  var main = $("#main"); main.innerHTML=""; main.appendChild(page);
+}
+
+function rendreIncidentResultat(){
+  var page = el("div", {class:"page"});
+  page.appendChild(el("h1", {class:"titre-page", text:"Résultat — Bastion DC-SRV"}));
+  var dets = state.incidentResultat.detections;
+  if(!dets.length){
+    page.appendChild(el("p", {text:"Aucune détection sur ce dépôt."}));
+  } else {
+    var parSeverite = {};
+    dets.forEach(function(d){ parSeverite[d.severite] = (parSeverite[d.severite]||0)+1; });
+    var cartes = el("div", {class:"cartes-severite", role:"group", "aria-label":"Filtrer par sévérité"});
+    [["critique","Critique"],["elevee","Élevée"],["moyenne","Moyenne"],["faible","Faible"]].forEach(function(s){
+      if(!parSeverite[s[0]]) return;
+      var actif = state.incidentResultat.filtreSeverite === s[0];
+      cartes.appendChild(el("button", {class:"carte-severite", type:"button", "aria-pressed":actif?"true":"false",
+        onclick:function(){ state.incidentResultat.filtreSeverite = actif ? null : s[0]; render(); }}, [
+        el("span", {class:"pastille " + {critique:"a-revoir",elevee:"a-revoir",moyenne:"a-revoir",faible:"ok"}[s[0]], html:""}),
+        el("div", {class:"nb", text:String(parSeverite[s[0]])}),
+        el("div", {class:"petit", text:s[1]})
+      ]));
+    });
+    page.appendChild(cartes);
+
+    var table = el("table", {class:"detections"});
+    table.appendChild(el("thead",{},[el("tr",{},[
+      el("th",{text:"Détection"}), el("th",{text:"Technique"}), el("th",{text:"Hôte"}), el("th",{text:"Plage"})
+    ])]));
+    var tbody = el("tbody");
+    var filtre = state.incidentResultat.filtreSeverite;
+    dets.filter(function(d){ return !filtre || d.severite===filtre; }).forEach(function(d){
+      tbody.appendChild(el("tr", {}, [
+        el("td", {}, [el("strong",{text:d.titre}), el("div",{class:"recit", text:d.recit})]),
+        el("td", {class:"mono", text:d.technique}),
+        el("td", {text:d.hote}),
+        el("td", {text:d.plage})
+      ]));
+    });
+    table.appendChild(tbody);
+    page.appendChild(table);
+  }
+  page.appendChild(el("div", {style:"margin-top:24px;"}, [
+    el("button", {class:"btn btn-primaire", type:"button",
+      onclick:function(){ toast("Téléchargement simulé : rapport-incident-bastion-dc-srv.docx"); },
+      text:"Télécharger le rapport"})
+  ]));
+  var main = $("#main"); main.innerHTML=""; main.appendChild(page);
+}
+
+/* ===================== Guide de la démo ===================== */
+
+var SCENARIOS = [
+  {texte:"Accueil : déposer un fichier trop gros ou mal nommé", action:function(){ state.vue="accueil"; state.workflowChoisi="fiches"; state.lotDejaEnCours=false; render(); simulerErreurDepot(); }},
+  {texte:"Accueil : un lot est déjà en cours", action:function(){ state.vue="accueil"; state.lotDejaEnCours=true; render(); }},
+  {texte:"Lots récents : reprendre un lot échoué (moteur injoignable)", action:function(){ state.vue="lots"; render(); }},
+  {texte:"Relecture : ouvrir Mission Nord directement", action:function(){ state.lotDejaEnCours=false; state.relecture.ecarteeOuverte=false; state.relecture.indexActif=0; state.vue="relecture"; render(); }},
+  {texte:"Relecture : changer de candidat sur la fiche 01 (XSS)", action:function(){ state.vue="relecture"; state.relecture.indexActif=0; state.relecture.ecarteeOuverte=false; render(); }},
+  {texte:"Relecture : entrée écartée, choisir un candidat", action:function(){ state.vue="relecture"; state.relecture.ecarteeOuverte=true; render(); }},
+  {texte:"Incident : lancer l'analyse des journaux du bastion", action:function(){ state.vue="accueil"; state.workflowChoisi="incident"; state.lotDejaEnCours=false; render(); }},
+  {texte:"Incident : voir le résultat et filtrer par sévérité", action:function(){ state.vue="incident-resultat"; render(); }}
+];
+function simulerErreurDepot(){
+  state.erreurDepot = "Ce fichier dépasse 1 Mo (rapport-pentest-v3.md, 2,4 Mo). Réduisez-le ou retirez-le du dépôt.";
+  render();
+}
+function construireGuide(){
+  var liste = $("#guide-liste");
+  liste.innerHTML = "";
+  SCENARIOS.forEach(function(s){
+    var li = el("li");
+    li.appendChild(el("button", {class:"lien-scenario", type:"button", onclick:s.action, text:s.texte}));
+    liste.appendChild(li);
+  });
+}
+$("#guide-tete").addEventListener("click", function(){
+  var g = $("#guide");
+  var ouvert = g.getAttribute("data-ouvert") === "true";
+  g.setAttribute("data-ouvert", ouvert ? "false":"true");
+  $("#guide-tete").setAttribute("aria-expanded", ouvert?"false":"true");
+});
+
+/* ===================== Rendu principal ===================== */
+
+function render(){
+  majEnTete();
+  if(state.vue === "accueil") rendreAccueil();
+  else if(state.vue === "lots") rendreLots();
+  else if(state.vue === "suivi") rendreSuivi();
+  else if(state.vue === "relecture") rendreRelecture();
+  else if(state.vue === "incident-suivi") rendreIncidentSuivi();
+  else if(state.vue === "incident-resultat") rendreIncidentResultat();
+}
+
+construireGuide();
+render();
+
+})();
+</script>
+</body>
+</html>

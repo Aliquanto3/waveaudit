@@ -13,8 +13,8 @@ updated: 2026-10-18
 
 > Voie rapide. Application web de bureau, rendu serveur Jinja + JS sans framework, servie sur
 > `127.0.0.1`. Paire avec `DESIGN.md` (tokens référencés en `{colors.primaire}` etc.). Maquette
-> de l'écran de relecture : `mockups/relecture.html` — les spines priment sur la maquette en cas
-> de conflit.
+> Prototype interactif couvrant tous les parcours : `mockups/prototype.html` — les spines priment
+> sur le prototype en cas de conflit.
 
 ## Foundation
 
@@ -43,8 +43,8 @@ Chaque surface listée est atteinte par un parcours (voir Key Flows). L'export d
 fiches se fait depuis la Relecture (pas de surface séparée) ; le téléchargement du rapport
 incident se fait depuis le Résultat incident.
 
-→ Composition de référence : `mockups/relecture.html`, écran de relecture seul. Le reste de l'IA
-est spécifié par cette spine sans maquette (voie rapide) ; spine gagne en cas de conflit.
+→ Composition de référence : `mockups/prototype.html`, prototype interactif couvrant toutes les
+surfaces et tous les parcours ci-dessous. Spine gagne en cas de conflit.
 
 ## Voice and Tone
 

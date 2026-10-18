@@ -8,20 +8,28 @@ sources:
   - _bmad-output/specs/spec-waveaudit-v2/arbitrages.md
   - _bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/contrats.md
 colors:
-  primaire: '#30507D'
-  primaire-fonce: '#1C2E47'
-  primaire-doux: '#E3E9F0'
-  accent: '#2F6657'
-  accent-doux: '#DCEFE8'
-  encre: '#1A1D22'
-  encre-douce: '#51565F'
-  gris: '#6E7278'
-  trait: '#DADFE5'
-  fond-creme: '#F6F4EF'
-  attention: '#8A5A00'
+  # Charte Wavestone officielle (voir .memlog.md, override 2026-10-18) : valeurs inchangées.
+  primaire: '#451DC7'
+  primaire-fonce: '#250F6B'
+  primaire-doux: '#EDE7FE'
+  accent: '#04F06A'
+  accent-doux: '#CAFEE0'
+  encre: '#0A0A14'
+  encre-douce: '#4A4A5E'
+  gris: '#8A8A9E'
+  trait: '#E6E6EC'
+  fond-creme: '#F6F5FA'
+  attention: '#FFCA4A'
+  danger: '#FF2A49'
+  # Rôles dérivés (accessibilité) : la valeur de marque sert au trait/fond plein, jamais en
+  # petit texte porteur de sens. Calculs dans Colors > Rôles dérivés.
+  accent-texte: '#036B38'
+  gris-texte: '#616670'
   attention-doux: '#FBE9CF'
-  danger: '#B3261E'
+  attention-texte: '#8A5A00'
   danger-doux: '#F8DEDC'
+  danger-texte: '#B3261E'
+  texte-sur-vif: '#0A0A14'
 focus:
   outline: '2px solid {colors.primaire}'
   offset: '2px'
@@ -98,10 +106,10 @@ components:
     radius: '{rounded.full}'
     ok:
       background: '{colors.accent-doux}'
-      foreground: '{colors.accent}'
+      foreground: '{colors.accent-texte}'
     a-revoir:
       background: '{colors.attention-doux}'
-      foreground: '{colors.attention}'
+      foreground: '{colors.attention-texte}'
     validee:
       background: '{colors.primaire-doux}'
       foreground: '{colors.primaire}'
@@ -129,19 +137,20 @@ components:
     score-radius: '{rounded.full}'
     severite-faible:
       background: '{colors.accent-doux}'
-      foreground: '{colors.accent}'
+      foreground: '{colors.accent-texte}'
     severite-moyenne:
       background: '{colors.attention-doux}'
-      foreground: '{colors.attention}'
+      foreground: '{colors.attention-texte}'
     severite-elevee:
       background: '{colors.danger-doux}'
-      foreground: '{colors.danger}'
+      foreground: '{colors.danger-texte}'
     severite-critique:
       background: '{colors.danger}'
-      foreground: '#FFFFFF'
+      foreground: '{colors.texte-sur-vif}'
   encart-motifs:
     background: '{colors.attention-doux}'
     border: '{colors.attention}'
+    foreground: '{colors.attention-texte}'
     radius: '{rounded.sm}'
   barre-actions:
     background: '#FFFFFF'
@@ -177,46 +186,73 @@ Rien d'externe (pas de police téléchargée, pas de CDN) : l'outil tourne hors 
 défilement) — seules des transitions discrètes d'état (apparition d'une fiche, changement de
 statut).
 
-Ce fichier définit les **rôles** de tokens avec des valeurs neutres (bleu ardoise sobre). Une
-surcharge de marque privée (`theme-prive/web/theme.css`) redéfinit les mêmes variables CSS avec
-les valeurs réelles de l'entreprise ; `theme-prive/web/logo.svg` s'affiche dans l'en-tête s'il
-est présent. Ce mécanisme et ces fichiers ne sont jamais commités : `theme-prive/` est ignoré
-par git. Le dépôt public ne contient aucune valeur de charte.
+Ce fichier porte la **palette officielle Wavestone** (override Anaël, 2026-10-18 : le thème neutre
+est refusé — voir `.memlog.md`). Seul le logo reste privé : le serveur sert
+`theme-prive/web/logo.svg` dans l'en-tête quand ce fichier est présent sur le disque (test
+d'existence côté Jinja, pas de valeur en dur dans le HTML), et n'affiche rien à sa place sinon ;
+`theme-prive/` reste ignoré par git. `theme-prive/web/theme.css` n'existe plus : la palette
+n'a plus besoin d'être surchargée, elle est publique.
 
 ## Colors
 
-Douze rôles, tous utilisés avec un libellé ou une icône en plus de la couleur (jamais la couleur
-seule, AD-14 / accessibilité).
+Palette officielle Wavestone (override Anaël, 2026-10-18), déclinée comme dans
+`agentic-harness-training-demo` (`tokens.css` / son `DESIGN.md`, section Colors) : les valeurs de
+marque restent telles quelles pour les traits, fonds pleins et grandes surfaces ; là où une paire
+texte/fond tombe sous 4,5:1 AA, un **rôle dérivé** (`*-texte`) porte le même sens avec un ton plus
+soutenu, toujours doublé d'une icône et d'un libellé (jamais la couleur seule, AD-14).
 
-- **`primaire`** (`#30507D`) — actions principales (Valider, Exporter), liens, candidat actif,
-  focus. Contraste 8,2:1 sur blanc.
-- **`primaire-fonce`** (`#1C2E47`) — bandeau de démonstration, survol des boutons primaires.
-- **`primaire-doux`** (`#E3E9F0`) — fond des pastilles « validée », survol des lignes de liste.
-  `primaire` sur `primaire-doux` : 6,7:1.
-- **`accent`** (`#2F6657`) — unique accent secondaire, réservé au statut « générée (ok) », à la
-  sévérité CVSS « faible » et à la barre de progression. Jamais décoratif. Contraste sur
-  `accent-doux` : 5,6:1 ; sur blanc : 6,6:1.
-- **`accent-doux`** (`#DCEFE8`) — fond de la pastille « ok » et de la pastille de sévérité CVSS
-  « faible ».
-- **`encre`** (`#1A1D22`) / **`encre-douce`** (`#51565F`) — texte principal / texte secondaire.
-  `encre-douce` sur blanc : 7,4:1.
-- **`gris`** (`#6E7278`) — texte désactivé, métadonnées (durée, taille de fichier, score des
-  candidats). Contraste 4,8:1 sur blanc (seuil AA 4,5:1).
-- **`trait`** (`#DADFE5`) — bordures, séparateurs, carte de dépôt.
-- **`fond-creme`** (`#F6F4EF`) — fond de la carte de dépôt et du panneau note (lecture longue).
-- **`attention`** (`#8A5A00`) — statut « à revoir », encart des motifs, sévérité CVSS « moyenne ».
-  Contraste 5,9:1 sur blanc ; 5,0:1 sur `attention-doux`.
-- **`attention-doux`** (`#FBE9CF`) — fond doux de l'attention : pastille « à revoir », encart des
-  motifs, pastille de sévérité CVSS « moyenne ». Seul nom de token pour ce rôle (plus de hex en
-  dur dans les composants).
-- **`danger`** (`#B3261E`) — erreurs bloquantes (moteur injoignable, lot déjà en cours), sévérité
-  CVSS « élevée » (texte sur `danger-doux`) et « critique » (fond plein, texte blanc). Contraste
-  6,5:1 sur blanc ; 5,1:1 sur `danger-doux` ; blanc sur `danger` plein : 6,5:1.
-- **`danger-doux`** (`#F8DEDC`) — fond doux du danger : pastille de sévérité CVSS « élevée ».
+- **`primaire`** (`#451DC7`) — actions principales (Valider, Exporter), liens, candidat actif,
+  focus. Contraste 9,3:1 sur blanc ; 7,7:1 sur `primaire-doux`.
+- **`primaire-fonce`** (`#250F6B`) — bandeau de démonstration (texte blanc, 15,4:1), survol des
+  boutons primaires.
+- **`primaire-doux`** (`#EDE7FE`) — fond des pastilles « validée », survol des lignes de liste.
+- **`accent`** (`#04F06A`) — vert de marque : barre de progression, trait et fond plein de la
+  pastille de sévérité CVSS « critique ». Contraste 1,5:1 sur blanc : **jamais en texte**, jamais
+  en trait fin isolé.
+- **`accent-doux`** (`#CAFEE0`) — fond de la pastille « générée (ok) » et de la pastille de
+  sévérité CVSS « faible ».
+- **`accent-texte`** (`#036B38`, dérivé) — rôle de texte du vert : foreground du statut « générée
+  (ok) » et de la sévérité CVSS « faible ». Contraste 6,6:1 sur blanc ; 5,9:1 sur `accent-doux`.
+- **`encre`** (`#0A0A14`) / **`encre-douce`** (`#4A4A5E`) — texte principal / texte secondaire.
+  `encre` sur blanc : 19,7:1 ; `encre-douce` sur blanc : 8,6:1. `encre` sert aussi de
+  **`texte-sur-vif`** : foreground sur tout fond plein vif (vert, jaune, rouge) — 12,8:1 sur
+  `accent`, 12,9:1 sur `attention`, 5,3:1 sur `danger`.
+- **`gris`** (`#8A8A9E`) — bordures fines, icônes décoratives, puces non porteuses de sens.
+  Contraste 3,4:1 sur blanc : **jamais en texte**.
+- **`gris-texte`** (`#616670`, dérivé) — rôle de texte du gris : désactivé, métadonnées (durée,
+  taille de fichier, score des candidats). Contraste 5,8:1 sur blanc ; 5,3:1 sur `fond-creme`.
+- **`trait`** (`#E6E6EC`) — bordures, séparateurs, carte de dépôt.
+- **`fond-creme`** (`#F6F5FA`) — fond de la carte de dépôt et du panneau note (lecture longue).
+- **`attention`** (`#FFCA4A`) — jaune de marque : fond plein et trait de l'encart des motifs, de
+  la pastille « à revoir », rôle « moyenne » en vecteur de fond. Contraste 1,5:1 sur blanc :
+  **jamais en texte**.
+- **`attention-doux`** (`#FBE9CF`, dérivé) — fond doux de l'attention : pastille « à revoir »,
+  encart des motifs, pastille de sévérité CVSS « moyenne ».
+- **`attention-texte`** (`#8A5A00`, dérivé) — rôle de texte de l'attention : foreground du statut
+  « à revoir », de l'encart des motifs, de la sévérité CVSS « moyenne ». Contraste 5,9:1 sur
+  blanc ; 5,0:1 sur `attention-doux`.
+- **`danger`** (`#FF2A49`) — rouge de marque : erreurs bloquantes (moteur injoignable, lot déjà en
+  cours), trait et fond plein de la sévérité CVSS « critique » (texte `texte-sur-vif`, 5,3:1).
+  Contraste 3,7:1 sur blanc : **jamais en texte seul**.
+- **`danger-doux`** (`#F8DEDC`, dérivé) — fond doux du danger : pastille de sévérité CVSS
+  « élevée ».
+- **`danger-texte`** (`#B3261E`, dérivé) — rôle de texte du danger : messages d'erreur, foreground
+  de la sévérité CVSS « élevée ». Contraste 6,5:1 sur blanc ; 5,1:1 sur `danger-doux`.
 
-Pas de dégradé, pas de couleur de marque tierce. Deux couleurs porteuses de sens (primaire,
-accent) et c'est tout ; `attention` et `danger` restent des signaux d'alerte, pas des accents
-décoratifs.
+Pas de dégradé, pas de couleur de marque tierce ajoutée. `primaire` et `accent` restent les deux
+couleurs porteuses de sens côté marque ; `attention` et `danger` des signaux d'alerte, jamais des
+accents décoratifs ; leurs rôles `*-texte` ne sont qu'une correction de contraste, pas une
+nouvelle couleur de marque.
+
+### Rôles dérivés (accessibilité)
+
+| Rôle dérivé | D'après | Usage | Ratio AA (seuil 4,5:1) |
+|---|---|---|---|
+| `accent-texte` (`#036B38`) | `accent` (`#04F06A`, 1,5:1 sur blanc) | texte « générée (ok) », sévérité CVSS faible | 6,6:1 sur blanc, 5,9:1 sur `accent-doux` |
+| `gris-texte` (`#616670`) | `gris` (`#8A8A9E`, 3,4:1 sur blanc) | métadonnées, texte désactivé | 5,8:1 sur blanc, 5,3:1 sur `fond-creme` |
+| `attention-texte` (`#8A5A00`) | `attention` (`#FFCA4A`, 1,5:1 sur blanc) | texte « à revoir », sévérité CVSS moyenne | 5,9:1 sur blanc, 5,0:1 sur `attention-doux` |
+| `danger-texte` (`#B3261E`) | `danger` (`#FF2A49`, 3,7:1 sur blanc) | messages d'erreur, sévérité CVSS élevée | 6,5:1 sur blanc, 5,1:1 sur `danger-doux` |
+| `texte-sur-vif` (`#0A0A14` = `encre`) | texte sur tout fond plein vif | sévérité CVSS critique (fond `danger` plein) | 5,3:1 (le plus bas des trois fonds vifs) |
 
 ### Sévérité CVSS → token couleur
 
@@ -225,10 +261,10 @@ toujours avec le libellé de sévérité) :
 
 | Sévérité CVSS | Token foreground | Token background |
 |---|---|---|
-| Faible (0.1–3.9) | `{colors.accent}` | `{colors.accent-doux}` |
-| Moyenne (4.0–6.9) | `{colors.attention}` | `{colors.attention-doux}` |
-| Élevée (7.0–8.9) | `{colors.danger}` | `{colors.danger-doux}` |
-| Critique (9.0–10.0) | `#FFFFFF` | `{colors.danger}` (plein) |
+| Faible (0.1–3.9) | `{colors.accent-texte}` | `{colors.accent-doux}` |
+| Moyenne (4.0–6.9) | `{colors.attention-texte}` | `{colors.attention-doux}` |
+| Élevée (7.0–8.9) | `{colors.danger-texte}` | `{colors.danger-doux}` |
+| Critique (9.0–10.0) | `{colors.texte-sur-vif}` | `{colors.danger}` (plein) |
 
 Voir `components.champ-cvss.severite-*`. Cette table est distincte de celle des pastilles de
 statut de fiche (ok/à-revoir/validée/écartée) : les deux évoluent indépendamment, aucun partage
@@ -274,8 +310,9 @@ fiche), qui restent carrées.
 
 ## Components
 
-→ Illustration de référence : [`mockups/relecture.html`](mockups/relecture.html), écran de
-relecture. Les spines (`DESIGN.md` / `EXPERIENCE.md`) priment sur la maquette en cas de conflit.
+→ Illustration de référence : [`mockups/prototype.html`](mockups/prototype.html), prototype
+interactif couvrant tous les parcours. Les spines (`DESIGN.md` / `EXPERIENCE.md`) priment sur le
+prototype en cas de conflit.
 
 | Composant | Spécification visuelle |
 |---|---|
@@ -291,7 +328,7 @@ relecture. Les spines (`DESIGN.md` / `EXPERIENCE.md`) priment sur la maquette en
 | **Panneau note** | Colonne de gauche en lecture seule, fond `{colors.fond-creme}`, texte en `{typography.chasse-fixe}` pour préserver la mise en forme d'origine de la note. |
 | **Formulaire de fiche** | Colonne de droite : zones de texte `{rounded.sm}` bordure `{colors.trait}`, focus `{colors.primaire}`, pour titre / description / impact / recommandation. Liste de références en lecture, retrait seul. |
 | **Champ CVSS** | Champ texte chasse fixe pour le vecteur, score et sévérité recalculés à côté en pastille `{rounded.full}` colorée selon la table « Sévérité CVSS → token couleur » ci-dessus (`{components.champ-cvss.severite-*}`, jamais la couleur seule). |
-| **Encart des motifs** | Bloc `{rounded.sm}`, fond `{colors.attention-doux}`, bordure `{colors.attention}`, liste des motifs en langage clair sous l'icône d'avertissement, visible si la fiche est « à revoir » ; chaque motif porte la mention « signalé à la génération ». |
+| **Encart des motifs** | Bloc `{rounded.sm}`, fond `{colors.attention-doux}`, bordure `{colors.attention}`, texte `{colors.attention-texte}`, liste des motifs en langage clair sous l'icône d'avertissement, visible si la fiche est « à revoir » ; chaque motif porte la mention « signalé à la génération ». |
 | **Barre d'actions** | Pleine largeur en bas de la relecture, fond blanc, bordure haute `{colors.trait}` : boutons Valider (primaire), Suivante (secondaire), Exporter et Exporter un brouillon (secondaire), alignés à droite. |
 | **Indicateur d'enregistrement** | Petit texte discret `{colors.encre-douce}` près de la barre d'actions : « Enregistré » / « Enregistrement… », pas d'icône animée intrusive. |
 | **Boîte de confirmation** | Boîte modale centrée, fond blanc, `{rounded.md}`, superposition `rgba(26,29,34,0.4)` : message court, deux boutons (annuler / confirmer en danger si destructeur). |
