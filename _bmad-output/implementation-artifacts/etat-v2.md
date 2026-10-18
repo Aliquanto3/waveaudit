@@ -14,9 +14,9 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 | 2 | Q3 | Catalogue bilingue et traduction des 50 constats ★ | Sonnet | intégrée 0016786 |
 | 2 | W5 | Thème public et logo privé | Sonnet | intégrée 349dde3 |
 | 3 | Q4 | Index BM25 bilingue, rattachement des notes 01 et 29 | Sonnet | intégrée b8a8483 |
-| 3 | L1 | Langue du lot, de la CLI au Word | Sonnet | en cours |
-| 4 | B1 | Banc v2 | Sonnet | à faire |
-| 4 | R2 | Persistance de la relecture et lot.json | Opus | à faire |
+| 3 | L1 | Langue du lot, de la CLI au Word | Sonnet | intégrée fc41074 |
+| 4 | B1 | Banc v2 | Sonnet | en cours |
+| 4 | R2 | Persistance de la relecture et lot.json | Opus | en cours |
 | 5 | Q5 | Rebanc EliteBook, consigne et rôles ★ | Opus | à faire |
 | 5 | W2 | Accueil, lots récents, suivi lu sur le disque | Sonnet | à faire |
 | 6 | X2 | Service d'export et `waveaudit exporter` | Sonnet | à faire |
