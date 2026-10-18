@@ -624,6 +624,42 @@ def test_modele_et_langue_recus_par_le_lot(config_test, faux_moteur):
     assert fm.requetes[0]["model"] == "mon-modele"
     systeme = next(m["content"] for m in fm.requetes[0]["messages"] if m["role"] == "system")
     assert "security audit writing assistant" in systeme  # consigne anglaise (§8, §23)
+    fiche_lot = json.loads(
+        (config.chemins.var / "sorties" / id_lot / "lot.json").read_text(encoding="utf-8")
+    )
+    assert fiche_lot["modele_demande"] is None  # [revue E11] jamais le nom externe affiché
+    assert fiche_lot["langue"] == "en"
+
+
+def test_lot_json_porte_la_langue_resolue_sans_champ_langue(config_test):
+    """[revue W2] Sans `langue` dans le formulaire, lot.json porte `config.fiches.langue`
+    (§9 v2 étape 1), comme un lot lancé en CLI, et non `null`."""
+    config = config_test.model_copy(
+        update={"fiches": config_test.fiches.model_copy(update={"langue": "en"})}
+    )
+    client = client_web(config)
+    reponse = client.post("/lots", files=[_notes_demo()[0]], follow_redirects=False)
+    id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+    _attendre_fin(client, id_lot)
+    fiche_lot = json.loads(
+        (config.chemins.var / "sorties" / id_lot / "lot.json").read_text(encoding="utf-8")
+    )
+    assert fiche_lot["langue"] == "en"
+    resume = next(lot for lot in client.get("/api/lots").json()["lots"] if lot["id_lot"] == id_lot)
+    assert resume["langue"] == "en"
+
+
+def test_page_d_un_lot_incident_redirige(config_test):
+    """§26 : `/lots/{id}` d'un lot incident redirige (303) vers `/incidents/{id}`."""
+    dossier = config_test.chemins.var / "sorties" / "incident-1"
+    dossier.mkdir(parents=True)
+    (dossier / "lot.json").write_text(
+        json.dumps({"id_lot": "incident-1", "workflow": "incident", "langue": None}),
+        encoding="utf-8",
+    )
+    reponse = client_web(config_test).get("/lots/incident-1", follow_redirects=False)
+    assert reponse.status_code == 303
+    assert reponse.headers["location"] == "/incidents/incident-1"
 
 
 def test_modele_indisponible_422(config_test):
@@ -709,3 +745,15 @@ def test_lien_lots_recents_absent_sans_lot(config_test):
     id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
     _attendre_fin(client, id_lot)
     assert '<a href="/lots">' in client.get("/").text
+
+
+def test_refus_lot_en_cours_occupation_liberee_entre_temps():
+    """[revue W2] Verrou rendu entre l'échec de `prendre` et la lecture de l'occupation : 409
+    codé, pas d'erreur 500."""
+    from waveaudit.interfaces.web.routeurs.lots import _refus_lot_en_cours
+
+    reponse = _refus_lot_en_cours(None)
+    assert reponse.status_code == 409
+    corps = json.loads(reponse.body)
+    assert corps["code"] == "lot_en_cours"
+    assert corps["occupation"] is None

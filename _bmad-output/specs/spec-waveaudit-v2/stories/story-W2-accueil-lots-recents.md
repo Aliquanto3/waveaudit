@@ -1,7 +1,7 @@
 ---
 id: W2
 title: Accueil v2, lots récents et suivi lu sur le disque
-status: review
+status: done
 sources:
   - ../stories.yaml
   - ../SPEC.md
@@ -95,4 +95,16 @@ sources:
 
 ## Revue
 
-En attente (second avis puis reviewer).
+Détail : `_bmad-output/implementation-artifacts/revues/story-W2.md`.
+
+- moyenne, second avis 1 : `lot.json` à `langue=null` sans champ `langue` — corrigé (langue résolue).
+- moyenne → faible, second avis 2 : `fermer()` du lifespan bloquait la boucle — corrigé (`to_thread`) ; attente non bornée pendant une ouverture reportée (M1).
+- faible, second avis 3 : exception du fil sans trace — corrigé (log).
+- faible, second avis 4 : occupation `None` → 500 — corrigé.
+- faible, second avis 5 : accueil relit tous les journaux — corrigé (`existe_un_lot`).
+- faible, second avis 6 : test sans faux moteur — rejeté (`config_test` en a un, attente de fin présente).
+- faible, second avis 7 : message 409 pendant une régénération — rejeté (texte Voice and Tone figé).
+- moyenne, reviewer : 303 `/lots/{id}` → `/incidents/{id}` — corrigé ici (W4 ne touche pas `pages.py`).
+- faible, reviewer : `cree_le` sans fuseau → 500 au tri — corrigé.
+- Complexité : 2 constats — `lister_lots` relisait tous les journaux (corrigé : tri sur `lot.json`, 50 journaux lus) ; `/etat` relit le journal à chaque sondage (laissé, imposé par §30).
+- Reporté : arrêt de l'UI pendant un lot (fil daemon, llama-server orphelin possible) — vérifier en REC.

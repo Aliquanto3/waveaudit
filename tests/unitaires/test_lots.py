@@ -172,3 +172,37 @@ def test_tri_par_cree_le_decroissant(config_test):
 
     resumes = lots_app.lister_lots(config_test, None)
     assert [r.id_lot for r in resumes] == ["recent", "ancien"]
+
+
+def test_cree_le_sans_fuseau_trie_sans_erreur(config_test):
+    """[revue W2] Un `cree_le` sans fuseau (fichier retouché) ne casse pas le tri."""
+    naif = _dossier(config_test, "naif")
+    _ecrire_lot_json(naif, cree_le="2020-01-01T08:00:00")
+    _ecrire_journal(naif, _demarre(), _termine())
+    avec_fuseau = _dossier(config_test, "avec-fuseau")
+    _ecrire_lot_json(avec_fuseau, cree_le="2030-01-01T08:00:00+00:00")
+    _ecrire_journal(avec_fuseau, _demarre(), _termine())
+
+    resumes = lots_app.lister_lots(config_test, None)
+    assert [r.id_lot for r in resumes] == ["avec-fuseau", "naif"]
+    assert resumes[1].cree_le.tzinfo is not None
+
+
+def test_au_plus_50_les_plus_recents(config_test):
+    for rang in range(53):
+        dossier = _dossier(config_test, f"lot-{rang:02d}")
+        _ecrire_lot_json(dossier, cree_le=f"2026-01-01T00:{rang:02d}:00+00:00")
+        _ecrire_journal(dossier, _demarre(), _termine())
+
+    resumes = lots_app.lister_lots(config_test, None)
+    assert len(resumes) == 50
+    assert resumes[0].id_lot == "lot-52"
+    assert resumes[-1].id_lot == "lot-03"
+
+
+def test_existe_un_lot(config_test):
+    assert lots_app.existe_un_lot(config_test) is False
+    _dossier(config_test, "dossier-vide")  # ni lot.json, ni journal, ni fiches.json
+    assert lots_app.existe_un_lot(config_test) is False
+    _ecrire_journal(_dossier(config_test, "v010"), _demarre(), _termine())
+    assert lots_app.existe_un_lot(config_test) is True

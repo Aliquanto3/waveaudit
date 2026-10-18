@@ -49,6 +49,18 @@ def _lire_json(chemin: Path) -> dict | None:
         return None
 
 
+def _date(brut: object) -> datetime | None:
+    """ISO 8601 ; une date sans fuseau (fichier retouché à la main) prend le fuseau local, pour
+    que le tri ne compare jamais une date naïve à une date avec fuseau."""
+    if not isinstance(brut, str):
+        return None
+    try:
+        date = datetime.fromisoformat(brut)
+    except ValueError:
+        return None
+    return date if date.tzinfo is not None else date.astimezone()
+
+
 def _lire_evenements(dossier: Path) -> list[dict]:
     """Chaque ligne de `journal.jsonl` ; une ligne illisible est ignorée (log, §30)."""
     chemin = dossier / JOURNAL
@@ -68,6 +80,11 @@ def _lire_evenements(dossier: Path) -> list[dict]:
         if isinstance(evenement, dict):
             evenements.append(evenement)
     return evenements
+
+
+def workflow_lot(dossier: Path) -> Workflow:
+    """Workflow du lot `dossier` (§30), sans lire le journal."""
+    return _workflow(dossier, _lire_json(dossier / FICHE_LOT))
 
 
 def _workflow(dossier: Path, fiche_lot: dict | None) -> Workflow:
@@ -109,12 +126,8 @@ def _pid_vivant_externe(config: Configuration, fiche_lot: dict | None) -> bool:
     if fiche_lot is None:
         return False
     pid = fiche_lot.get("pid")
-    cree_le_brut = fiche_lot.get("cree_le")
-    if not isinstance(pid, int) or pid == os.getpid() or not isinstance(cree_le_brut, str):
-        return False
-    try:
-        cree_le = datetime.fromisoformat(cree_le_brut)
-    except ValueError:
+    cree_le = _date(fiche_lot.get("cree_le"))
+    if not isinstance(pid, int) or pid == os.getpid() or cree_le is None:
         return False
     return composition.processus_actif(pid, cree_le)
 
@@ -137,20 +150,28 @@ def _etat_et_externe(
     return "interrompu", False, None
 
 
-def _cree_le(dossier: Path, fiche_lot: dict | None, evenements: list[dict]) -> datetime:
-    if fiche_lot is not None:
-        brut = fiche_lot.get("cree_le")
-        if isinstance(brut, str):
-            try:
-                return datetime.fromisoformat(brut)
-            except ValueError:
-                pass
-    demarre = _lot_demarre(evenements)
-    if demarre is not None and isinstance(demarre.get("horodatage"), str):
-        try:
-            return datetime.fromisoformat(demarre["horodatage"])
-        except ValueError:
-            pass
+def _horodatage_demarre(dossier: Path) -> datetime | None:
+    """Horodatage de `lot_demarre`, en ne lisant le journal que jusqu'à cet événement."""
+    try:
+        with (dossier / JOURNAL).open(encoding="utf-8") as fichier:
+            for ligne in fichier:
+                try:
+                    evenement = json.loads(ligne)
+                except ValueError:
+                    continue
+                if isinstance(evenement, dict) and evenement.get("type") == "lot_demarre":
+                    return _date(evenement.get("horodatage"))
+    except (OSError, UnicodeDecodeError):
+        return None
+    return None
+
+
+def _cree_le(dossier: Path, fiche_lot: dict | None) -> datetime:
+    """[revue E22] `lot.json`, sinon `lot_demarre`, sinon date de modification du dossier."""
+    if fiche_lot is not None and (date := _date(fiche_lot.get("cree_le"))) is not None:
+        return date
+    if (date := _horodatage_demarre(dossier)) is not None:
+        return date
     try:
         return datetime.fromtimestamp(dossier.stat().st_mtime).astimezone()
     except OSError:
@@ -181,11 +202,24 @@ def _dossiers_lots(config: Configuration) -> list[Path]:
         return []
 
 
+def _est_un_lot(dossier: Path) -> bool:
+    return any((dossier / nom).is_file() for nom in (FICHE_LOT, JOURNAL, FICHES_V010))
+
+
+def existe_un_lot(config: Configuration) -> bool:
+    """Au moins un lot dans `var/sorties/` (lien « Lots récents » de l'accueil), sans lire de
+    journal."""
+    return any(_est_un_lot(dossier) for dossier in _dossiers_lots(config))
+
+
 def _resume(
-    config: Configuration, dossier: Path, occupation: Occupation | None
+    config: Configuration,
+    dossier: Path,
+    fiche_lot: dict | None,
+    cree_le: datetime,
+    occupation: Occupation | None,
 ) -> ResumeLot | None:
     id_lot = dossier.name
-    fiche_lot = _lire_json(dossier / FICHE_LOT)
     evenements = _lire_evenements(dossier)
     v010 = (dossier / FICHES_V010).is_file()
     if fiche_lot is None and not evenements and not v010:
@@ -204,7 +238,7 @@ def _resume(
         total=total,
         langue=langue if isinstance(langue, str) else None,
         modele=modele,
-        cree_le=_cree_le(dossier, fiche_lot, evenements),
+        cree_le=cree_le,
         url=url,
         externe=externe,
     )
@@ -212,13 +246,23 @@ def _resume(
 
 def lister_lots(config: Configuration, occupation: Occupation | None) -> list[ResumeLot]:
     """Lots récents (§30), triés par `cree_le` puis `id_lot` décroissants, au plus 50."""
-    resumes = [
-        resume
-        for dossier in _dossiers_lots(config)
-        if (resume := _resume(config, dossier, occupation)) is not None
-    ]
-    resumes.sort(key=lambda r: (r.cree_le, r.id_lot), reverse=True)
-    return resumes[:MAX_LOTS]
+    # [revue W2] Tri sur `lot.json` (ou le début du journal) seulement : les journaux complets
+    # ne sont relus que pour les 50 lots retenus, pas pour tout l'historique de `var/sorties/`.
+    candidats = []
+    for dossier in _dossiers_lots(config):
+        if not _est_un_lot(dossier):
+            continue
+        fiche_lot = _lire_json(dossier / FICHE_LOT)
+        candidats.append((_cree_le(dossier, fiche_lot), dossier.name, dossier, fiche_lot))
+    candidats.sort(key=lambda c: (c[0], c[1]), reverse=True)
+    resumes: list[ResumeLot] = []
+    for cree_le, _id, dossier, fiche_lot in candidats:
+        resume = _resume(config, dossier, fiche_lot, cree_le, occupation)
+        if resume is not None:
+            resumes.append(resume)
+            if len(resumes) == MAX_LOTS:
+                break
+    return resumes
 
 
 def etat_lot(

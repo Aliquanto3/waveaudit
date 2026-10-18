@@ -97,7 +97,9 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     limite = time.monotonic() + ATTENTE_ARRET_MOTEUR_S
     while app.state.verrou.occupation() is not None and time.monotonic() < limite:
         await asyncio.sleep(0.05)
-    app.state.moteur.fermer()
+    # [revue W2] Hors de la boucle : `fermer` attend le verrou interne du moteur, tenu pendant
+    # un démarrage de llama-server (jusqu'à `delai_demarrage_s`) ; la boucle reste libre.
+    await asyncio.to_thread(app.state.moteur.fermer)
 
 
 def creer_app(config: Configuration, *, hotes_test: tuple[str, ...] = ()) -> FastAPI:

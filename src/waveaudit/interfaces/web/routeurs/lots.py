@@ -5,6 +5,7 @@ appel : plus aucun registre en mémoire (CAP-9, CAP-10, AD-22). Les règles comm
 Origin, CSRF, taille totale, en-têtes) sont posées par le middleware d'`app.py`.
 """
 
+import logging
 import re
 import shutil
 import threading
@@ -12,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Query, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException
@@ -31,6 +33,8 @@ from waveaudit.application.moteur_demande import MoteurALaDemande, Occupation, V
 from waveaudit.domaine.configuration import Configuration
 from waveaudit.domaine.modeles import Langue, RequeteLot
 from waveaudit.interfaces.web.commun import en_mo, erreur
+
+_log = logging.getLogger(__name__)
 
 routeur = APIRouter()
 
@@ -143,7 +147,9 @@ def _moteur(request: Request) -> MoteurALaDemande:
     return request.app.state.moteur
 
 
-def _occupation_json(occupation: Occupation) -> dict:
+def _occupation_json(occupation: Occupation | None) -> dict | None:
+    if occupation is None:
+        return None
     return {
         "nature": occupation.nature,
         "id_lot": occupation.id_lot,
@@ -151,8 +157,9 @@ def _occupation_json(occupation: Occupation) -> dict:
     }
 
 
-def _refus_lot_en_cours(occupation: Occupation) -> JSONResponse:
-    debut = occupation.debut.strftime("%H:%M")
+def _refus_lot_en_cours(occupation: Occupation | None) -> JSONResponse:
+    # [revue W2] L'occupation peut avoir été libérée entre `prendre` et sa lecture.
+    debut = occupation.debut.strftime("%H:%M") if occupation is not None else "--:--"
     return erreur(
         409,
         "lot_en_cours",
@@ -205,8 +212,10 @@ def _executer_en_fond(
     try:
         requete = RequeteLot(dossier=dossier_entree, id_lot=id_lot, modele=modele, langue=langue)
         executer_lot(requete, config)
-    except Exception:  # noqa: BLE001 - déjà consigné dans journal.jsonl par `executer_lot`
-        pass
+    except Exception:  # noqa: BLE001 - consigné dans journal.jsonl par `executer_lot` si ouvert
+        # [revue W2] Un refus avant le journal (dossier, id déjà exécuté) laisserait sinon le lot
+        # « interrompu » sans aucune trace.
+        _log.warning("lot %s arrêté", id_lot, exc_info=True)
     finally:
         verrou.liberer()
 
@@ -262,10 +271,13 @@ async def creer_lot(request: Request) -> Response:
             dossier_sorties(config) / id_lot,
             id_lot=id_lot,
             workflow="fiches",
-            langue=langue,
+            # [revue W2] Langue résolue, comme `executer_lot` (§9 v2 étape 1) : lot.json n'est
+            # écrit qu'une fois, ResumeLot et la relecture vide la relisent.
+            langue=langue or config.fiches.langue,
             modele_demande=modele,
         )
-        _moteur(request).fermer()
+        # [revue W2] Arrêt de llama-server hors de la boucle d'événements.
+        await run_in_threadpool(_moteur(request).fermer)
         fil = threading.Thread(
             target=_executer_en_fond,
             args=(config, verrou, id_lot, dossier_entree, modele, langue),
