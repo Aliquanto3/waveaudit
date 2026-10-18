@@ -11,10 +11,10 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 | 1 | M1 | Verrou unique et moteur à la demande | Opus | intégrée 17e4353 |
 | 1 | X1 | Rendu Word bilingue, modes final et brouillon | Sonnet | intégrée f976867 |
 | 1 | W1 | Socle web (routeurs, CSRF, en-têtes, erreurs codées) | Opus | intégrée 6bb935f |
-| 2 | Q3 | Catalogue bilingue et traduction des 50 constats ★ | Sonnet | en cours |
+| 2 | Q3 | Catalogue bilingue et traduction des 50 constats ★ | Sonnet | intégrée 0016786 |
 | 2 | W5 | Thème public et logo privé | Sonnet | intégrée 349dde3 |
-| 3 | Q4 | Index BM25 bilingue, rattachement des notes 01 et 29 | Sonnet | à faire |
-| 3 | L1 | Langue du lot, de la CLI au Word | Sonnet | à faire |
+| 3 | Q4 | Index BM25 bilingue, rattachement des notes 01 et 29 | Sonnet | en cours |
+| 3 | L1 | Langue du lot, de la CLI au Word | Sonnet | en cours |
 | 4 | B1 | Banc v2 | Sonnet | à faire |
 | 4 | R2 | Persistance de la relecture et lot.json | Opus | à faire |
 | 5 | Q5 | Rebanc EliteBook, consigne et rôles ★ | Opus | à faire |
@@ -37,7 +37,7 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 
 ## Relecture de Q3 (10 constats tirés au hasard)
 
-À remplir à l'intégration de Q3.
+Constats tirés par Q3 (textes `en` dans `donnees/catalogue/*.yaml`) : AD-KERBEROASTING, AD-ADCS-ESC1, AUTRE-MFA-ABSENTE, CONFIG-DEBUG-ACTIF, CONFIG-CORS-DEBUG, CRYPTO-HACHAGE-FAIBLE, INFRA-IPMI-EXPOSE, INFRA-LLMNR-NBTNS, WEB-XSS-REFLECHI, WEB-SSTI. Le second avis (Haiku) les a relus sans contresens relevé. Relecture d'Anaël : à faire, corrections avant Q5.
 
 ## Écarts à arbitrer
 
@@ -50,6 +50,7 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 - Q2 : la comparaison de boucle à la source ignore la casse (contrat : « telle quelle ») ; côté incident, la source des étapes 5 et 6 inclut aussi les identifiants, IP et hachages reconnus légitimes ; `finditer` à la place de `re.search` pour ne pas masquer une boucle derrière une suite sans lettre.
 
 - W5 : nouveau token `--couleur-blanc` hors DESIGN.md (seule exception du test de parité) ; vérification du focus stricte (§28 à la lettre) : `:focus:not(:focus-visible) { outline: none }` serait refusé, à garder en tête pour W3b et W4 ; `lxml` importé directement par `tests/accessibilite.py` (transitif via python-docx).
+- Test instable : `tests/e2e/test_ui.py::test_lot_nominal_20_notes_puis_telechargement` a échoué une fois dans la suite complète après Q3 (machine chargée, suite à 173 s), puis passé seul, avec `tests/e2e/` et dans une seconde suite complète (908). À surveiller ; dev-story de correction s'il récidive.
 
 ## Bilan
 
