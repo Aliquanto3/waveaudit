@@ -15,9 +15,23 @@ RACINE = Path(__file__).resolve().parent
 gabarits = Jinja2Templates(directory=RACINE / "templates")
 
 
+def chemin_logo(request: Request) -> Path:
+    """Chemin du logo privé (§28) : `<theme_prive>/web/logo.svg`, relu à chaque appel."""
+    config = request.app.state.lots.config
+    return Path(config.chemins.theme_prive) / "web" / "logo.svg"
+
+
 def page(request: Request, nom: str, contexte: dict[str, Any] | None = None) -> HTMLResponse:
-    """Rend un gabarit avec le bandeau (AD-14) et le jeton CSRF de l'instance (§26)."""
-    complet = {"bandeau": BANDEAU, "jeton_csrf": request.app.state.jeton_csrf}
+    """Rend un gabarit avec le bandeau (AD-14), le jeton CSRF (§26) et `logo_present` (§28).
+
+    `logo_present` est recalculé à chaque rendu par `is_file()` (jamais mis en cache) : un
+    logo ajouté ou retiré de `theme-prive/web/` sur le disque est vu à la requête suivante.
+    """
+    complet = {
+        "bandeau": BANDEAU,
+        "jeton_csrf": request.app.state.jeton_csrf,
+        "logo_present": chemin_logo(request).is_file(),
+    }
     return gabarits.TemplateResponse(request, nom, complet | (contexte or {}))
 
 

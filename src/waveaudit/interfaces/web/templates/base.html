@@ -4,11 +4,16 @@
   <meta charset="utf-8">
   <meta name="csrf" content="{{ jeton_csrf }}">
   <title>WaveAudit</title>
+  <link rel="stylesheet" href="/static/tokens.css">
   <link rel="stylesheet" href="/static/style.css">
   <script src="/static/commun.js"></script>
 </head>
 <body>
   <header class="bandeau">{{ bandeau }}</header>
+  <header class="en-tete">
+    {% if logo_present %}<img class="en-tete-logo" src="/theme/logo.svg" alt="">{% endif %}
+    <span class="en-tete-nom">WaveAudit</span>
+  </header>
   <main>
     {% block contenu %}{% endblock %}
   </main>

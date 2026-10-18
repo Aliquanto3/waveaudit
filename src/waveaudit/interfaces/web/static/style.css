@@ -1,6 +1,11 @@
+/* Style public de l'interface (contrats §28, DESIGN.md) : couleurs par les tokens de
+   tokens.css seulement (variables --couleur-*), aucune @font-face, aucun url() hors /static/
+   ou /theme/. */
+
 body {
-  font-family: Arial, Helvetica, sans-serif;
-  color: #1a1a1a;
+  font-family: var(--police-texte);
+  font-size: var(--taille-corps);
+  color: var(--couleur-encre);
   background: #ffffff;
   margin: 0;
   padding: 0;
@@ -14,10 +19,46 @@ main {
 
 .bandeau {
   text-align: center;
-  background: #e8e8e8;
-  color: #333333;
+  background: var(--couleur-primaire-fonce);
+  color: #ffffff;
   padding: 0.4rem;
-  font-size: 0.85rem;
+  font-size: var(--taille-petit);
+}
+
+.en-tete {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 56px;
+  padding: 0 1rem;
+  background: #ffffff;
+  border-bottom: 1px solid var(--couleur-trait);
+}
+
+.en-tete-logo {
+  height: 32px;
+  width: auto;
+}
+
+.en-tete-nom {
+  font-size: var(--taille-titre);
+  font-weight: 600;
+  color: var(--couleur-encre);
+}
+
+h1 {
+  font-size: var(--taille-titre);
+  font-weight: 600;
+  color: var(--couleur-encre);
+}
+
+p {
+  color: var(--couleur-encre);
+}
+
+label {
+  font-size: var(--taille-petit);
+  color: var(--couleur-encre-douce);
 }
 
 form {
@@ -30,11 +71,41 @@ form {
 button {
   padding: 0.5rem 1rem;
   cursor: pointer;
+  border-radius: 12px;
+  border: 1px solid var(--couleur-trait);
+  background: var(--couleur-primaire);
+  color: #ffffff;
+  font-family: var(--police-texte);
+  font-size: var(--taille-corps);
+}
+
+button:disabled {
+  background: var(--couleur-gris);
+  cursor: default;
 }
 
 #evenements {
   list-style: none;
   padding: 0;
-  font-family: monospace;
-  font-size: 0.85rem;
+  font-family: var(--police-chasse-fixe);
+  font-size: var(--taille-chasse-fixe);
+}
+
+/* Focus clavier (DESIGN.md « Focus visible ») : contour seul, jamais un simple changement de
+   couleur de bordure. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--focus-contour);
+  outline-offset: var(--focus-decalage);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

@@ -1,0 +1,42 @@
+/* Tokens publics de l'interface (contrats §28, DESIGN.md) : palette officielle Wavestone,
+   focus et typographie, en propriétés CSS sur `:root`. Valeurs exactes de DESIGN.md (section
+   Colors) ; `tests/unitaires/test_contraste.py` revérifie les ratios WCAG de chaque paire
+   texte/fond déclarée. `style.css` n'utilise que ces propriétés pour les couleurs. */
+:root {
+  /* Couleurs de marque */
+  --couleur-primaire: #451DC7;
+  --couleur-primaire-fonce: #250F6B;
+  --couleur-primaire-doux: #EDE7FE;
+  --couleur-accent: #04F06A;
+  --couleur-accent-doux: #CAFEE0;
+  --couleur-encre: #0A0A14;
+  --couleur-encre-douce: #4A4A5E;
+  --couleur-gris: #8A8A9E;
+  --couleur-trait: #E6E6EC;
+  --couleur-fond-creme: #F6F5FA;
+  --couleur-attention: #FFCA4A;
+  --couleur-danger: #FF2A49;
+
+  /* Rôles dérivés (accessibilité, AD-14) : jamais la couleur seule porteuse de sens. */
+  --couleur-accent-texte: #036B38;
+  --couleur-gris-texte: #616670;
+  --couleur-attention-doux: #FBE9CF;
+  --couleur-attention-texte: #8A5A00;
+  --couleur-danger-doux: #F8DEDC;
+  --couleur-danger-texte: #B3261E;
+  --couleur-texte-sur-vif: #0A0A14;
+
+  /* Focus visible */
+  --focus-contour: var(--couleur-primaire);
+  --focus-decalage: 2px;
+
+  /* Typographie : aucune police téléchargée (hors ligne). */
+  --police-texte: 'Aptos', 'Segoe UI', system-ui, sans-serif;
+  --police-chasse-fixe: 'Cascadia Mono', Consolas, monospace;
+  --taille-surtitre: 12px;
+  --taille-titre: 22px;
+  --taille-sous-titre: 16px;
+  --taille-corps: 14px;
+  --taille-petit: 12px;
+  --taille-chasse-fixe: 13px;
+}
