@@ -65,7 +65,7 @@
 - **Stories** : les 27 stories de la nuit sont intégrées, revues et poussées (2 à 16, D1 à D3, C1 à C6b, V1, V2), plus le socle. Aucune n'est bloquée. Toutes ont suivi la boucle dev-story, second avis, reviewer, intégration. Le second avis a trouvé au moins un défaut moyen ou élevé réel dans environ deux stories sur trois.
 - **Tests** : sur `main` (897e813), la suite complète passe (648 tests, 2 `slow` désélectionnés). Les 2 tests `slow` passent sur le vrai moteur (V1, V2). `ruff check` et `ruff format --check` sont verts. Les runs de CI sur windows-latest sont verts (dernier contrôlé : 39078494967).
 - **Historique** : 109 commits depuis f1da6dd, dont 27 fusions (`git log --oneline f1da6dd..HEAD`).
-- **Mesures clés (bilan-modeles.md, i5-1145G7, 15,7 Gio, pas l'EliteBook)** : sur 6 notes, les 4 modèles produisent 6/6 fiches ok (validation mécanique), avec 4/6 en premier choix et 6/6 dans les 3 premiers.
+- **Mesures clés (bilan-modeles.md, mesurées sur l'EliteBook cible : i5-1145G7, 15,7 Gio)** : sur 6 notes, les 4 modèles produisent 6/6 fiches ok (validation mécanique), avec 4/6 en premier choix et 6/6 dans les 3 premiers.
 
   | Modèle | Rôle | Médiane par fiche | Pic RSS total |
   |---|---|---|---|
@@ -83,4 +83,4 @@
   5. C5 : noms privés de `lot.py`.
   Les autres écarts sont listés ci-dessus.
 - **Coût (`/agent-cost-kit:mesurer-couts`, historique complet du projet, travail d'avant la nuit compris)** : 90,23 $ au total pour 93 agents. Les sessions principales coûtent 24,92 $ et les sous-agents 65,30 $ : Opus 42,20 $ (35 agents), Sonnet 22,63 $ (26), Haiku 0,48 $ (30). Une story (arbre d'agents) coûte en médiane 2,14 $, pour 88 appels et un pic de contexte de 122 k.
-- **Version** : le POC est utilisable et testé, mais rien n'est versionné, ni tag ni release, comme le plan le prévoit. Je propose la **v0.1.0** une fois la vérification sur l'EliteBook faite : version dans pyproject, tag annoté, release GitHub avec notes, et topic `status-test`.
+- **Version** : le POC est utilisable et testé, mais rien n'est versionné, ni tag ni release, comme le plan le prévoit. Je propose la **v0.1.0** une fois la vérification sur l'EliteBook faite : version dans pyproject, tag annoté, release GitHub avec notes, et topic `status-test`. Correction : la nuit a tourné sur l’EliteBook cible ; les mesures de V1 et V2 valent donc pour la cible, et la vérification au réveil se limite à relire le catalogue et les fiches.

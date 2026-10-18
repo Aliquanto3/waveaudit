@@ -1,6 +1,6 @@
 # Bilan des modèles (story V2)
 
-Mesures du 2026-10-18 sur le poste de développement : i5-1145G7, 4 cœurs physiques et 8 logiques, 15,7 Gio de RAM, Windows 11. Ce n'est pas l'EliteBook cible.
+Mesures du 2026-10-18 sur l'EliteBook cible (i5-1145G7, 4 cœurs physiques et 8 logiques, 15,7 Gio de RAM, Windows 11). Correction du 2026-10-18 : le plan de nuit supposait à tort un autre poste ; ces mesures sont celles de la cible.
 llama-server b11714 en CPU, `threads = 4`, `ctx = 4096`. Configuration livrée : `temperature = 0.2`, `seed = 42`, `max_tokens = 700`.
 
 ## Protocole

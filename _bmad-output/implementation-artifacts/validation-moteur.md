@@ -1,6 +1,6 @@
 # Validation sur le vrai moteur (story V1)
 
-Mesures brutes du 2026-10-18, sur le poste de développement. Ce n'est pas l'EliteBook cible.
+Mesures brutes du 2026-10-18, sur l'EliteBook cible (correction du 2026-10-18 : le plan de nuit supposait à tort un autre poste).
 Les mesures ci-dessous sont celles de la revue (après correction), sans téléchargement concurrent ;
 elles remplacent celles de la première passe, prises en partie pendant la fin du téléchargement.
 
