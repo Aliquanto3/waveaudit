@@ -26,20 +26,22 @@ def _local(config, **moteur):
     )
 
 
-@pytest.mark.parametrize(("ram_go", "role"), [(2.0, "modele_repli"), (16.0, "modele_defaut")])
-def test_choix_par_ram(config_test, artefacts, monkeypatch, ram_go, role):
+@pytest.mark.parametrize(
+    ("ram_go", "role", "nom"),
+    [(2.0, "modele_repli", "qwen3.5-0.8b-q4km"), (16.0, "modele_defaut", "granite-4.0-1b-q4km")],
+)
+def test_choix_par_ram(config_test, artefacts, monkeypatch, ram_go, role, nom):
     monkeypatch.setattr(memoire_psutil, "ram_disponible_octets", lambda: int(ram_go * GO))
     choisi = composition.choisir_modele(_local(config_test), artefacts, None)
-    assert choisi.role == role
+    # Q5 : granite reste défaut (arbitrage du 2026-10-18) ; qwen3.5-0.8b reste le repli.
+    assert (choisi.role, choisi.nom) == (role, nom)
 
 
 def test_choix_explicite_et_erreurs(config_test, artefacts, monkeypatch):
     monkeypatch.setattr(memoire_psutil, "ram_disponible_octets", lambda: 0)
-    config = _local(config_test, modele="qwen3-1.7b-q4km")
-    assert composition.choisir_modele(config, artefacts, None).nom == "qwen3-1.7b-q4km"
-    assert composition.choisir_modele(config, artefacts, "granite-4.0-1b-q4km").role == (
-        "modele_defaut"
-    )
+    config = _local(config_test, modele="granite-4.0-1b-q4km")
+    assert composition.choisir_modele(config, artefacts, None).nom == "granite-4.0-1b-q4km"
+    assert composition.choisir_modele(config, artefacts, "qwen3-1.7b-q4km").role == ("candidat")
     with pytest.raises(ConfigurationInvalide):
         composition.choisir_modele(config, artefacts, "inconnu")
     with pytest.raises(ConfigurationInvalide):
@@ -222,11 +224,15 @@ def test_repeat_penalty_du_manifeste_prime_sur_la_configuration(config_test, art
         update={"moteur": config_test.moteur.model_copy(update={"repeat_penalty": 0.5})}
     )
     url = "http://127.0.0.1:9/v1"
-    sans_reglage = manifeste.par_nom(artefacts, "granite-4.0-1b-q4km")
+    sans_reglage = manifeste.par_nom(artefacts, "qwen3.5-0.8b-q4km")
+    assert sans_reglage.repeat_penalty is None
     assert composition._moteur(objet, url, "m", sans_reglage)._repeat_penalty == 0.5
     avec_reglage = sans_reglage.model_copy(update={"repeat_penalty": 1.3})
     assert composition._moteur(objet, url, "m", avec_reglage)._repeat_penalty == 1.3
     assert composition._moteur(objet, url, "m")._repeat_penalty == 0.5
+    # Q5 (CAP-6) : la valeur mesurée au rebanc, lue du vrai manifeste, prime sur [moteur].
+    defaut = manifeste.par_role(artefacts, "modele_defaut")
+    assert composition._moteur(objet, url, "m", defaut)._repeat_penalty == 1.1
 
 
 def test_externe_mode_json_de_la_configuration_sans_reflexion(config_test):

@@ -34,7 +34,8 @@ destination = "modeles/granite-4.0-1b-Q4_K_M.gguf"
 extraire = false
 executable = ""
 prefixe_systeme = ""
-duree_indicative_s = 17.1
+repeat_penalty = 1.1
+duree_indicative_s = 27.9
 
 [[artefact]]
 nom = "qwen3.5-0.8b-q4km"
@@ -81,4 +82,5 @@ destination = "modeles/Qwen3-1.7B-Q4_K_M.gguf"
 extraire = false
 executable = ""
 prefixe_systeme = "/no_think"
-duree_indicative_s = 20.4
+repeat_penalty = 1.1
+duree_indicative_s = 36.2

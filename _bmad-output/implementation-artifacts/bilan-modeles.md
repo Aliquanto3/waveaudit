@@ -131,6 +131,134 @@ réglages.
   mots-clés ajoutés. Les essais intermédiaires du développeur (scripts hors dépôt) ne sont
   pas connus.
 
+## v2 — Rebanc EliteBook, consigne révisée et rôles des modèles (Q5)
+
+Mesures du 2026-10-18 sur l'EliteBook cible, protocole de `mesures-qualite.md` : llama-server
+b11714 en CPU, `threads = 4`, `ctx = 4096`, `temperature = 0.2`, `max_tokens = 700`, sous-ensemble
+de 6 notes (`var/banc-sous-ensemble`), `uv run waveaudit banc var/banc-sous-ensemble --modele
+<nom> --seed <s>`, modèles lus dans le `var/` du dépôt principal (`waveaudit.local.toml` ignoré
+par git), aucun téléchargement, garde réseau actif. Un seul llama-server à la fois ; psutil n'en
+trouvait aucun restant après chaque run ; chaque run a duré moins de 10 min. Recopie : définition
+unique de contrats §29 (`banc.json` v2), garde-fous v2 (répétition, langue, URL de l'actif
+admise). Pendant les essais, `repeat_penalty` venait de `[moteur]` (surcharge locale) ; la
+valeur retenue est ensuite écrite au manifeste pour granite et qwen3-1.7b, et le test `slow`
+vérifie qu'elle atteint le vrai moteur.
+
+- **`repeat_penalty` accepté par llama-server b11714 :** vérifié au premier essai.
+  `/completion` renvoie `generation_settings.repeat_penalty` égal à la valeur envoyée (1,0 puis
+  1,8) et la sortie change (boucle « security security… » à 1,0, cassée à 1,8) ;
+  `/v1/chat/completions` accepte le champ (statut 200).
+
+### Essais (seed 42, réglage de la consigne)
+
+| Essai | Consigne | `repeat_penalty` | Modèle | ok/6 | Recopie (titre / description / impact / recommandation) | Médiane / max | Motifs | Lot |
+|---|---|---|---|---|---|---|---|---|
+| A | essai 3 de V2 telle quelle (fr), traduite (en) | 1,1 | granite | 6/6 | 0,75 (1,00 / 0,48 / 0,85 / 0,66) | 27,2 s / 47,4 s | aucun | `20261018-120924` |
+| B (retenue) | A, plus : titre « nouveau titre pour ce cas, … ne reprends pas le titre du constat type » ; impact « en une ou deux phrases, … ne recopie pas l'impact générique » ; recommandation « en deux ou trois phrases » | 1,1 | granite | 6/6 | 0,56 (0,81 / 0,36 / 0,55 / 0,53) | 27,0 s / 34,9 s | aucun | `20261018-121259` |
+| B | idem | 1,1 | qwen3-1.7b | 6/6 | 0,46 (0,72 / 0,24 / 0,43 / 0,45) | 36,2 s / 37,3 s | aucun | `20261018-121558` |
+
+- Essai A : le titre est recopié mot pour mot sur les 6 fiches (1,00) et l'impact presque
+  (0,85) ; la recommandation de la note 29 s'étire jusqu'à 1 200 caractères (paraphrase sans
+  boucle littérale, donc pas de motif `repetition`, coupée au milieu d'un mot) : d'où les
+  longueurs en phrases de l'essai B, qui ramènent toutes les rubriques sous 640 caractères.
+- Deux itérations ont suffi : l'essai B tient les seuils de CAP-6 et de CAP-7 dès la seed 42,
+  il a été gardé sans autre réglage (pas de sur-ajustement sur la seed 42).
+
+### Configuration finale (essai B, `repeat_penalty = 1.1`) sur 3 seeds — revue A31
+
+| Modèle | Seed | ok/6 | Recopie (titre / description / impact / recommandation) | Médiane / max par fiche | Pic RSS total | Motifs | Lot |
+|---|---|---|---|---|---|---|---|
+| granite-4.0-1b | 42 | 6/6 | 0,56 (0,81 / 0,36 / 0,55 / 0,53) | 27,0 s / 34,9 s | 2 522 Mio | aucun | `20261018-121259` |
+| granite-4.0-1b | 142 | 6/6 | 0,64 (0,83 / 0,50 / 0,58 / 0,65) | 27,9 s / 39,4 s | 2 496 Mio | aucun | `20261018-121946` |
+| granite-4.0-1b | 242 | 6/6 | 0,55 (0,82 / 0,34 / 0,54 / 0,48) | 31,8 s / 42,8 s | 2 573 Mio | aucun | `20261018-122256` |
+| qwen3-1.7b | 42 | 6/6 | 0,46 (0,72 / 0,24 / 0,43 / 0,45) | 36,2 s / 37,3 s | 2 858 Mio | aucun | `20261018-121558` |
+| qwen3-1.7b | 142 | 6/6 | 0,45 (0,68 / 0,23 / 0,39 / 0,47) | 40,1 s / 45,1 s | 2 533 Mio | aucun | `20261018-122630` |
+| qwen3-1.7b | 242 | 5/6 | 0,45 (0,71 / 0,22 / 0,39 / 0,47) | 32,8 s / 254,9 s | 2 757 Mio | 1 `repli_moteur` | `20261018-123036` |
+| qwen3-1.7b | 242 (rejoué) | 6/6 | 0,44 (0,72 / 0,21 / 0,37 / 0,47) | 37,8 s / 43,9 s | 2 469 Mio | aucun | `20261018-124111` |
+
+- **qwen3-1.7b, seed 242 :** la note 11 sort en repli (`repli_moteur`, « moteur injoignable
+  (timed out) ») après 254,9 s : la requête a dépassé `timeout_s = 180`. Ce n'est ni une sortie
+  dégénérée ni une autre langue : la fiche est décomptée, sans exception. Hypothèse (charge du
+  poste, non démontrée : un seul rejeu, pas de mesure de charge pendant le run fautif) : la même
+  requête (même consigne, même seed 242, `repeat_penalty = 1.1`) rejouée directement sur
+  llama-server finit en 68 s (492 jetons, 8,8 jetons/s, contre 11 jetons/s d'habitude) ; le
+  poste avait, au moment du rejeu, environ 47 % de CPU pris par d'autres processus (agents de sécurité et
+  d'inventaire). Le run complet rejoué donne 6/6. Les agrégats ci-dessous comptent le **premier**
+  run ; le run rejoué est donné à part.
+- **Relecture à la main :** aucune fiche des 7 runs ne porte `repetition` ni `langue` ; aucune
+  boucle relevée ; toutes les fiches sont en français. Défauts de sens ou de langue relevés :
+  granite écrit « génération de devises » pour « devis » (note 29, seeds 42 et 242) et
+  « sensiblement » pour « sensible » (note 22, seed 242), et sa note 22 reste générique
+  (`GenericAll` ou `WriteDACL` cités comme exemples, compte et GPO absents sauf à la seed 142) ;
+  qwen3-1.7b écrit « excesif » (note 22) et « domaine LOCAL » (note 11), mais reprend le compte
+  `compte-svc-sauvegarde`, la GPO `GPO-Postes-Finance` et l'actif `192.0.2.55` de la note.
+
+### Agrégats sur 3 seeds et seuils
+
+| Modèle | ok min / médiane | Recopie médiane / max | Médiane des durées médianes | CAP-6 (recopie < 0,7 ; 6/6 sur chaque seed) | CAP-7 (≥ 5/6, < 0,6, < 40 s) |
+|---|---|---|---|---|---|
+| granite-4.0-1b | 6/6 / 6/6 | 0,56 / 0,64 | 27,9 s | tenu | — |
+| qwen3-1.7b | 5/6 / 6/6 | 0,45 / 0,46 | 36,2 s | **non tenu** : recopie tenue, 5/6 à la seed 242 (1 `repli_moteur` par délai dépassé) ; 6/6 au run rejoué, hors protocole | **tenu** (6/6, 0,45, 36,2 s) |
+| qwen3-1.7b (242 rejoué) | 6/6 / 6/6 | 0,44 / 0,46 | 37,8 s | tenu (hors protocole, non compté) | tenu |
+
+Référence v0.1.0 (prompt livré, 1 seed) : recopie 0,93 (granite) et 0,78 (qwen3-1.7b).
+
+### Décision des rôles (CAP-7, appliquée mécaniquement)
+
+**qwen3-1.7b-q4km devient `modele_defaut`, granite-4.0-1b-q4km devient `candidat`** : sur les
+médianes des 3 seeds du protocole (lots `20261018-121558`, `-122630`, `-123036`, premier run de
+la seed 242 compté avec son repli), qwen3-1.7b a 6/6 `ok` (≥ 5/6), une recopie de 0,45 (< 0,6)
+et une médiane de 36,2 s par fiche (< 40 s). La décision ne dépend pas du run rejoué (37,8 s
+avec lui). CAP-7 ne fait pas de CAP-6 une condition de la promotion : la promotion est conforme
+à la lettre de CAP-7.
+
+**État de CAP-6 par modèle (runs du protocole seuls ; `ok` compté tel quel, seuls `repetition`
+et `langue` confirmés à la main seraient exclus, il n'y en a aucun) :**
+- granite-4.0-1b : **tenu** (6/6 sur les seeds 42, 142, 242 ; recopie médiane 0,56 < 0,7) ;
+- qwen3-1.7b : **non tenu** : recopie médiane 0,45 < 0,7 tenue, mais 5/6 à la seed 242 (note
+  11, `repli_moteur` par délai dépassé, motif que CAP-6 n'exclut pas). Le run rejoué de la seed
+  242 (6/6, `20261018-124111`) est hors protocole (`mesures-qualite.md` ne prévoit pas de rejeu)
+  et n'est pas compté.
+
+Le modèle promu par défaut est donc le seul des deux à ne pas tenir CAP-6 sur le protocole.
+
+**Point à arbitrer par Anaël (avant fusion) :** valider qwen3-1.7b par défaut (CAP-7 tenu,
+CAP-6 manqué d'une fiche sur un délai dépassé, attribué à la charge du poste sans preuve), ou
+l'infirmer (granite reste défaut, il tient CAP-6). Les agents de sécurité et d'inventaire qui
+chargeaient le poste sont aussi ceux des postes de consultants : un délai de 180 s dépassé avec
+qwen3-1.7b (36 s de médiane, 1,3 fois granite) peut se reproduire en usage. Autre voie : rebanc
+de qwen3-1.7b seed 242 poste au repos, compté s'il est consigné comme reprise du protocole.
+
+### Arbitrage d'Anaël (2026-10-18)
+
+**Infirmé : granite-4.0-1b-q4km reste `modele_defaut`, qwen3-1.7b-q4km reste `candidat`.** La
+règle mécanique de CAP-7 désignait qwen3-1.7b (§ ci-dessus), mais CAP-6 n'est pas tenu pour lui
+sur le protocole (5/6 à la seed 242, délai dépassé) ; granite tient CAP-6 et reste le modèle par
+défaut. qwen3-1.7b reste candidat, choisissable à l'accueil. Manifeste rééchangé en
+conséquence (`role` seul remis à l'état d'avant Q5 ; `repeat_penalty = 1.1` et
+`duree_indicative_s` mesurés au rebanc restent sur les deux modèles).
+
+Réserves pour Anaël, qui peut infirmer ce choix :
+- la marge sur la durée est mince : une seed à 40,1 s, et le seul repli du rebanc est un délai
+  dépassé de qwen3-1.7b sur un poste chargé ;
+- qwen3-1.7b est plus lourd (pic total 2 469 à 2 858 Mio contre 2 496 à 2 573 Mio pour
+  granite) ; le seuil `ram_min_defaut_go = 4.5` n'a pas été remesuré ;
+- les durées passent de 17-20 s (v0.1.0) à 28-36 s par fiche : la consigne révisée produit des
+  rubriques plus longues et propres au cas.
+
+Manifeste : `repeat_penalty = 1.1` pour qwen3-1.7b et granite (les deux modèles mesurés) ;
+`duree_indicative_s` = 36,2 (qwen3-1.7b) et 27,9 (granite), médianes ci-dessus. Le repli
+qwen3.5-0.8b et le candidat MiniCPM5 n'ont pas été rebancés : ni `repeat_penalty` ni nouvelle
+durée (11,4 s et 12,9 s restent les mesures du prompt livré). Ordre des entrées du manifeste
+remis à la règle de contrats §11 (moteur, défaut, repli, candidats) : les blocs de qwen3-1.7b
+et de granite ont été échangés, sans autre champ modifié que `role`, `repeat_penalty` et
+`duree_indicative_s`.
+
+Garde de CI longue : `tests/e2e/test_reel.py::test_banc_reel_deux_notes_plafond_recopie`
+(notes 01 et 11, modèle par défaut, recopie ≤ 0,8) et
+`::test_lot_reel_deux_notes_repeat_penalty_du_manifeste` (le vrai moteur reçoit 1,1, fiches
+`ok`, sans `langue` ni `repetition`) passent sur l'EliteBook (3 tests `slow`, 250 s).
+
 ## Reports (hors périmètre V2)
 
 - **Garde-fous fiches** :
