@@ -58,7 +58,12 @@ def _fiche_a_revoir() -> Fiche:
         ),
         references=[_REFERENCE],
         statut=Statut.A_REVOIR,
-        motifs=[Motif(code=CodeMotif.VECTEUR_INVALIDE, detail="métrique AC inconnue : X")],
+        motifs=[
+            Motif(
+                code=CodeMotif.VECTEUR_INVALIDE,
+                detail="CVSS:3.1/AV:N/AC:X/PR:N/UI:N/S:U/C:N/I:N/A:N",
+            )
+        ],
         tracabilite=Tracabilite(
             note="02-notes.md",
             constat_id="WEB-XSS-REFLECHI",
@@ -132,7 +137,10 @@ def test_theme_generique_sans_dossier_produit_un_rapport_complet(tmp_path: Path)
 
     textes = _textes(document)
     assert "À revoir" in textes
-    assert any("vecteur_invalide : métrique AC inconnue : X" in t for t in textes)
+    assert any(
+        "Vecteur CVSS invalide : CVSS:3.1/AV:N/AC:X/PR:N/UI:N/S:U/C:N/I:N/A:N" in t for t in textes
+    )
+    assert not any("vecteur_invalide" in t for t in textes)
 
     tables = document.tables
     assert len(tables) == 2
@@ -145,7 +153,14 @@ def test_theme_generique_sans_dossier_produit_un_rapport_complet(tmp_path: Path)
 
     annexe = [cellule.text for cellule in tables[1].rows[0].cells]
     assert annexe == ["Note", "Statut", "Motif"]
-    assert tables[1].rows[1].cells[0].text == "03-hors-sujet.md"
+    ligne_1 = [c.text for c in tables[1].rows[1].cells]
+    assert ligne_1 == [
+        "03-hors-sujet.md",
+        "Non rattachée",
+        "Aucun constat retenu : aucun candidat au-dessus du seuil",
+    ]
+    ligne_2 = [c.text for c in tables[1].rows[2].cells]
+    assert ligne_2 == ["04-invalide.md", "Non traitée", "Note invalide : corps vide"]
 
 
 def test_sans_ecartees_pas_dannexe(tmp_path: Path):
@@ -292,7 +307,10 @@ def test_en_bandeau_intitules_severites_statuts_annexe(tmp_path: Path):
 
     textes = _textes(document)
     assert "To review" in textes
-    assert any("vecteur_invalide : métrique AC inconnue : X" in t for t in textes)
+    assert any(
+        "Invalid CVSS vector : CVSS:3.1/AV:N/AC:X/PR:N/UI:N/S:U/C:N/I:N/A:N" in t for t in textes
+    )
+    assert not any("vecteur_invalide" in t for t in textes)
 
     tables = document.tables
     synthese_entetes = [cellule.text for cellule in tables[0].rows[0].cells]
@@ -305,6 +323,12 @@ def test_en_bandeau_intitules_severites_statuts_annexe(tmp_path: Path):
 
     annexe_entetes = [cellule.text for cellule in tables[1].rows[0].cells]
     assert annexe_entetes == list(libelles["annexe_entetes"])
+    ligne_1 = [c.text for c in tables[1].rows[1].cells]
+    assert ligne_1 == ["03-hors-sujet.md", "Not matched", "No matching finding"]
+    ligne_2 = [c.text for c in tables[1].rows[2].cells]
+    assert ligne_2 == ["04-invalide.md", "Not processed", "Invalid note"]
+    for code in ("aucun_constat", "note_invalide", "non_rattachee", "non_traitee"):
+        assert not any(code in t for t in [c.text for row in tables[1].rows for c in row.cells])
 
 
 def test_brouillon_marque_sur_les_seules_fiches_non_validees(tmp_path: Path):
@@ -319,7 +343,9 @@ def test_brouillon_marque_sur_les_seules_fiches_non_validees(tmp_path: Path):
 
     textes = _textes(document)
     assert "À revoir" in textes
-    assert any("vecteur_invalide : métrique AC inconnue : X" in t for t in textes)
+    assert any(
+        "Vecteur CVSS invalide : CVSS:3.1/AV:N/AC:X/PR:N/UI:N/S:U/C:N/I:N/A:N" in t for t in textes
+    )
 
     ligne_a_revoir = [cellule.text for cellule in document.tables[0].rows[2].cells]
     assert ligne_a_revoir[-1] == "À revoir"
@@ -389,7 +415,7 @@ def test_annexe_avec_lot_interrompu(tmp_path: Path):
     document = Document(str(chemin))
     annexe = document.tables[1]
     ligne = [c.text for c in annexe.rows[1].cells]
-    assert ligne == ["10-pas-vue.md", "non_traitee", "lot_interrompu : lot interrompu"]
+    assert ligne == ["10-pas-vue.md", "Non traitée", "Lot interrompu"]
 
 
 def test_aucun_partiel_restant(tmp_path: Path):
@@ -438,3 +464,79 @@ def test_aucun_partiel_si_le_remplacement_echoue(tmp_path: Path, monkeypatch):
         ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin)
 
     assert list(tmp_path.iterdir()) == []
+
+
+# [LIB] Mots français connus apparaissant dans les `detail` fixtures de `_rapport` (FR_PROSE) :
+# un Word anglais ne doit en montrer aucun, qu'ils soient omis ou déjà traduits.
+_MOTS_FRANCAIS_CONNUS = (
+    "corps vide",
+    "aucun candidat au-dessus du seuil",
+    "lot interrompu",
+    "tronqué",
+    "caractères",
+)
+
+
+def test_final_ecartees_en_sans_code_brut_ni_francais(tmp_path: Path):
+    chemin = tmp_path / "rapport-final.docx"
+    options = OptionsExport(langue="en", mode="final")
+    ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=True), chemin, options)
+
+    document = Document(str(chemin))
+    annexe = document.tables[1]
+    lignes = [[c.text for c in row.cells] for row in annexe.rows[1:]]
+    assert lignes == [
+        ["03-hors-sujet.md", "Not matched", "No matching finding"],
+        ["04-invalide.md", "Not processed", "Invalid note"],
+    ]
+    for texte in (c for ligne in lignes for c in ligne):
+        basse = texte.lower()
+        for mot in _MOTS_FRANCAIS_CONNUS:
+            assert mot not in basse
+        for code in CodeMotif:
+            assert code.value not in texte
+        assert "non_traitee" not in texte
+        assert "non_rattachee" not in texte
+
+
+def test_final_ecartees_fr_libelles_et_detail(tmp_path: Path):
+    chemin = tmp_path / "rapport-final.docx"
+    options = OptionsExport(mode="final")
+    ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=True), chemin, options)
+
+    document = Document(str(chemin))
+    annexe = document.tables[1]
+    lignes = [[c.text for c in row.cells] for row in annexe.rows[1:]]
+    assert lignes == [
+        [
+            "03-hors-sujet.md",
+            "Non rattachée",
+            "Aucun constat retenu : aucun candidat au-dessus du seuil",
+        ],
+        ["04-invalide.md", "Non traitée", "Note invalide : corps vide"],
+    ]
+
+
+def test_brouillon_en_fiche_a_revoir_sans_francais(tmp_path: Path):
+    fiche = _fiche_a_revoir().model_copy(
+        update={
+            "motifs": [Motif(code=CodeMotif.NOTE_TRONQUEE, detail="corps tronqué à 500 caractères")]
+        }
+    )
+    chemin = tmp_path / "brouillon.docx"
+    options = OptionsExport(langue="en", mode="brouillon")
+    ExportDocx(tmp_path / "absent").exporter(Rapport(fiches=[fiche], ecartees=[]), chemin, options)
+
+    textes = _textes(Document(str(chemin)))
+    assert "Note truncated" in textes
+    assert not any("note_tronquee" in t or "tronqué" in t or "caractères" in t for t in textes)
+
+
+def test_completude_libelles_motifs_et_statuts_ecartes():
+    for langue in ("fr", "en"):
+        motifs = LIBELLES[langue]["motifs"]
+        for code in CodeMotif:
+            assert code.value in motifs, f"{langue} : motif {code.value} sans libellé"
+        statuts = LIBELLES[langue]["statuts_ecartes"]
+        for statut in (Statut.NON_TRAITEE, Statut.NON_RATTACHEE):
+            assert statut.value in statuts, f"{langue} : statut {statut.value} sans libellé"

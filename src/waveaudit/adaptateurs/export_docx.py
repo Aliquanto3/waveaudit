@@ -22,7 +22,7 @@ from waveaudit.adaptateurs.theme_generique import (
     document_generique,
 )
 from waveaudit.domaine.erreurs import ConfigurationInvalide
-from waveaudit.domaine.modeles import EntreeEcartee, Fiche, Langue, Rapport
+from waveaudit.domaine.modeles import CodeMotif, EntreeEcartee, Fiche, Langue, Motif, Rapport
 from waveaudit.domaine.ports import OptionsExport
 
 BANDEAU = "Démonstration — données fictives"
@@ -60,6 +60,26 @@ LIBELLES: dict[Langue, dict[str, object]] = {
         "severite": "Sévérité",
         "note": "Note",
         "constat_type": "Constat type",
+        # [LIB] Libellés des statuts d'entrée écartée (annexe §27) et des codes de motif
+        # (contrats §17 « code : detail »), par code de `CodeMotif` (domaine/modeles.py).
+        "statuts_ecartes": {
+            "non_traitee": "Non traitée",
+            "non_rattachee": "Non rattachée",
+        },
+        "motifs": {
+            "reference_retiree": "Référence retirée",
+            "vecteur_invalide": "Vecteur CVSS invalide",
+            "rubrique_completee": "Rubrique complétée",
+            "note_tronquee": "Note tronquée",
+            "repli_sortie_invalide": "Repli — sortie invalide",
+            "repli_moteur": "Repli moteur",
+            "note_invalide": "Note invalide",
+            "aucun_constat": "Aucun constat retenu",
+            "indicateur_retire": "Indicateur retiré",
+            "repetition": "Rubrique répétitive",
+            "langue": "Langue incohérente",
+            "lot_interrompu": "Lot interrompu",
+        },
     },
     "en": {
         "titre": "Findings report",
@@ -90,8 +110,44 @@ LIBELLES: dict[Langue, dict[str, object]] = {
         "severite": "Severity",
         "note": "Note",
         "constat_type": "Finding template",
+        "statuts_ecartes": {
+            "non_traitee": "Not processed",
+            "non_rattachee": "Not matched",
+        },
+        "motifs": {
+            "reference_retiree": "Reference removed",
+            "vecteur_invalide": "Invalid CVSS vector",
+            "rubrique_completee": "Section completed",
+            "note_tronquee": "Note truncated",
+            "repli_sortie_invalide": "Fallback — invalid output",
+            "repli_moteur": "Engine fallback",
+            "note_invalide": "Invalid note",
+            "aucun_constat": "No matching finding",
+            "indicateur_retire": "Indicator removed",
+            "repetition": "Repetitive section",
+            "langue": "Language mismatch",
+            "lot_interrompu": "Batch interrupted",
+        },
     },
 }
+
+# [LIB] Codes dont `detail` porte une valeur réutilisable (jeton, vecteur CVSS, nom de
+# rubrique, message d'erreur technique) : affichée dans les deux langues. Les autres codes
+# écrivent une phrase française (contrats §6, §21, §25) : son `detail` n'est repris qu'en
+# français ; en anglais, seul le libellé est affiché. `LOT_INTERROMPU` n'a qu'un détail fixe,
+# toujours redondant avec son libellé : jamais affiché, dans aucune langue.
+_MOTIFS_VALEUR: frozenset[CodeMotif] = frozenset(
+    {
+        CodeMotif.REFERENCE_RETIREE,
+        CodeMotif.VECTEUR_INVALIDE,
+        CodeMotif.RUBRIQUE_COMPLETEE,
+        CodeMotif.REPETITION,
+        CodeMotif.INDICATEUR_RETIRE,
+        CodeMotif.REPLI_SORTIE_INVALIDE,
+        CodeMotif.REPLI_MOTEUR,
+    }
+)
+_MOTIFS_SANS_DETAIL: frozenset[CodeMotif] = frozenset({CodeMotif.LOT_INTERROMPU})
 
 # [v2] `BANDEAU` reste la constante publique française (contrats §17).
 BANDEAUX: dict[Langue, str] = {"fr": BANDEAU, "en": "Demonstration — fictitious data"}
@@ -210,6 +266,25 @@ def _style_table(document: Document, style_prefere: str) -> str | None:
     return None
 
 
+def _motif_affiche(motif: Motif, libelles: dict, langue: Langue) -> str:
+    """[LIB] Libellé du code, avec le détail seulement s'il reste lisible dans `langue`.
+
+    Code inconnu de la table (défensif, `CodeMotif` étant fermé en pratique) : repli sur le
+    code brut, sans détail.
+    """
+    libelle = libelles["motifs"].get(str(motif.code), str(motif.code))
+    if motif.code in _MOTIFS_SANS_DETAIL or libelle == str(motif.code):
+        return libelle
+    if langue == "fr" or motif.code in _MOTIFS_VALEUR:
+        return f"{libelle} : {motif.detail}"
+    return libelle
+
+
+def _statut_ecartee_affiche(statut: str, libelles: dict) -> str:
+    """[LIB] Libellé du statut d'une entrée écartée ; repli sur le statut brut si inconnu."""
+    return libelles["statuts_ecartes"].get(str(statut), str(statut))
+
+
 def _statut_affiche(fiche: Fiche, libelles: dict, options: OptionsExport) -> str:
     """[v2] En mode final, « Validée », sans égard au statut de génération (contrats §27)."""
     if options.mode == "final":
@@ -283,7 +358,7 @@ def _section_fiche(
     else:
         document.add_paragraph(str(libelles["a_revoir"]))
         for motif in fiche.motifs:
-            _paragraphe(document, f"{motif.code} : {motif.detail}")
+            _paragraphe(document, _motif_affiche(motif, libelles, options.langue))
 
     document.add_heading(str(libelles["tracabilite"]), level=3)
     _paragraphe(
@@ -304,7 +379,11 @@ def _annexe(
         cellule.text = texte
     for entree in ecartees:
         cellules = table.add_row().cells
-        valeurs = (entree.note, entree.statut, f"{entree.motif.code} : {entree.motif.detail}")
+        valeurs = (
+            entree.note,
+            _statut_ecartee_affiche(entree.statut, libelles),
+            _motif_affiche(entree.motif, libelles, options.langue),
+        )
         for cellule, texte in zip(cellules, valeurs, strict=True):
             cellule.text = _propre(texte)
     if options.mode == "final":
