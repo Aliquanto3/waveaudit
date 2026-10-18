@@ -1,12 +1,21 @@
 """Prompt du récit d'une détection (contrats §21 « Prompt et pipeline »)."""
 
 import json
+import re
 
 from waveaudit.domaine.incident import Detection, Evenement, Regle
 from waveaudit.domaine.ports import Message
 
 LONGUEUR_MAX_PREUVE = 300
 _CHAMPS_REGLE = {"id", "titre", "description", "impact", "recommandation"}
+
+_BALISE = re.compile(r"<(?=\s*/?\s*(?:regle|preuves)\b)", re.IGNORECASE)
+
+
+def echapper(texte: str) -> str:
+    """[v2] CAP-2 : neutralise les balises `regle`/`preuves` dans un texte (§8), même longueur."""
+    return _BALISE.sub("‹", texte)  # U+2039
+
 
 CONSIGNE = (
     "Tu es un assistant de rédaction de rapport d'incident de sécurité. Adapte le texte type "
@@ -22,7 +31,7 @@ CONSIGNE = (
 
 def ligne_preuve(evenement: Evenement) -> str:
     """`horodatage hote message`, message aux blancs réduits et coupé à 300 caractères."""
-    message = " ".join(evenement.message.split())[:LONGUEUR_MAX_PREUVE]
+    message = echapper(" ".join(evenement.message.split())[:LONGUEUR_MAX_PREUVE])
     return f"{evenement.horodatage.isoformat(timespec='seconds')} {evenement.hote} {message}"
 
 

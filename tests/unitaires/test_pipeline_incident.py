@@ -73,12 +73,14 @@ def test_json_invalide_une_fois_puis_succes(traiter):
     assert resultat.statut == Statut.OK
     assert len(fm.requetes) == 2
     assert fm.requetes[0]["messages"] == fm.requetes[1]["messages"]
+    assert fm.requetes[0]["seed"] == 42 and fm.requetes[1]["seed"] == 43
 
 
 def test_json_invalide_deux_fois_repli(traiter):
     resultat, fm = traiter("json_invalide")
     r = regle()
     assert len(fm.requetes) == 2
+    assert fm.requetes[0]["seed"] == 42 and fm.requetes[1]["seed"] == 43
     assert _codes(resultat) == [CodeMotif.REPLI_SORTIE_INVALIDE]
     assert resultat.statut == Statut.A_REVOIR
     assert (resultat.titre, resultat.recit, resultat.impact, resultat.recommandation) == (

@@ -41,7 +41,9 @@ def traiter_detection(
     messages = prompt.construire(regle, detection, prefixe_systeme, incident.max_preuves)
     schema = schema_recit(incident.longueur_max_recit)
     try:
-        sortie = _generer_avec_un_essai(moteur, messages, schema, incident.max_tokens)
+        sortie = _generer_avec_un_essai(
+            moteur, messages, schema, incident.max_tokens, config.moteur.seed
+        )
         motifs: list[Motif] = []
     except SortieInvalide as erreur:
         sortie = sortie_de_repli(regle)
@@ -55,12 +57,13 @@ def traiter_detection(
 
 
 def _generer_avec_un_essai(
-    moteur: Moteur, messages: list[Message], schema: dict, max_tokens: int
+    moteur: Moteur, messages: list[Message], schema: dict, max_tokens: int, seed: int
 ) -> dict:
+    """`SortieInvalide` : un seul nouvel essai, seed `+ 1` (§5) ; `MoteurInjoignable` remonte."""
     try:
-        return moteur.generer_json(messages, schema, max_tokens=max_tokens)
+        return moteur.generer_json(messages, schema, max_tokens=max_tokens, seed=seed)
     except SortieInvalide:
-        return moteur.generer_json(messages, schema, max_tokens=max_tokens)
+        return moteur.generer_json(messages, schema, max_tokens=max_tokens, seed=(seed + 1) % 2**32)
 
 
 def sortie_de_repli(regle: Regle) -> dict:
