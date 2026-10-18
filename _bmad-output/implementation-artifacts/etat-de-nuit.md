@@ -19,7 +19,7 @@
 | 15 | Banc de mesure | intégrée b8022b2 (revue : revues/story-15.md) |
 | 16 | Preuve hors ligne, test réel, README | intégrée 612457c (revue : revues/story-16.md ; suite complète de fin de MVP : 283 verte, lint OK) |
 | V1 | Validation sur le vrai moteur | intégrée e8ebc2d (revue : revues/story-V1.md ; 4 modèles validés à 2/2 fiches ok après correction ; mesures : validation-moteur.md ; tests slow verts ; suite 648 verte) |
-| V2 | Banc des 4 modèles et réglage du prompt | en cours |
+| V2 | Banc des 4 modèles et réglage du prompt | intégrée 897e813 (revue : revues/story-V2.md ; aucun réglage retenu ; bilan : bilan-modeles.md) |
 | D1 | Catalogue élargi et notes difficiles | intégrée 1d4f448 (revue : revues/story-D1.md ; 50 constats ; notes 21-30 : 8/10 top 1, 10/10 top 3) |
 | D2 | Intégration continue GitHub Actions | intégrée 79abdfd (revue : revues/story-D2.md ; badge README fait par la story 16 ; premier run CI 39070885639 vert sur windows-latest) |
 | D3 | Guide des testeurs et formulaire de retour | intégrée e93367d (revue : revues/story-D3.md ; suite complète de vague L : 283 verte ; durées du guide estimées, installer non exécuté) |
@@ -59,3 +59,28 @@
 - Story C6b : `--modele` inconnu vérifié contre le manifeste dans la CLI, même sans détection (code 2) ; `_codes_retour` retire aussi les chemins absolus des messages EntreeInvalide et ConfigurationInvalide pour toutes les commandes (les messages de `fiches` changent un peu) ; `fiches` affiche toujours le chemin complet du rapport, alors que `incident` n’affiche que le nom. Le relecteur a réécrit le script PowerShell d’export du README, qui produisait un fichier que le lecteur ignorait en entier, et l’a validé sur le journal System de cette machine (aucune donnée commitée).
 - Story V1 (à entériner, prioritaire) : MiniCPM5 (modèle de repli) et Qwen3.5 réfléchissent par défaut, épuisent `max_tokens` dans `reasoning_content` et laissent `content` vide. Le `json_object` du §22, implémenté (`mode_json` dans la configuration et par entrée du manifeste), ne corrige rien. Écart au §22 : nouveau champ facultatif `reflexion` par entrée du manifeste, transmis en `chat_template_kwargs={"enable_thinking": false}` (corps de requête inchangé s’il est absent) ; il vaut `false` pour MiniCPM5 et Qwen3.5, qui produisent alors un JSON conforme. Reporté : workflow incident non mesuré sur le vrai moteur.
 - Story 6 : le §3 ne classe pas une enveloppe de réponse 200 non conforme (corps non JSON, `choices` vide, `message` absent) ; la revue lève `MoteurInjoignable` (et `SortieInvalide` seulement pour un `content` null ou non textuel). À entériner.
+
+## Bilan de la nuit (2026-10-18)
+
+- **Stories** : les 27 stories de la nuit sont intégrées, revues et poussées (2 à 16, D1 à D3, C1 à C6b, V1, V2), plus le socle. Aucune n'est bloquée. Toutes ont suivi la boucle dev-story, second avis, reviewer, intégration. Le second avis a trouvé au moins un défaut moyen ou élevé réel dans environ deux stories sur trois.
+- **Tests** : sur `main` (897e813), la suite complète passe (648 tests, 2 `slow` désélectionnés). Les 2 tests `slow` passent sur le vrai moteur (V1, V2). `ruff check` et `ruff format --check` sont verts. Les runs de CI sur windows-latest sont verts (dernier contrôlé : 39078494967).
+- **Historique** : 109 commits depuis f1da6dd, dont 27 fusions (`git log --oneline f1da6dd..HEAD`).
+- **Mesures clés (bilan-modeles.md, i5-1145G7, 15,7 Gio, pas l'EliteBook)** : sur 6 notes, les 4 modèles produisent 6/6 fiches ok (validation mécanique), avec 4/6 en premier choix et 6/6 dans les 3 premiers.
+
+  | Modèle | Rôle | Médiane par fiche | Pic RSS total |
+  |---|---|---|---|
+  | granite-4.0-1b | défaut | 17,1 s | 2,4 Gio |
+  | minicpm5-1b | repli | 12,9 s | 1,3 Gio |
+  | qwen3-1.7b | candidat | 20,4 s | 2,8 Gio |
+  | qwen3.5-0.8b | candidat | 11,4 s | 1,3 Gio |
+
+  Relecture des 6 fiches de granite : aucune utilisable telle quelle, 4 avec retouches légères, 2 à refaire. Elles restent trop proches du texte du catalogue (recopie 0,93), et la recherche se trompe sur les notes 01 et 29. qwen3-1.7b adapte le mieux, mais il est le plus lent : à confirmer sur l'EliteBook. MiniCPM5, le modèle de repli, n'est pas fiable : boucles, et un récit d'incident en anglais. Workflow incident sur la démo CERT : 16/16 récits ok avec granite et avec minicpm5.
+- **Écarts à arbitrer, par priorité** :
+  1. V1 : champ `reflexion` du manifeste. Sans lui, le modèle de repli ne produit que des fiches de repli.
+  2. C1 et C4 : neutralisation du point final avant les motifs du §21.
+  3. Story 10 : nouvelle tentative identique (seed fixe) et `</note>` non échappé.
+  4. Story 3 : seuil de 20 caractères pour les titres.
+  5. C5 : noms privés de `lot.py`.
+  Les autres écarts sont listés ci-dessus.
+- **Coût (`/agent-cost-kit:mesurer-couts`, historique complet du projet, travail d'avant la nuit compris)** : 90,23 $ au total pour 93 agents. Les sessions principales coûtent 24,92 $ et les sous-agents 65,30 $ : Opus 42,20 $ (35 agents), Sonnet 22,63 $ (26), Haiku 0,48 $ (30). Une story (arbre d'agents) coûte en médiane 2,14 $, pour 88 appels et un pic de contexte de 122 k.
+- **Version** : le POC est utilisable et testé, mais rien n'est versionné, ni tag ni release, comme le plan le prévoit. Je propose la **v0.1.0** une fois la vérification sur l'EliteBook faite : version dans pyproject, tag annoté, release GitHub avec notes, et topic `status-test`.
