@@ -162,3 +162,8 @@ def creer_ports_incident(config: Configuration) -> PortsIncident:
             config.chemins.theme_prive, max_preuves=config.incident.max_preuves
         ),
     )
+
+
+def creer_catalogue(config: Configuration) -> CatalogueYaml:
+    """[v2] Catalogue de constats types, lu par le banc pour la recopie (contrats §29)."""
+    return CatalogueYaml(config.chemins.catalogue)

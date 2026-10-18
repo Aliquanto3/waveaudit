@@ -251,6 +251,31 @@ def test_banc_succes_code_0(monkeypatch, config_test):
     assert not garde_reseau._actif
 
 
+def test_banc_seed_cli(monkeypatch, config_test):
+    """[revue B1] `banc --seed 142` atteint banc.json ; seed hors de 0..2**32-1 -> code 2."""
+    from waveaudit.application import composition
+    from waveaudit.interfaces import cli
+
+    class _Mesure:
+        def rss_octets(self, pid: int) -> int | None:
+            return None
+
+    monkeypatch.setattr(cli, "_charger_config", lambda chemin=None: config_test)
+    monkeypatch.setattr(composition, "creer_mesure_memoire", _Mesure)
+    notes = config_test.chemins.var.parent / "notes-seed"
+    notes.mkdir()
+    (notes / "01-xss-reflechi.md").write_bytes((DEMO / "01-xss-reflechi.md").read_bytes())
+
+    resultat = runner.invoke(app, ["banc", str(notes), "--seed", "142"])
+
+    assert resultat.exit_code == 0, resultat.output
+    (chemin,) = (config_test.chemins.var / "sorties").glob("*/banc.json")
+    assert json.loads(chemin.read_text(encoding="utf-8"))["seed"] == 142
+    assert "ok 1/1" in resultat.output
+    for hors_borne in ("-1", str(2**32)):
+        assert runner.invoke(app, ["banc", str(notes), "--seed", hors_borne]).exit_code == 2
+
+
 def test_banc_erreurs_traduites_en_codes(monkeypatch, tmp_path):
     from waveaudit.domaine.erreurs import EntreeInvalide, MoteurInjoignable
 

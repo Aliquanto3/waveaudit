@@ -1,7 +1,10 @@
-"""Banc de mesure de bout en bout (contrats §20, CAP-12), faux moteur et `MesureMemoire` factice."""
+"""Banc de mesure de bout en bout (contrats §20, §29, CAP-12), faux moteur et `MesureMemoire`
+factice."""
 
+import difflib
 import json
 import os
+import shutil
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -13,6 +16,7 @@ from waveaudit.application.config import racine_projet
 from waveaudit.domaine.erreurs import MoteurInjoignable
 from waveaudit.domaine.modeles import (
     Candidat,
+    CodeMotif,
     Cvss,
     EntreeEcartee,
     EvenementLot,
@@ -25,6 +29,19 @@ from waveaudit.domaine.modeles import (
 )
 
 DEMO = racine_projet() / "donnees" / "demo" / "notes"
+
+
+def _vers(config, fm):
+    return config.model_copy(
+        update={"moteur": config.moteur.model_copy(update={"base_url": fm.base_url})}
+    )
+
+
+def _dossier_une_note(tmp_path, nom="01-xss-reflechi.md"):
+    dossier = tmp_path / "notes"
+    dossier.mkdir()
+    shutil.copy(DEMO / nom, dossier / nom)
+    return dossier
 
 
 @dataclass
@@ -103,6 +120,7 @@ def test_banc_json_nominal(config_test, monkeypatch):
     assert set(donnees) == {
         "id_lot",
         "modele",
+        "langue",
         "fiches",
         "duree_mediane_s",
         "duree_max_s",
@@ -112,6 +130,13 @@ def test_banc_json_nominal(config_test, monkeypatch):
         "top1",
         "top3",
         "etiquetees",
+        "ok",
+        "a_revoir",
+        "recopie",
+        "recopie_par_rubrique",
+        "replis",
+        "seed",
+        "motifs",
     }
     assert len(donnees["fiches"]) == total
     assert donnees["duree_max_s"] >= donnees["duree_mediane_s"] >= 0.0
@@ -120,6 +145,16 @@ def test_banc_json_nominal(config_test, monkeypatch):
     assert donnees["pic_rss_moteur_o"] == 0
     assert donnees["pic_rss_total_o"] == donnees["pic_rss_app_o"]
     assert 0 <= donnees["top1"] <= donnees["top3"] <= donnees["etiquetees"] <= total
+    assert donnees["langue"] == "fr"
+    assert donnees["ok"] + donnees["a_revoir"] <= len(donnees["fiches"])
+    assert donnees["replis"] <= donnees["a_revoir"]
+    assert donnees["seed"] == config_test.moteur.seed
+    assert set(donnees["recopie_par_rubrique"]) == {
+        "titre",
+        "description",
+        "impact",
+        "recommandation",
+    }
 
 
 def test_banc_echantillonnage_arrete_a_lot_echoue(config_test, monkeypatch):
@@ -216,3 +251,172 @@ def test_pic_total_est_le_pic_simultane():
 
     assert (echantillonneur.pic_app_o(), echantillonneur.pic_moteur_o()) == (100, 50)
     assert echantillonneur.pic_total_o() == 110  # et non 150 (pics à deux instants différents)
+
+
+def test_recopie_sans_fiche_est_null():
+    """[v2] Aucune fiche mesurable : `recopie` et chaque rubrique valent `None` (§29)."""
+    catalogue = object()  # jamais consulté : aucune fiche à mesurer
+
+    recopie, recopie_par_rubrique, replis = banc._recopie([], catalogue, "fr")
+
+    assert recopie is None
+    assert replis == 0
+    assert recopie_par_rubrique == {
+        "titre": None,
+        "description": None,
+        "impact": None,
+        "recommandation": None,
+    }
+
+
+def test_repli_exclu_de_la_recopie_banc_json(config_test, faux_moteur, tmp_path):
+    """[v2] Une fiche en repli (`repli_sortie_invalide`) est comptée dans `replis`, jamais dans
+    la recopie ; seule fiche du lot -> `recopie` `null` (contrats §29, revue A29)."""
+    dossier = _dossier_une_note(tmp_path)
+    fm = faux_moteur("json_invalide")
+    config = _vers(config_test, fm)
+
+    chemin = banc.executer_banc(dossier, config, None)
+
+    donnees = json.loads(chemin.read_text(encoding="utf-8"))
+    assert donnees["replis"] == 1
+    assert donnees["recopie"] is None
+    assert all(valeur is None for valeur in donnees["recopie_par_rubrique"].values())
+
+
+def test_recopie_nominale_proche_de_un(config_test, tmp_path):
+    """[v2] Faux moteur nominal ("[adapté] " + texte du constat) : recopie proche de 1 (§29)."""
+    dossier = _dossier_une_note(tmp_path)
+
+    chemin = banc.executer_banc(dossier, config_test, None)
+
+    donnees = json.loads(chemin.read_text(encoding="utf-8"))
+    assert donnees["replis"] == 0
+    assert donnees["recopie"] is not None
+    assert donnees["recopie"] > 0.8
+    assert all(valeur > 0.8 for valeur in donnees["recopie_par_rubrique"].values())
+
+
+def test_langue_en_comparee_aux_textes_anglais(config_test, faux_moteur, tmp_path):
+    """[v2] Lot en anglais : la recopie compare au texte anglais du constat, pas au français."""
+    dossier = _dossier_une_note(tmp_path)
+    fm = faux_moteur()
+    config = _vers(config_test, fm)
+
+    chemin = banc.executer_banc(dossier, config, None, "en")
+
+    donnees = json.loads(chemin.read_text(encoding="utf-8"))
+    assert donnees["langue"] == "en"
+    fiches = json.loads((chemin.parent / "fiches.json").read_text(encoding="utf-8"))["fiches"]
+    (fiche,) = fiches
+    catalogue = composition.creer_catalogue(config)
+    constat = catalogue.obtenir(fiche["tracabilite"]["constat_id"])
+    ratio_en = difflib.SequenceMatcher(None, fiche["titre"], constat.textes("en").titre).ratio()
+    ratio_fr = difflib.SequenceMatcher(None, fiche["titre"], constat.textes("fr").titre).ratio()
+    assert ratio_en > ratio_fr
+    assert donnees["recopie_par_rubrique"]["titre"] == pytest.approx(ratio_en)
+
+
+def test_recopie_null_sans_fiche_mesurable(config_test, faux_moteur, tmp_path):
+    """[v2] Lot sans fiche (toutes les notes en repli) : `recopie` reste `null` (§29)."""
+    dossier = tmp_path / "notes"
+    dossier.mkdir()
+    shutil.copy(DEMO / "01-xss-reflechi.md", dossier / "01-xss-reflechi.md")
+    shutil.copy(DEMO / "02-xss-stocke.md", dossier / "02-xss-stocke.md")
+    fm = faux_moteur("json_invalide")
+    config = _vers(config_test, fm)
+
+    chemin = banc.executer_banc(dossier, config, None)
+
+    donnees = json.loads(chemin.read_text(encoding="utf-8"))
+    assert donnees["replis"] == 2
+    assert donnees["recopie"] is None
+
+
+def test_seed_consignee_et_recue_par_le_faux_moteur(config_test, faux_moteur, tmp_path):
+    """[v2] `--seed` remplace `config.moteur.seed` et atteint le faux moteur (revue A31)."""
+    dossier = _dossier_une_note(tmp_path)
+    fm = faux_moteur()
+    config = _vers(config_test, fm)
+
+    chemin = banc.executer_banc(dossier, config, None, None, 142)
+
+    donnees = json.loads(chemin.read_text(encoding="utf-8"))
+    assert donnees["seed"] == 142
+    assert config_test.moteur.seed != 142  # config inchangée : copie, pas mutation
+    assert all(requete["seed"] == 142 for requete in fm.requetes)
+
+
+def test_seed_defaut_est_celle_de_la_configuration(config_test, tmp_path):
+    """Sans `--seed`, la seed effective reste celle de la configuration (contrats §29)."""
+    dossier = _dossier_une_note(tmp_path)
+
+    chemin = banc.executer_banc(dossier, config_test, None)
+
+    donnees = json.loads(chemin.read_text(encoding="utf-8"))
+    assert donnees["seed"] == config_test.moteur.seed
+
+
+def _fiche_texte(constat_id: str, textes, motifs: list[Motif]) -> Fiche:
+    return Fiche(
+        titre=textes.titre,
+        description=textes.description,
+        impact=textes.impact,
+        recommandation=textes.recommandation,
+        cvss=_cvss(),
+        references=[],
+        statut=Statut.A_REVOIR if motifs else Statut.OK,
+        motifs=motifs,
+        tracabilite=Tracabilite(
+            note="n.md",
+            constat_id=constat_id,
+            candidats=[Candidat(id=constat_id, score=1.0)],
+            constat_attendu=None,
+        ),
+    )
+
+
+def test_recopie_valeurs_exactes(config_test):
+    """[revue B1] Oracle indépendant de la formule : texte identique au catalogue -> 1,0 ; texte
+    vide -> 0,0 ; repli exclu ; moyenne non pondérée ; rubrique complétée comptée (contrat §29 :
+    « chaque fiche qui n'est pas un repli et chaque rubrique »)."""
+    catalogue = composition.creer_catalogue(config_test)
+    constat = catalogue.constats()[0]
+    textes = constat.textes("fr")
+    identique = _fiche_texte(constat.id, textes, [])
+    vide = identique.model_copy(
+        update={"titre": "", "description": "", "impact": "", "recommandation": ""}
+    )
+    repli = identique.model_copy(
+        update={"titre": "", "motifs": [Motif(code=CodeMotif.REPLI_MOTEUR, detail="")]}
+    )
+    completee = identique.model_copy(
+        update={"motifs": [Motif(code=CodeMotif.RUBRIQUE_COMPLETEE, detail="titre")]}
+    )
+
+    assert banc._recopie([identique, vide, repli], catalogue, "fr") == (
+        0.5,
+        {"titre": 0.5, "description": 0.5, "impact": 0.5, "recommandation": 0.5},
+        1,
+    )
+    assert banc._recopie([completee], catalogue, "fr")[0] == 1.0
+
+
+def test_ok_a_revoir_motifs_repli(config_test, faux_moteur, tmp_path):
+    """[revue B1] Repli : `a_revoir` et motif de repli comptés, aucune fiche `ok`."""
+    dossier = _dossier_une_note(tmp_path)
+    config = _vers(config_test, faux_moteur("json_invalide"))
+
+    donnees = json.loads(banc.executer_banc(dossier, config, None).read_text(encoding="utf-8"))
+
+    assert (donnees["ok"], donnees["a_revoir"]) == (0, 1)
+    assert donnees["motifs"] == {"repli_sortie_invalide": 1}
+
+
+def test_ok_nominal_sans_motif(config_test, tmp_path):
+    """[revue B1] Faux moteur nominal : une fiche `ok`, aucun motif."""
+    dossier = _dossier_une_note(tmp_path)
+
+    donnees = json.loads(banc.executer_banc(dossier, config_test, None).read_text(encoding="utf-8"))
+
+    assert (donnees["ok"], donnees["a_revoir"], donnees["motifs"]) == (1, 0, {})
