@@ -167,6 +167,7 @@ class LlamaServer:
         self._job: _JobWindows | None = None
         self._port = 0
         self._arret_verrou = threading.Lock()
+        self._arrete = False  # [revue ARR] posé par `_arreter` : plus aucun lancement
 
     @property
     def base_url(self) -> str:
@@ -195,6 +196,7 @@ class LlamaServer:
         self._arreter()
 
     def _demarrer(self) -> None:
+        self._arrete = False
         self._journal_chemin.parent.mkdir(parents=True, exist_ok=True)
         self._journal = self._journal_chemin.open("ab")
         if sys.platform == "win32":
@@ -203,6 +205,8 @@ class LlamaServer:
             self._lancer()
             if self._attendre():
                 return
+            if self._arrete:
+                raise MoteurInjoignable("llama-server arrêté pendant son démarrage")
             if essai == 1 and self._processus is not None and self._processus.poll() is not None:
                 _log.warning(
                     "llama-server s'est arrêté au démarrage ; nouvel essai sur un autre port"
@@ -240,30 +244,38 @@ class LlamaServer:
             "--no-webui",
             "--jinja",
         ]
-        try:
-            self._processus = subprocess.Popen(
-                commande,
-                stdin=subprocess.DEVNULL,
-                stdout=self._journal,
-                stderr=subprocess.STDOUT,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            )
-        except OSError as erreur:
-            raise MoteurInjoignable(f"llama-server non lancé ({erreur})") from erreur
-        with _registre_verrou:
-            _registre.add(self)
-        if self._job is not None:
-            self._job.rattacher(self._processus.pid)
+        # [revue ARR] Lancement et inscription sous le verrou d'arrêt : le filet ne peut ni
+        # passer entre `Popen` et l'inscription, ni être suivi d'un nouvel essai.
+        with self._arret_verrou:
+            if self._arrete:
+                raise MoteurInjoignable("llama-server arrêté pendant son démarrage")
+            try:
+                self._processus = subprocess.Popen(
+                    commande,
+                    stdin=subprocess.DEVNULL,
+                    stdout=self._journal,
+                    stderr=subprocess.STDOUT,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+            except OSError as erreur:
+                raise MoteurInjoignable(f"llama-server non lancé ({erreur})") from erreur
+            with _registre_verrou:
+                _registre.add(self)
+            if self._job is not None:
+                self._job.rattacher(self._processus.pid)
 
     def _attendre(self) -> bool:
         """True si /health répond 200 dans le délai ; False si le délai passe ou si le processus
         meurt."""
-        assert self._processus is not None
+        # [revue ARR] Copie locale : le filet (`terminer_tous`) peut remettre `self._processus` à
+        # `None` pendant le sondage.
+        processus = self._processus
+        assert processus is not None
         limite = time.monotonic() + self._delai_s
         url = f"http://{HOTE}:{self._port}/health"
         with httpx.Client(trust_env=False, timeout=2.0) as client:
             while time.monotonic() < limite:
-                if self._processus.poll() is not None:
+                if self._arrete or processus.poll() is not None:
                     return False
                 try:
                     if client.get(url).status_code == 200:
@@ -281,6 +293,7 @@ class LlamaServer:
         ou `atexit`), sans double-arrêt concurrent.
         """
         with self._arret_verrou:
+            self._arrete = True
             with _registre_verrou:
                 _registre.discard(self)
             processus, self._processus = self._processus, None

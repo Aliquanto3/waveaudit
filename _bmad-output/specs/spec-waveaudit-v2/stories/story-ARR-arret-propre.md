@@ -76,3 +76,15 @@ constatés à l'arrêt de l'UI (`etat-v2.md`, « Écarts à arbitrer » M1 et W2
   parallèle) : à lancer avant intégration finale, ou en CI nocturne avec `var/modeles` installé.
 - `routeurs/relecture.py` et `routeurs/lots.py` non touchés au-delà du nécessaire : seul
   `interfaces/web/app.py` (lifespan) a changé côté interfaces/web.
+
+## Revue
+
+Détail : `implementation-artifacts/revues/story-ARR.md`.
+- moyenne, second avis 1 : `AttributeError` dans `_attendre` quand le filet tue le serveur. Corrigé (copie locale, drapeau `_arrete`, `MoteurInjoignable` sans chemin).
+- moyenne, second avis 2 : vrai `_attendre` jamais testé avec un processus tué. Corrigé (un test unitaire et un e2e sur la chaîne réelle).
+- faible, second avis 3 : test `slow` non probant (Job Object, lot trop court), instable, sans nettoyage. Corrigé, puis lancé : vert.
+- faible, second avis 4 : fenêtre entre `Popen` et l'inscription, relance après arrêt. Corrigé (sous `_arret_verrou`).
+- faible, second avis 5 : état non remis à zéro dans la branche timeout de `fermer`. Rejeté (arrêt du processus qui suit, serveur déjà arrêté).
+- faible, second avis 6 : borne de 10 s non garantie au pire (5 s + 5 s). Reporté (documenter dans `contrats.md` §24 ; mesuré < 15 s).
+- faible, second avis 7 : nettoyage du test du filet. Corrigé.
+- Complexité : 0 constat.

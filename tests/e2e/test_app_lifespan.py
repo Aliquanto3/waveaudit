@@ -81,3 +81,63 @@ def test_lifespan_arret_pendant_ouverture_lente_reste_dans_la_borne(config_test,
     assert duree < 2.0, f"lifespan trop long : {duree} s"
     assert appels, "le filet n'a pas été déclenché"
     assert erreurs and isinstance(erreurs[0], MoteurInjoignable)
+
+
+def test_lifespan_arret_pendant_ouverture_vrai_llama_server_sans_orphelin(config_test, monkeypatch):
+    """[revue ARR] Chaîne réelle, sans doublure du filet : lifespan -> `fermer(timeout)` ->
+    `terminer_tous` -> vrai `LlamaServer._attendre` sur un faux binaire qui ne répond jamais à
+    `/health`. L'ouverture lève `MoteurInjoignable`, le lifespan tient sa borne et le
+    sous-processus est terminé."""
+    import sys
+    from pathlib import Path
+
+    import psutil
+
+    from waveaudit.adaptateurs.llama_server import LlamaServer
+
+    tests = Path(__file__).resolve().parents[1]
+    python = Path(getattr(sys, "_base_executable", sys.executable))
+    monkeypatch.setenv("PYTHONPATH", str(tests))
+    monkeypatch.setenv("FAUX_LLAMA_SCENARIO", "jamais_pret")
+    monkeypatch.setattr(memoire_psutil, "ram_disponible_octets", lambda: 16 * GO)
+    monkeypatch.setattr(app_module, "ATTENTE_ARRET_MOTEUR_S", 0.5)
+    artefacts = manifeste.charger(config_test.chemins.manifeste)
+    defaut = manifeste.par_role(artefacts, "modele_defaut").nom
+    _installer(config_test, artefacts, BINAIRE, defaut)
+    config = _local(config_test)
+    serveurs: list[LlamaServer] = []
+
+    class ServeurFaux(LlamaServer):
+        def __init__(self, binaire, gguf, ctx, threads, delai_s, journal):
+            super().__init__(python, Path("faux_llama_server"), ctx, threads, 60.0, journal)
+            serveurs.append(self)
+
+    monkeypatch.setattr(composition, "LlamaServer", ServeurFaux)
+    app = app_module.creer_app(config, hotes_test=("testserver",))
+    erreurs: list[BaseException] = []
+
+    def ouvrir() -> None:
+        try:
+            with app.state.moteur.utiliser(MODELE):
+                pass
+        except BaseException as exc:  # noqa: BLE001 - remonté par l'assertion
+            erreurs.append(exc)
+
+    with TestClient(app, base_url="http://testserver"):
+        fil = threading.Thread(target=ouvrir, daemon=True)
+        fil.start()
+        limite = time.monotonic() + 10
+        while not (serveurs and serveurs[0]._processus) and time.monotonic() < limite:
+            time.sleep(0.05)
+        pid = serveurs[0].pid
+        debut = time.monotonic()
+    duree = time.monotonic() - debut
+    fil.join(timeout=10)
+    assert not fil.is_alive()
+    assert duree < 5.0, f"lifespan trop long : {duree} s"
+    assert erreurs and isinstance(erreurs[0], MoteurInjoignable), erreurs
+    try:
+        etat = psutil.Process(pid).status()
+    except psutil.NoSuchProcess:
+        etat = None
+    assert etat in (None, psutil.STATUS_ZOMBIE), "llama-server encore en vie après le lifespan"

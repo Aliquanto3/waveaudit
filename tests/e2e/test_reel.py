@@ -148,14 +148,23 @@ def _llama_server_descendants(pid: int) -> list[psutil.Process]:
     ]
 
 
+def _vivant(p: psutil.Process) -> bool:
+    try:
+        return p.is_running() and p.status() != psutil.STATUS_ZOMBIE
+    except psutil.NoSuchProcess:
+        return False
+
+
 def test_ui_reel_arret_pendant_un_lot_ne_laisse_pas_de_llama_server(tmp_path):
-    """Story ARR : `waveaudit ui` réel, un lot d'une note démarré, puis arrêt du processus
+    """Story ARR : `waveaudit ui` réel, un lot de dix notes démarré, puis arrêt du processus
     (CTRL_BREAK, Windows) pendant que le lot tourne encore ; aucun llama-server ne doit rester
     (filet `atexit`/lifespan, contrats §24)."""
     config, _ = _config_reelle()
     waveaudit = shutil.which("waveaudit")
     if waveaudit is None:
         pytest.skip("script `waveaudit` introuvable sur le PATH de l'environnement de test")
+    sorties = config.chemins.var / "sorties"
+    avant = set(sorties.iterdir()) if sorties.is_dir() else set()
     port = port_libre()
     processus = subprocess.Popen(
         [waveaudit, "ui", "--port", str(port)],
@@ -175,10 +184,12 @@ def test_ui_reel_arret_pendant_un_lot_ne_laisse_pas_de_llama_server(tmp_path):
                 time.sleep(0.2)
         assert jeton is not None, "l'UI n'a pas démarré dans le délai"
 
-        note = (DEMO / "01-xss-reflechi.md").read_bytes()
+        # [revue ARR] Dix notes : le lot dure au-delà de la borne de 10 s du lifespan, qui doit
+        # alors arrêter lui-même le llama-server du lot (filet), pas attendre sa fin normale.
+        notes = sorted(DEMO.glob("*.md"))[:10]
         reponse = httpx.post(
             f"{base_url}/lots",
-            files={"notes": ("01-xss-reflechi.md", note)},
+            files=[("notes", (n.name, n.read_bytes())) for n in notes],
             data={"modele": "", "langue": "fr"},
             headers={"X-CSRF-Token": jeton},
             timeout=10.0,
@@ -199,12 +210,25 @@ def test_ui_reel_arret_pendant_un_lot_ne_laisse_pas_de_llama_server(tmp_path):
             processus.send_signal(signal.CTRL_BREAK_EVENT)
         else:
             processus.terminate()
+        debut = time.monotonic()
+        # [revue ARR] Sous Windows, le Job Object tue llama-server à la mort de l'UI : on exige
+        # donc qu'il soit arrêté pendant que l'UI vit encore (filet du lifespan, borne 10 s).
+        tue_avant_parent = False
+        limite = time.monotonic() + 20.0
+        while processus.poll() is None and time.monotonic() < limite:
+            if not any(_vivant(p) for p in descendants):
+                tue_avant_parent = processus.poll() is None
+                break
+            time.sleep(0.05)
         processus.wait(timeout=20.0)
+        duree = time.monotonic() - debut
+        assert duree < 15.0, f"arrêt de l'UI trop long : {duree:.1f} s (borne 10 s, §24)"
+        assert tue_avant_parent, "llama-server non arrêté par le lifespan avant la fin de l'UI"
 
         limite = time.monotonic() + 10.0
         restants = descendants
         while restants and time.monotonic() < limite:
-            restants = [p for p in restants if p.is_running()]
+            restants = [p for p in restants if _vivant(p)]
             if restants:
                 time.sleep(0.2)
         assert restants == [], "llama-server orphelin après l'arrêt de l'UI"
@@ -212,3 +236,9 @@ def test_ui_reel_arret_pendant_un_lot_ne_laisse_pas_de_llama_server(tmp_path):
         if processus.poll() is None:
             processus.kill()
             processus.wait(10.0)
+        # [revue ARR] Retire le lot interrompu et son journal moteur, comme les autres tests.
+        for dossier in set(sorties.iterdir()) - avant if sorties.is_dir() else ():
+            (config.chemins.var / "journaux" / f"llama-server-{dossier.name}.log").unlink(
+                missing_ok=True
+            )
+            shutil.rmtree(dossier, ignore_errors=True)

@@ -7,6 +7,7 @@ un lanceur qui crée lui-même un processus enfant, ce qui fausserait le pid et 
 import json
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -124,19 +125,57 @@ def test_terminer_tous_filet_de_securite_ne_touche_pas_les_autres(faux_binaire):
     processus, même sans passer par `__exit__` (fil mort sans `finally`) ; un autre processus,
     non lancé par `LlamaServer`, n'est pas touché."""
     serveur = faux_binaire()
-    serveur._demarrer()  # comme __enter__ sans passer par le `with` : jamais fermé normalement
-    pid = serveur.pid
-    assert psutil.pid_exists(pid)
-    autre = subprocess.Popen([str(PYTHON), "-c", "import time; time.sleep(10)"])
+    autre = None
     try:
+        serveur._demarrer()  # comme __enter__ sans `with` : jamais fermé normalement
+        pid = serveur.pid
+        assert psutil.pid_exists(pid)
+        autre = subprocess.Popen([str(PYTHON), "-c", "import time; time.sleep(10)"])
         llama_server.terminer_tous()
         assert _attendre_fin(pid)
         assert autre.poll() is None, "un processus non suivi par ce module a été touché"
     finally:
-        autre.terminate()
-        autre.wait(5)
+        serveur._arreter()  # [revue ARR] idempotent : rien ne reste si une assertion échoue
+        if autre is not None:
+            autre.terminate()
+            autre.wait(5)
 
 
 def _lignes_args(tmp_path: Path) -> list[str]:
     texte = (tmp_path / "journaux" / "ls.log").read_text()
     return [ligne for ligne in texte.splitlines() if ligne.startswith("ARGS ")]
+
+
+def test_terminer_tous_pendant_l_attente_de_health_leve_moteur_injoignable(faux_binaire):
+    """[revue ARR] Le vrai `_attendre` sonde `/health` quand le filet tue le serveur : l'ouverture
+    interrompue lève `MoteurInjoignable` (sans chemin dans le message), sans nouvel essai, et
+    rend la main bien avant `delai_s`."""
+    serveur = faux_binaire("jamais_pret", delai_s=30.0)
+    resultat: list[BaseException | None] = []
+
+    def ouvrir() -> None:
+        try:
+            with serveur:
+                pass
+        except BaseException as erreur:  # noqa: BLE001 - remonté au test
+            resultat.append(erreur)
+        else:
+            resultat.append(None)
+
+    fil = threading.Thread(target=ouvrir, daemon=True)
+    fil.start()
+    limite = time.monotonic() + 10
+    while serveur._processus is None and time.monotonic() < limite:
+        time.sleep(0.05)
+    pid = serveur.pid
+    time.sleep(0.3)  # le fil est dans la boucle de sondage de `_attendre`
+    debut = time.monotonic()
+    llama_server.terminer_tous()
+    fil.join(10)
+    assert not fil.is_alive()
+    assert time.monotonic() - debut < 10
+    assert _attendre_fin(pid)
+    assert len(resultat) == 1 and isinstance(resultat[0], MoteurInjoignable), resultat
+    assert "ls.log" not in str(resultat[0])
+    assert len(_lignes_args(serveur._journal_chemin.parents[1])) == 1
+    assert serveur not in llama_server._registre
