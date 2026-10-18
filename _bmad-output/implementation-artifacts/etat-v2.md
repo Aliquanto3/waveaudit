@@ -25,7 +25,7 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 | 8 | W3b | Écran de relecture | Sonnet | intégrée 367bfc6 |
 | 7 | LIB | Libellés par langue des statuts et motifs dans le Word (annexe des écartées, tous modes) | Sonnet | intégrée 1b72836 |
 | 8 | ARR | Arrêt propre de l'UI (llama-server enfant, fermer(timeout)) | Sonnet | intégrée 659a6cb |
-| 8 | DOC | README et guide des testeurs | Sonnet | en revue |
+| 8 | DOC | README et guide des testeurs | Sonnet | intégrée 7cf0d27 |
 | 8 | REC | Recette finale sur l'EliteBook ★ | avec Anaël | à faire |
 
 ★ : point d'arrêt humain (voir `plan-v2.md`).
