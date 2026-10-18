@@ -6,6 +6,7 @@ llama-server, une fois par lot, par la fonction privée commune `_ouvrir_moteur`
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime
 
 from waveaudit.adaptateurs import memoire_psutil
@@ -167,3 +168,61 @@ def creer_ports_incident(config: Configuration) -> PortsIncident:
 def creer_catalogue(config: Configuration) -> CatalogueYaml:
     """[v2] Catalogue de constats types, lu par le banc pour la recopie (contrats §29)."""
     return CatalogueYaml(config.chemins.catalogue)
+
+
+@dataclass(frozen=True)
+class ModeleInstalle:
+    """[v2] Un modèle proposé par l'UI (§11, §26 `GET /api/modeles`)."""
+
+    nom: str
+    role: str
+    taille_o: int
+    duree_indicative_s: float | None
+    defaut: bool
+
+
+def modeles_installes(config: Configuration) -> list[ModeleInstalle]:
+    """[v2] Modèles disponibles pour l'UI (§11), dans l'ordre du manifeste.
+
+    En `externe`, une seule entrée (`moteur.modele_api` ou `"externe"`, rôle `externe`) : l'UI
+    ne doit jamais repasser ce nom au lot, mais `None` (§11 [revue E11]).
+    """
+    m = config.moteur
+    if m.mode == "externe":
+        return [
+            ModeleInstalle(
+                nom=m.modele_api or "externe",
+                role="externe",
+                taille_o=0,
+                duree_indicative_s=None,
+                defaut=True,
+            )
+        ]
+    artefacts = manifeste.charger(config.chemins.manifeste)
+    var = config.chemins.var
+    installes = [
+        artefact
+        for artefact in artefacts
+        if artefact.role in ROLES_MODELE and manifeste.chemin(artefact, var).is_file()
+    ]
+    if not installes:
+        return []
+    choisi = choisir_modele(config, artefacts, None)
+    noms_installes = {artefact.nom for artefact in installes}
+    nom_defaut = choisi.nom if choisi.nom in noms_installes else installes[0].nom
+    return [
+        ModeleInstalle(
+            nom=artefact.nom,
+            role=artefact.role,
+            taille_o=manifeste.chemin(artefact, var).stat().st_size,
+            duree_indicative_s=artefact.duree_indicative_s,
+            defaut=(artefact.nom == nom_defaut),
+        )
+        for artefact in installes
+    ]
+
+
+def processus_actif(pid: int, cree_le: datetime) -> bool:
+    """[v2] `pid` existe encore et a été créé avant `cree_le` (écarte un pid réutilisé, §30)."""
+    date_creation = memoire_psutil.date_creation_processus(pid)
+    return date_creation is not None and date_creation <= cree_le.timestamp()

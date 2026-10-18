@@ -1,20 +1,51 @@
-"""Routeur des pages HTML et du jeton CSRF (contrats §18, §26)."""
+"""Routeur des pages HTML et du jeton CSRF (contrats §18, §26, §30)."""
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
-from waveaudit.interfaces.web.commun import page
+from waveaudit.application import composition
+from waveaudit.application import lots as lots_app
+from waveaudit.application.lot import dossier_lot_existant
+from waveaudit.interfaces.web.commun import erreur, page
 
 routeur = APIRouter()
 
 
 @routeur.get("/", response_class=HTMLResponse)
 def accueil(request: Request) -> HTMLResponse:
-    return page(request, "index.html")
+    config = request.app.state.config
+    occupation = request.app.state.verrou.occupation()
+    # [revue A3] Lecture seule : aucun GET n'écrit sur le disque. [revue W2] Un seul booléen :
+    # pas de relecture de tous les journaux à chaque affichage de l'accueil.
+    a_des_lots = lots_app.existe_un_lot(config)
+    return page(
+        request,
+        "index.html",
+        {
+            "modeles": composition.modeles_installes(config),
+            "langue_defaut": config.fiches.langue,
+            "occupation": occupation,
+            "a_des_lots": a_des_lots,
+        },
+    )
 
 
-@routeur.get("/lots/{id_lot}", response_class=HTMLResponse)
-def page_lot(request: Request, id_lot: str) -> HTMLResponse:
+@routeur.get("/lots", response_class=HTMLResponse)
+def page_lots(request: Request) -> HTMLResponse:
+    config = request.app.state.config
+    lots = lots_app.lister_lots(config, request.app.state.verrou.occupation())
+    return page(request, "lots.html", {"lots": lots})
+
+
+@routeur.get("/lots/{id_lot}", response_class=HTMLResponse, response_model=None)
+def page_lot(request: Request, id_lot: str) -> HTMLResponse | Response:
+    config = request.app.state.config
+    dossier = dossier_lot_existant(id_lot, config)
+    if dossier is None:
+        return erreur(404, "lot_inconnu", "Lot inconnu.")
+    # §26 : la page d'un lot incident redirige vers `/incidents/{id}` (l'inverse est dans W4).
+    if lots_app.workflow_lot(dossier) == "incident":
+        return RedirectResponse(f"/incidents/{id_lot}", status_code=303)
     return page(request, "lot.html", {"id_lot": id_lot})
 
 

@@ -17,7 +17,7 @@ gabarits = Jinja2Templates(directory=RACINE / "templates")
 
 def chemin_logo(request: Request) -> Path:
     """Chemin du logo privé (§28) : `<theme_prive>/web/logo.svg`, relu à chaque appel."""
-    config = request.app.state.lots.config
+    config = request.app.state.config
     return Path(config.chemins.theme_prive) / "web" / "logo.svg"
 
 

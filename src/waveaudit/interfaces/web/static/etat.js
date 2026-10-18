@@ -51,6 +51,11 @@
           texte.textContent = "Lot échoué : " + (donnees.erreur || "erreur inconnue");
           return;
         }
+        if (donnees.etat === "interrompu") {
+          // EXPERIENCE (State Patterns) : l'UI traite un lot interrompu comme un lot échoué.
+          texte.textContent = "Lot interrompu (processus arrêté).";
+          return;
+        }
         setTimeout(interroger, 1000);
       })
       .catch(function () {

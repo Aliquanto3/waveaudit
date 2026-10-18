@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block contenu %}
+  <h1>Lots récents</h1>
+  {% if lots %}
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Lot</th>
+          <th scope="col">Lancé le</th>
+          <th scope="col">Notes</th>
+          <th scope="col">Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lot in lots %}
+          <tr>
+            <td><a href="{{ lot.url }}">{{ lot.id_lot }}</a></td>
+            <td>{{ lot.cree_le.strftime("%d/%m/%Y %H:%M") }}</td>
+            <td>{{ lot.total if lot.total is not none else "—" }}</td>
+            <td>
+              {% if lot.etat == "termine" %}Terminé
+              {% elif lot.etat == "en_cours" %}En cours{% if lot.externe %} (autre programme){% endif %}
+              {% else %}Échoué
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>Aucun lot pour l'instant.</p>
+  {% endif %}
+{% endblock %}
