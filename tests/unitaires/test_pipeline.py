@@ -151,6 +151,7 @@ def test_json_invalide_une_fois_nouvel_essai_reussi(fabriquer) -> None:
     assert len(fm.requetes) == 2
     assert isinstance(resultat, Fiche) and resultat.statut == Statut.OK
     assert resultat.titre.startswith("[adapté] ")
+    assert fm.requetes[0]["seed"] == 42 and fm.requetes[1]["seed"] == 43
 
 
 def test_json_invalide_repli_apres_un_seul_nouvel_essai(fabriquer, constats) -> None:
@@ -160,10 +161,20 @@ def test_json_invalide_repli_apres_un_seul_nouvel_essai(fabriquer, constats) -> 
     assert len(fm.requetes) == 2
     assert isinstance(resultat, Fiche) and resultat.statut == Statut.A_REVOIR
     assert _codes(resultat) == [CodeMotif.REPLI_SORTIE_INVALIDE]
+    assert fm.requetes[0]["seed"] == 42 and fm.requetes[1]["seed"] == 43
     constat = next(c for c in constats if c.id == resultat.tracabilite.constat_id)
     assert resultat.titre == constat.titre
     assert resultat.recommandation == constat.recommandation
     assert resultat.cvss == cvss31.evaluer(constat.cvss_vecteur)
+
+
+def test_seed_maximale_repasse_a_zero(fabriquer) -> None:
+    workflow, fm = fabriquer("json_invalide_une_fois", seed=2**32 - 1)
+    resultat = workflow.traiter(_note(NOTE_XSS))
+
+    assert isinstance(resultat, Fiche) and resultat.statut == Statut.OK
+    assert fm.requetes[0]["seed"] == 2**32 - 1
+    assert fm.requetes[1]["seed"] == 0
 
 
 def test_erreur_500_repli_moteur_immediat(fabriquer) -> None:
@@ -179,7 +190,7 @@ def test_rubrique_absente_vaut_sortie_invalide(fabriquer, monkeypatch) -> None:
     workflow, _ = fabriquer("nominal")
     appels: list[int] = []
 
-    def generer_incomplet(messages, schema, *, max_tokens):
+    def generer_incomplet(messages, schema, *, max_tokens, seed=None):
         appels.append(1)
         return {"titre": "un titre assez long pour passer", "description": 3}
 

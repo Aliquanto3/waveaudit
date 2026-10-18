@@ -1,11 +1,22 @@
 """Construction du prompt d'adaptation d'un constat type (contrats §8, AD-4)."""
 
 import json
+import re
 
 from waveaudit.domaine.modeles import ConstatType, Note
 from waveaudit.domaine.ports import Message
 
 MARQUE_TRONCATURE = "[…tronqué]"
+
+# [revue Q1] motif du §8, blancs étendus aux caractères de format invisibles (U+200B, etc.).
+_BLANCS = r"[\s­᠎​-‏‪-‮⁠-⁤﻿]*"
+_BALISE = re.compile(rf"<(?={_BLANCS}/?{_BLANCS}(?:note|constat)\b)", re.IGNORECASE)
+
+
+def echapper(texte: str) -> str:
+    """[v2] CAP-2 : neutralise les balises `note`/`constat` dans un texte (§8), même longueur."""
+    return _BALISE.sub("‹", texte)  # U+2039
+
 
 CONSIGNE = (
     "Tu es un assistant de rédaction d'audit de sécurité. Adapte le constat type fourni entre "
@@ -33,8 +44,8 @@ def construire(
     """Messages `[system, user]` ; `constat_attendu` et les références n'y figurent jamais."""
     systeme = f"{prefixe_systeme}\n{CONSIGNE}" if prefixe_systeme else CONSIGNE
     donnees_constat = json.dumps(constat.model_dump(include=_CHAMPS_CONSTAT), ensure_ascii=False)
-    corps, _ = tronquer(note.corps, taille_max_note)
-    actif = f"Actif : {note.actif}\n" if note.actif else ""
+    corps, _ = tronquer(echapper(note.corps), taille_max_note)
+    actif = f"Actif : {echapper(note.actif)}\n" if note.actif else ""
     utilisateur = f"<constat>{donnees_constat}</constat>\n<note>{actif}{corps}</note>"
     return [
         {"role": "system", "content": systeme},

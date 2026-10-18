@@ -54,6 +54,33 @@ def test_nominal_corps_de_requete_conforme(faux_moteur: Callable[..., FauxMoteur
     assert rf["json_schema"]["schema"] == SCHEMA
 
 
+def test_seed_explicite_transmis(faux_moteur: Callable[..., FauxMoteur]) -> None:
+    fm = faux_moteur("nominal")
+    moteur = _moteur(fm, seed=7)
+    moteur.generer_json(MESSAGES, SCHEMA, max_tokens=100, seed=99)
+    assert fm.requetes[0]["seed"] == 99
+
+
+def test_seed_none_garde_la_seed_de_configuration(faux_moteur: Callable[..., FauxMoteur]) -> None:
+    fm = faux_moteur("nominal")
+    moteur = _moteur(fm, seed=7)
+    moteur.generer_json(MESSAGES, SCHEMA, max_tokens=100)
+    assert fm.requetes[0]["seed"] == 7
+
+
+@pytest.mark.parametrize(("repeat_penalty", "present"), [(0.0, False), (1.1, True)])
+def test_repeat_penalty_absent_a_zero_present_sinon(
+    faux_moteur: Callable[..., FauxMoteur], repeat_penalty: float, present: bool
+) -> None:
+    fm = faux_moteur("nominal")
+    moteur = _moteur(fm, repeat_penalty=repeat_penalty)
+    moteur.generer_json(MESSAGES, SCHEMA, max_tokens=100)
+    corps = fm.requetes[0]
+    assert ("repeat_penalty" in corps) is present
+    if present:
+        assert corps["repeat_penalty"] == repeat_penalty
+
+
 def test_json_invalide_leve_sortie_invalide(faux_moteur: Callable[..., FauxMoteur]) -> None:
     fm = faux_moteur("json_invalide")
     moteur = _moteur(fm)

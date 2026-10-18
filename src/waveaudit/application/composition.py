@@ -51,8 +51,12 @@ def choisir_modele(
 def _moteur(
     config: Configuration, base_url: str, modele_api: str, artefact: Artefact | None = None
 ) -> MoteurOpenAI:
-    """`artefact` (local-gere) : son `mode_json` prime sur la configuration (§22)."""
+    """`artefact` (local-gere) : son `mode_json` et son `repeat_penalty` priment sur la
+    configuration (§22, §3, §11)."""
     m = config.moteur
+    repeat_penalty = artefact.repeat_penalty if artefact else None
+    if repeat_penalty is None:
+        repeat_penalty = m.repeat_penalty
     return MoteurOpenAI(
         base_url,
         modele_api,
@@ -60,6 +64,7 @@ def _moteur(
         timeout_s=m.timeout_s,
         temperature=m.temperature,
         seed=m.seed,
+        repeat_penalty=repeat_penalty,
         mode_json=(artefact.mode_json if artefact else None) or m.mode_json,
         reflexion=artefact.reflexion if artefact else None,
     )

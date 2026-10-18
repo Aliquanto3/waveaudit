@@ -101,15 +101,17 @@ class WorkflowFiches:
         )
 
     def _generer_avec_un_essai(self, messages: list[Message]) -> dict:
-        """`SortieInvalide` : un seul nouvel essai ; `MoteurInjoignable` remonte aussitôt."""
+        """`SortieInvalide` : un seul nouvel essai, seed `+ 1` (§5) ; `MoteurInjoignable`
+        remonte aussitôt."""
+        seed = self._config.moteur.seed
         try:
-            return self._generer(messages)
+            return self._generer(messages, seed=seed)
         except SortieInvalide:
-            return self._generer(messages)
+            return self._generer(messages, seed=(seed + 1) % 2**32)
 
-    def _generer(self, messages: list[Message]) -> dict:
+    def _generer(self, messages: list[Message], *, seed: int) -> dict:
         sortie = self._ports.moteur.generer_json(
-            messages, self._schema, max_tokens=self._config.moteur.max_tokens
+            messages, self._schema, max_tokens=self._config.moteur.max_tokens, seed=seed
         )
         manquantes = [r for r in RUBRIQUES if not isinstance(sortie.get(r), str)]
         if manquantes:

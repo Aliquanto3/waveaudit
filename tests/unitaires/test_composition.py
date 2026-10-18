@@ -217,6 +217,18 @@ def test_mode_json_du_manifeste_prime_sur_la_configuration(config_test, artefact
     assert composition._moteur(config_test, url, "m", granite)._mode_json == "json_schema"
 
 
+def test_repeat_penalty_du_manifeste_prime_sur_la_configuration(config_test, artefacts):
+    objet = config_test.model_copy(
+        update={"moteur": config_test.moteur.model_copy(update={"repeat_penalty": 0.5})}
+    )
+    url = "http://127.0.0.1:9/v1"
+    sans_reglage = manifeste.par_nom(artefacts, "granite-4.0-1b-q4km")
+    assert composition._moteur(objet, url, "m", sans_reglage)._repeat_penalty == 0.5
+    avec_reglage = sans_reglage.model_copy(update={"repeat_penalty": 1.3})
+    assert composition._moteur(objet, url, "m", avec_reglage)._repeat_penalty == 1.3
+    assert composition._moteur(objet, url, "m")._repeat_penalty == 0.5
+
+
 def test_externe_mode_json_de_la_configuration_sans_reflexion(config_test):
     config = config_test.model_copy(
         update={"moteur": config_test.moteur.model_copy(update={"mode_json": "json_object"})}
