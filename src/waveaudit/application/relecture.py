@@ -79,7 +79,11 @@ def ecrire_atomique(chemin: Path, texte: str) -> None:
                     raise
                 time.sleep(PAUSE_REMPLACEMENT_S)
     finally:
-        provisoire.unlink(missing_ok=True)
+        try:
+            provisoire.unlink(missing_ok=True)
+        except OSError:
+            # Ne masque pas l'erreur d'origine ; le provisoire sera écrasé à la prochaine écriture.
+            _log.warning("provisoire %s non supprimé", provisoire.name)
 
 
 def _ecrire(dossier: Path, etat: EtatRelecture) -> None:
@@ -344,15 +348,22 @@ def demarrer_regeneration(
     confirmer: bool,
     *,
     ids_catalogue: Collection[str] = (),
-    occupation: "Occupation | None" = None,
 ) -> EntreeRelecture:
     """Vérifie la demande de changement de candidat puis passe `generation="en_cours"`.
 
     Refus dans l'ordre du §25. `ids_catalogue` : identifiants du catalogue, seul contrôle
     d'existence d'un constat choisi pour une entrée `non_rattachee` (vide : refusé).
+
+    [revue R2] Appelée sous le `VerrouUnique` déjà pris pour cette entrée (§26) : aucune
+    régénération ne peut alors tourner dans ce processus, donc une entrée lue `en_cours` est
+    toujours une génération interrompue, présentée `echec` et relançable. Pas de paramètre
+    `occupation` (signature du §25) : passer l'occupation que l'appelant vient de prendre
+    rendrait une entrée interrompue définitivement refusée (`generation_en_cours`). Une
+    régénération en cours est refusée en amont par le verrou (409 `lot_en_cours`).
     """
 
     def verifier(e: EntreeRelecture) -> EntreeRelecture:
+        # Ordre du §25 ; inatteignable sous le VerrouUnique (entrée `en_cours` présentée `echec`).
         if e.generation == "en_cours":
             raise RefusRelecture("generation_en_cours", "Une régénération est en cours.")
         non_rattachee = (
@@ -380,7 +391,7 @@ def demarrer_regeneration(
         return _maj(e, generation="en_cours", erreur_generation=None)
 
     with _verrou(dossier):
-        return _modifier_sous_verrou(dossier, index, version_attendue, verifier, occupation)
+        return _modifier_sous_verrou(dossier, index, version_attendue, verifier, None)
 
 
 def _echec(message: str) -> Operation:

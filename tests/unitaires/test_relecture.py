@@ -325,6 +325,38 @@ def test_os_replace_en_echec_puis_erreur(tmp_path, monkeypatch):
     assert _partiels(dossier) == []
 
 
+def test_provisoire_non_supprime_ne_masque_pas_l_erreur(tmp_path, monkeypatch):
+    """[revue R2] Un échec de suppression du provisoire laisse remonter l'erreur d'origine."""
+    dossier = tmp_path / "lot"
+    _init(dossier, [_note()])
+
+    def refuse(source, cible):
+        raise PermissionError(13, "accès refusé")
+
+    def unlink_refuse(self, missing_ok=False):
+        raise PermissionError(13, "provisoire tenu")
+
+    monkeypatch.setattr(relecture.os, "replace", refuse)
+    monkeypatch.setattr(Path, "unlink", unlink_refuse)
+    with pytest.raises(PermissionError, match="accès refusé"):
+        relecture.enregistrer_resultat(dossier, 1, _fiche())
+
+
+def test_id_lot_deja_execute_refuse(config_test, tmp_path):
+    """[revue R2] §25 « Relance » : un id_lot fourni dont relecture.json existe est refusé
+    sans rien réécrire (corrections et validations gardées)."""
+    from waveaudit.domaine.erreurs import EntreeInvalide
+
+    sortie = config_test.chemins.var / "sorties" / "lot-existant"
+    _lot_fiche(sortie)
+    relecture.modifier(sortie, 1, 2, valider)
+    avant = (sortie / relecture.FICHIER).read_bytes()
+    with pytest.raises(EntreeInvalide, match="déjà exécuté"):
+        lot.executer_lot(RequeteLot(dossier=DEMO, id_lot="lot-existant"), config_test)
+    assert (sortie / relecture.FICHIER).read_bytes() == avant
+    assert not (sortie / "journal.jsonl").exists()
+
+
 # --- demarrer_regeneration --------------------------------------------------------------------
 
 
@@ -345,10 +377,9 @@ def test_ordre_des_refus_demarrer_regeneration(tmp_path):
 
     en_cours = relecture.demarrer_regeneration(dossier, 1, 2, "WEB-002", False)
     assert (en_cours.generation, en_cours.version) == ("en_cours", 3)
-    occupation = Occupation("regeneration", "lot", 1, datetime(2026, 1, 1))
-    # conflit_version avant generation_en_cours.
-    assert code(1, 2, occupation=occupation) == "conflit_version"
-    assert code(1, 3, occupation=occupation) == "generation_en_cours"
+    # conflit_version d'abord ; une entrée `en_cours` lue sous le VerrouUnique est interrompue
+    # (revue R2 : pas d'occupation, `generation_en_cours` est tenu par le verrou, 409).
+    assert code(1, 2) == "conflit_version"
     # Entrée attente, puis écartée non_traitee : non_generable.
     assert code(2, 1) == "non_generable"
     assert code(3, 2) == "non_generable"

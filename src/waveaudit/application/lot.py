@@ -209,7 +209,10 @@ def executer_lot(
         id_lot = nouvel_id_lot(config.chemins.var)
     else:
         id_lot = requete.id_lot
-        verifier_id_lot(id_lot, config)
+        deja = verifier_id_lot(id_lot, config)
+        # §25 « Relance » : aucun code ne réécrit le relecture.json (ni le journal) d'un autre lot.
+        if (deja / relecture.FICHIER).exists() or (deja / JOURNAL).exists():
+            raise EntreeInvalide(f"lot déjà exécuté : {id_lot!r}")
     dossier_sortie = dossier_sorties(config) / id_lot
     # [v2] CAP-8 : langue fixée au lancement du lot (contrats §9, §23).
     langue: Langue = requete.langue or config.fiches.langue

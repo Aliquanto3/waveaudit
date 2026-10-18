@@ -69,9 +69,13 @@ sources:
 - `demarrer_regeneration` reçoit `ids_catalogue` (absent de la signature du §25) : seul
   contrôle d'existence pour `non_rattachee` ; vide → `candidat_inconnu`. La route (W3a) passe
   les ids du catalogue.
-- `occupation` de `demarrer_regeneration` : la route prend le verrou pour cette entrée avant
-  l'appel ; elle doit passer `None` (une entrée `en_cours` lue alors est forcément
-  interrompue). Les routes de correction et validation passent l'occupation courante.
+- `demarrer_regeneration` n'a pas de paramètre `occupation` (signature du §25, revue R2) : la
+  route prend le verrou pour cette entrée avant l'appel, une entrée `en_cours` lue alors est
+  forcément interrompue et relançable ; `generation_en_cours` est tenu par le verrou (409
+  `lot_en_cours`). Les routes de correction et validation passent l'occupation courante à
+  `modifier` et `charger`.
+- `executer_lot` refuse (`EntreeInvalide`, « lot déjà exécuté ») un `id_lot` fourni dont le
+  dossier porte déjà `relecture.json` ou `journal.jsonl` (§25 « Relance », revue R2).
 - La lecture sous verrou de `modifier` ne présente que l'entrée visée : une autre entrée
   `en_cours` n'est jamais réécrite en `echec`.
 - `enregistrer_resultat` remet à zéro les champs incompatibles avec le résultat (correction,
@@ -83,3 +87,15 @@ sources:
 
 - Routes de relecture et passage de `ids_catalogue`, `occupation`, verrou et 503
   `ecriture_impossible` : W3a. Lecture de `lot.json` pour l'état des lots : W2 (`lots.py`).
+
+## Revue
+
+Revue unique (reviewer, avec le second avis) : `_bmad-output/implementation-artifacts/revues/story-R2.md`.
+
+- moyenne | second avis 1 | corrigé | `occupation` de `demarrer_regeneration` retiré : la passer après `prendre` bloquait à jamais une entrée interrompue.
+- moyenne | second avis 3 | corrigé | `id_lot` fourni déjà exécuté refusé avant toute écriture.
+- moyenne→faible | second avis 2 | rejeté | écritures d'un autre processus exclues par le contrat (`lot_en_cours_externe`, SPEC l. 87) ; nom `.relecture.json.partiel` fixé par §30.
+- faible | second avis 4 | reporté | `relecture.json` illisible : `ValidationError` (`ValueError`) ; code d'API à arbitrer (W3a).
+- faible | second avis 6 | corrigé | suppression du provisoire en échec journalisée, l'erreur d'origine remonte.
+- faible | second avis 5, 7, 8, 9 | rejetés ou reportés | voir la revue.
+- Complexité : 1 constat | réécriture complète par fiche (O(n²) par lot) : 18 ms/fiche à 300 notes, négligeable devant la génération ; laissé.
