@@ -219,6 +219,38 @@ def test_repli_sortie_invalide():
     assert recit.recommandation == r.recommandation
 
 
+def test_recit_en_anglais_marque_motif_langue():
+    """Contrats §21 v2 (CAP-4) : un récit en anglais est signalé, `langue="fr"` par défaut."""
+    texte_anglais = (
+        "The application does not validate the input that is sent by the user, and this "
+        "allows an attacker to inject content into the page."
+    )
+    recit = appliquer_recit(
+        _sortie(recit=texte_anglais, impact=texte_anglais, recommandation=texte_anglais),
+        regle(),
+        _detection_avec_indicateurs(),
+        800,
+    )
+    assert recit.statut == Statut.A_REVOIR
+    details = {m.detail for m in recit.motifs if m.code == CodeMotif.LANGUE}
+    assert details == {
+        "recit : mots-outils en",
+        "impact : mots-outils en",
+        "recommandation : mots-outils en",
+    }
+
+
+def test_repetition_sur_le_recit_marquee():
+    recit = appliquer_recit(
+        _sortie(recit=("sans restriction d'accès, " * 60)[:800]),
+        regle(),
+        _detection_avec_indicateurs(),
+        800,
+    )
+    assert recit.statut == Statut.A_REVOIR
+    assert any(m.code == CodeMotif.REPETITION and m.detail == "recit" for m in recit.motifs)
+
+
 def test_invariant_statut_motifs():
     recit_ok = appliquer_recit(_sortie(), regle(), _detection_avec_indicateurs(), 800)
     assert (recit_ok.statut == Statut.A_REVOIR) == bool(recit_ok.motifs)

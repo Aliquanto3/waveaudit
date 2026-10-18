@@ -25,7 +25,8 @@ from waveaudit.domaine.incident import (
     Recit,
     Regle,
 )
-from waveaudit.domaine.modeles import CodeMotif, Motif, Statut
+from waveaudit.domaine.modeles import CodeMotif, Langue, Motif, Statut
+from waveaudit.domaine.qualite_texte import est_repetitif, motif_langue
 
 _LONGUEUR_MIN_RUBRIQUE = 20
 _POINT_FINAL = re.compile(r"\.+(?=[\s)\]}>»\"'”’,;:!?]|\Z)")
@@ -126,14 +127,28 @@ def _nettoyer_espaces(texte: str) -> str:
     return texte
 
 
+def _texte_source(detection: Detection, references: Sequence[str] = ()) -> str:
+    """Texte source d'une citation (étapes 5 et 6) : lignes de preuve et valeurs légitimes.
+
+    Les lignes de preuve de la détection, plus les identifiants, IP et hachages déjà reconnus
+    comme légitimes par les étapes 2 et 3 : une valeur gardée par `appliquer_recit` est, comme
+    une URL de la note pour les fiches, une citation et non une boucle ou un mot étranger.
+    """
+    lignes = [evenement.message for evenement in detection.evenements]
+    lignes.extend(references)
+    return "\n".join(lignes)
+
+
 def appliquer_recit(
     sortie_brute: dict,
     regle: Regle,
     detection: Detection,
     longueur_max: int,
     motifs_initiaux: Sequence[Motif] = (),
+    *,
+    langue: Langue = "fr",
 ) -> Recit:
-    """Garde-fous du récit (contrats §21). `detection.indicateurs` doit être déjà rempli."""
+    """Garde-fous du récit (contrats §21 v2). `detection.indicateurs` doit être déjà rempli."""
     motifs: list[Motif] = list(motifs_initiaux)
     references = list(regle.references)
     ids_valides = {reference.id.upper() for reference in references}
@@ -157,16 +172,35 @@ def appliquer_recit(
         motifs.extend(motifs_indicateurs)
         rubriques[nom] = _nettoyer_espaces(texte)
 
+    completees: set[str] = set()
     for nom in RUBRIQUES_RECIT:
         texte = rubriques[nom]
         if nom == "titre":
             if not texte:
                 texte = regle.titre
                 motifs.append(Motif(code=CodeMotif.RUBRIQUE_COMPLETEE, detail=nom))
+                completees.add(nom)
         elif len(texte) < _LONGUEUR_MIN_RUBRIQUE:
             texte = textes_regle[nom]
             motifs.append(Motif(code=CodeMotif.RUBRIQUE_COMPLETEE, detail=nom))
+            completees.add(nom)
         rubriques[nom] = texte[:longueur_max]
+
+    # [v2] CAP-4 (§21) : étapes 5 (répétition) et 6 (langue) du §6 v2, sur les rubriques non
+    # complétées ; mots-outils jamais sur le titre.
+    source = _texte_source(detection, [*ids_valides, *ips_valides, *hachages_valides])
+    for nom in RUBRIQUES_RECIT:
+        if nom in completees:
+            continue
+        if est_repetitif(rubriques[nom], source):
+            motifs.append(Motif(code=CodeMotif.REPETITION, detail=nom))
+
+    for nom in RUBRIQUES_RECIT:
+        if nom in completees:
+            continue
+        detail = motif_langue(rubriques[nom], langue, source, verifier_mots_outils=(nom != "titre"))
+        if detail is not None:
+            motifs.append(Motif(code=CodeMotif.LANGUE, detail=f"{nom} : {detail}"))
 
     statut = Statut.A_REVOIR if motifs else Statut.OK
 

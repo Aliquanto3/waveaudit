@@ -207,6 +207,73 @@ def test_texte_du_constat_tronque_a_longueur_max():
     )
 
 
+def test_titre_de_5_a_19_caracteres_garde():
+    """Contrats §6 v2 : seuil de longueur du titre révisé à 5 caractères (au lieu de 20)."""
+    sortie = _sortie_nominale()
+    sortie["titre"] = "Titre court"  # 11 caractères, >= 5 et < 20
+    fiche = appliquer(sortie, _constat(), _note(), _candidats(), 1200)
+    assert fiche.titre == "Titre court"
+    assert not any(m.code == CodeMotif.RUBRIQUE_COMPLETEE for m in fiche.motifs)
+    assert fiche.statut == Statut.OK
+
+
+def test_titre_de_4_caracteres_complete():
+    constat = _constat()
+    sortie = _sortie_nominale()
+    sortie["titre"] = "Abcd"  # 4 caractères, sous le seuil de 5
+    fiche = appliquer(sortie, constat, _note(), _candidats(), 1200)
+    assert fiche.titre == constat.titre
+    assert any(m.code == CodeMotif.RUBRIQUE_COMPLETEE and m.detail == "titre" for m in fiche.motifs)
+
+
+def test_autre_rubrique_de_19_caracteres_completee():
+    constat = _constat()
+    sortie = _sortie_nominale()
+    sortie["impact"] = "x" * 19  # sous le seuil de 20 pour les rubriques autres que le titre
+    fiche = appliquer(sortie, constat, _note(), _candidats(), 1200)
+    assert fiche.impact == constat.impact
+    assert any(
+        m.code == CodeMotif.RUBRIQUE_COMPLETEE and m.detail == "impact" for m in fiche.motifs
+    )
+
+
+def test_url_du_corps_de_la_note_gardee():
+    """Contrats §6 v2, revue A20/E39 : une URL citée telle quelle dans le corps est gardée."""
+    sortie = _sortie_nominale()
+    sortie["description"] += " Voir https://portail.exemple.test/notes/42 pour le détail."
+    note = _note(corps="Référence externe : https://portail.exemple.test/notes/42 vue ici.")
+    fiche = appliquer(sortie, _constat(), note, _candidats(), 1200)
+    assert "https://portail.exemple.test/notes/42" in fiche.description
+    assert not any(m.code == CodeMotif.REFERENCE_RETIREE for m in fiche.motifs)
+
+
+def test_url_de_l_actif_gardee():
+    sortie = _sortie_nominale()
+    sortie["description"] += " Voir https://actif.exemple.test/admin pour le détail."
+    note = _note(actif="https://actif.exemple.test/admin")
+    fiche = appliquer(sortie, _constat(), note, _candidats(), 1200)
+    assert "https://actif.exemple.test/admin" in fiche.description
+
+
+def test_prefixe_url_de_la_note_retire():
+    """Un préfixe ou un fragment d'une URL de la note n'est pas conservé (jeton entier requis)."""
+    sortie = _sortie_nominale()
+    sortie["description"] += " Voir https://portail.exemple.test pour le détail."
+    note = _note(corps="Référence externe : https://portail.exemple.test/notes/42 vue ici.")
+    fiche = appliquer(sortie, _constat(), note, _candidats(), 1200)
+    assert "https://portail.exemple.test" not in fiche.description
+    details = {m.detail for m in fiche.motifs if m.code == CodeMotif.REFERENCE_RETIREE}
+    assert "https://portail.exemple.test" in details
+
+
+def test_url_absente_de_la_note_et_du_constat_retiree():
+    sortie = _sortie_nominale()
+    sortie["description"] += " Voir https://exemple.invalid/ailleurs pour le détail."
+    fiche = appliquer(sortie, _constat(), _note(), _candidats(), 1200)
+    assert "exemple.invalid" not in fiche.description
+    assert any(m.code == CodeMotif.REFERENCE_RETIREE for m in fiche.motifs)
+
+
 def test_sauts_de_ligne_conserves_apres_nettoyage():
     sortie = _sortie_nominale()
     sortie["recommandation"] = (
@@ -216,3 +283,64 @@ def test_sauts_de_ligne_conserves_apres_nettoyage():
     assert (
         fiche.recommandation == "Mesures :\n- échapper la sortie HTML ;\n- poser une CSP stricte."
     )
+
+
+# --- [v2] Répétition et langue (contrats §6 étapes 5 et 6) --------------------------------
+
+
+def test_rubrique_repetitive_marquee_motif_repetition():
+    sortie = _sortie_nominale()
+    sortie["description"] = ("sans restriction d'accès, " * 60)[:1200]
+    fiche = appliquer(sortie, _constat(), _note(), _candidats(), 1200)
+    assert fiche.statut == Statut.A_REVOIR
+    assert any(m.code == CodeMotif.REPETITION and m.detail == "description" for m in fiche.motifs)
+    assert fiche.description == sortie["description"]  # le texte est conservé tel quel
+
+
+def test_rubrique_en_anglais_dans_lot_francais_marquee_motif_langue():
+    sortie = _sortie_nominale()
+    texte_anglais = (
+        "The application does not validate the input that is sent by the user, and this "
+        "allows an attacker to inject content into the page."
+    )
+    for nom in ("description", "impact", "recommandation"):
+        sortie[nom] = texte_anglais
+    fiche = appliquer(sortie, _constat(), _note(), _candidats(), 1200, langue="fr")
+    assert fiche.statut == Statut.A_REVOIR
+    details = {m.detail for m in fiche.motifs if m.code == CodeMotif.LANGUE}
+    assert details == {
+        "description : mots-outils en",
+        "impact : mots-outils en",
+        "recommandation : mots-outils en",
+    }
+
+
+def test_titre_en_anglais_non_soumis_au_motif_langue_mots_outils():
+    sortie = _sortie_nominale()
+    sortie["titre"] = (
+        "The application does not validate the input sent by the user and allows attacks"
+    )
+    fiche = appliquer(sortie, _constat(), _note(), _candidats(), 1200, langue="fr")
+    assert not any(
+        m.code == CodeMotif.LANGUE and m.detail.startswith("titre") for m in fiche.motifs
+    )
+
+
+def test_ecriture_etrangere_marquee_motif_langue():
+    sortie = _sortie_nominale()
+    sortie["impact"] += " 経"
+    fiche = appliquer(sortie, _constat(), _note(), _candidats(), 1200)
+    assert any(
+        m.code == CodeMotif.LANGUE and m.detail == "impact : écriture non latine"
+        for m in fiche.motifs
+    )
+
+
+def test_url_de_la_note_statut_ok():
+    """Scénario `url_de_la_note` du faux moteur : l'URL citée est gardée, aucun motif."""
+    sortie = _sortie_nominale()
+    note = _note(corps="Référence externe : https://portail.exemple.test/notes/42 vue ici.")
+    sortie["description"] += " https://portail.exemple.test/notes/42"
+    fiche = appliquer(sortie, _constat(), note, _candidats(), 1200)
+    assert fiche.statut == Statut.OK
+    assert fiche.motifs == []

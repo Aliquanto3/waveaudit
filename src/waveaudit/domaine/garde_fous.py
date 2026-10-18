@@ -13,14 +13,19 @@ from waveaudit.domaine.modeles import (
     ConstatType,
     Cvss,
     Fiche,
+    Langue,
     MetriquesCvss,
     Motif,
     Note,
     Statut,
     Tracabilite,
 )
+from waveaudit.domaine.qualite_texte import est_repetitif, motif_langue
 
-_LONGUEUR_MIN_RUBRIQUE = 20
+LONGUEUR_MIN_TITRE = 5
+LONGUEUR_MIN_RUBRIQUE = 20
+
+_URL = re.compile(r"https?://\S+")
 
 _MOTIFS_REFERENCES: tuple[str, ...] = (
     r"CWE-\d+",
@@ -42,10 +47,25 @@ def _nettoyer_url(jeton: str) -> str:
     return jeton.rstrip(_PONCTUATION_FINALE)
 
 
+def _urls_de_la_note(note: Note) -> set[str]:
+    """Jetons URL entiers de `note.corps` et `note.actif` (note entière, pas tronquée)."""
+    texte = note.corps + ("\n" + note.actif if note.actif else "")
+    return {_nettoyer_url(m.group(0)) for m in _URL.finditer(texte)}
+
+
+def _texte_source(note: Note) -> str:
+    """Texte source d'une citation (étapes 5 et 6) : note entière, corps et actif."""
+    return note.corps + ("\n" + note.actif if note.actif else "")
+
+
 def _retirer_references_inventees(
     texte: str, ids_valides: set[str], urls_valides: set[str]
 ) -> tuple[str, list[str]]:
-    """Retire les identifiants et URL de la rubrique qui ne sont pas ceux du constat type."""
+    """Retire les identifiants et URL de la rubrique qui ne sont pas ceux du constat type
+
+    ni, pour une URL, un jeton entier présent dans `note.corps` ou `note.actif` (contrats §6
+    v2, revue A20/E39) : `urls_valides` porte déjà cette union.
+    """
     jetons_retires: list[str] = []
 
     def _remplacer(correspondance: re.Match[str]) -> str:
@@ -92,18 +112,20 @@ def appliquer(
     longueur_max: int,
     *,
     motifs_initiaux: Sequence[Motif] = (),
+    langue: Langue = "fr",
 ) -> Fiche:
-    """Applique les garde-fous (contrats §6) à la sortie brute du moteur et produit une Fiche."""
+    """Applique les garde-fous (contrats §6 v2, ordre révisé CAP-3/CAP-4) à la sortie brute."""
     motifs: list[Motif] = list(motifs_initiaux)
     references = list(constat.references)
     ids_valides = {reference.id.upper() for reference in references}
-    urls_valides = {reference.url for reference in references}
+    urls_valides = {reference.url for reference in references} | _urls_de_la_note(note)
 
-    textes_constat = {
-        "titre": constat.titre,
-        "description": constat.description,
-        "impact": constat.impact,
-        "recommandation": constat.recommandation,
+    textes_constat = constat.textes(langue)
+    textes_constat_dict = {
+        "titre": textes_constat.titre,
+        "description": textes_constat.description,
+        "impact": textes_constat.impact,
+        "recommandation": textes_constat.recommandation,
     }
 
     rubriques: dict[str, str] = {}
@@ -119,12 +141,30 @@ def appliquer(
     if motif_vecteur is not None:
         motifs.append(motif_vecteur)
 
+    completees: set[str] = set()
     for nom in RUBRIQUES:
         texte = rubriques[nom]
-        if len(texte) < _LONGUEUR_MIN_RUBRIQUE:
-            texte = textes_constat[nom]
+        minimum = LONGUEUR_MIN_TITRE if nom == "titre" else LONGUEUR_MIN_RUBRIQUE
+        if len(texte) < minimum:
+            texte = textes_constat_dict[nom]
             motifs.append(Motif(code=CodeMotif.RUBRIQUE_COMPLETEE, detail=nom))
+            completees.add(nom)
         rubriques[nom] = texte[:longueur_max]
+
+    # [v2] Étapes 5 (répétition) et 6 (langue), sur les rubriques non complétées à l'étape 4.
+    source = _texte_source(note)
+    for nom in RUBRIQUES:
+        if nom in completees:
+            continue
+        if est_repetitif(rubriques[nom], source):
+            motifs.append(Motif(code=CodeMotif.REPETITION, detail=nom))
+
+    for nom in RUBRIQUES:
+        if nom in completees:
+            continue
+        detail = motif_langue(rubriques[nom], langue, source, verifier_mots_outils=(nom != "titre"))
+        if detail is not None:
+            motifs.append(Motif(code=CodeMotif.LANGUE, detail=f"{nom} : {detail}"))
 
     statut = Statut.A_REVOIR if motifs else Statut.OK
 
