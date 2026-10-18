@@ -20,12 +20,14 @@ from waveaudit.domaine.erreurs import EntreeInvalide
 from waveaudit.domaine.modeles import (
     EvenementLot,
     Fiche,
+    Langue,
     RequeteLot,
     ResultatElement,
     ResultatLot,
     Statut,
     TypeEvenement,
 )
+from waveaudit.domaine.ports import OptionsExport
 from waveaudit.workflows.registre import REGISTRE
 
 _log = logging.getLogger(__name__)
@@ -176,20 +178,31 @@ def executer_lot(
         id_lot = requete.id_lot
         verifier_id_lot(id_lot, config)
     dossier_sortie = dossier_sorties(config) / id_lot
+    # [v2] CAP-8 : langue fixée au lancement du lot (contrats §9, §23).
+    langue: Langue = requete.langue or config.fiches.langue
+    config_workflow = config.model_copy(
+        update={"fiches": config.fiches.model_copy(update={"langue": langue})}
+    )
 
     with JournalLot(dossier_sortie / JOURNAL) as journal:
         emetteur = Emetteur(journal, abonne)
         try:
             with composition.ouvrir(config, requete.modele, id_lot=id_lot) as (ports, info):
                 ports.moteur.sonder()
-                workflow = REGISTRE[requete.workflow](config, ports)
+                workflow = REGISTRE[requete.workflow](config_workflow, ports)
                 elements = sorted(
                     workflow.preparer(requete.dossier), key=lambda e: e.fichier.casefold()
                 )
                 emetteur.total = len(elements)
                 emetteur.emettre(
                     TypeEvenement.LOT_DEMARRE,
-                    details={"id_lot": id_lot, "modele": info.nom_modele, "pid_moteur": info.pid},
+                    details={
+                        "id_lot": id_lot,
+                        "modele": info.nom_modele,
+                        "pid_moteur": info.pid,
+                        "workflow": requete.workflow,
+                        "langue": langue,
+                    },
                 )
                 resultats: list[ResultatElement] = []
                 for index, element in enumerate(elements, start=1):
@@ -213,7 +226,7 @@ def executer_lot(
                     encoding="utf-8",
                 )
                 chemin_rapport = dossier_sortie / RAPPORT
-                ports.exporteur.exporter(rapport, chemin_rapport)
+                ports.exporteur.exporter(rapport, chemin_rapport, OptionsExport(langue=langue))
                 if requete.copie_rapport is not None:
                     shutil.copyfile(chemin_rapport, requete.copie_rapport)
         except BaseException as erreur:

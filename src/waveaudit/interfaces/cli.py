@@ -21,6 +21,8 @@ from typing import NoReturn
 
 import typer
 
+from waveaudit.domaine.modeles import Langue
+
 _log = logging.getLogger(__name__)
 
 app = typer.Typer(help="WaveAudit : notes brutes vers fiches de vulnérabilité, hors ligne.")
@@ -132,6 +134,9 @@ def fiches(
     config: Path | None = typer.Option(
         None, "--config", help="Fichier de configuration TOML supplémentaire"
     ),
+    langue: Langue | None = typer.Option(
+        None, "--langue", help="Langue des fiches et du rapport Word (défaut : config)"
+    ),
 ) -> None:
     """Traite les notes d'un dossier et produit un rapport de fiches de vulnérabilité."""
     cfg = _charger_config(config)
@@ -160,7 +165,9 @@ def fiches(
 
         with _codes_retour("fiches"):
             resultat = executer_lot(
-                RequeteLot(dossier=dossier, modele=modele, copie_rapport=o), cfg, abonne
+                RequeteLot(dossier=dossier, modele=modele, copie_rapport=o, langue=langue),
+                cfg,
+                abonne,
             )
 
         ok = sum(1 for f in resultat.rapport.fiches if f.statut == Statut.OK)
@@ -295,6 +302,9 @@ def catalogue_verifier(
 def banc(
     dossier: Path = typer.Argument(..., help="Dossier contenant les notes (.md, .txt)"),
     modele: str | None = typer.Option(None, "--modele", help="Nom du modèle (manifeste)"),
+    langue: Langue | None = typer.Option(
+        None, "--langue", help="Langue des fiches du lot mesuré (défaut : config)"
+    ),
 ) -> None:
     """Exécute un lot instrumenté (mémoire, durées) — contrats §20."""
     cfg = _charger_config()
@@ -306,7 +316,7 @@ def banc(
         if module is None:
             _echouer("banc : disponible en story 15", 2)
         with _codes_retour("banc"):
-            module.executer_banc(dossier, cfg, modele)
+            module.executer_banc(dossier, cfg, modele, langue)
 
 
 @app.command()

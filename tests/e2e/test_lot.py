@@ -9,11 +9,14 @@ from pathlib import Path
 import pytest
 from docx import Document
 
+from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
+from waveaudit.adaptateurs.export_docx import LIBELLES
 from waveaudit.application import lot
 from waveaudit.application.config import racine_projet
 from waveaudit.application.lot import executer_lot, nouvel_id_lot
 from waveaudit.domaine.erreurs import EntreeInvalide, MoteurInjoignable
 from waveaudit.domaine.modeles import Rapport, RequeteLot, TypeEvenement
+from waveaudit.workflows.fiches.prompt import CONSIGNES
 
 DEMO = racine_projet() / "donnees" / "demo" / "notes"
 T = TypeEvenement
@@ -57,6 +60,8 @@ def test_lot_nominal_30_notes(config_test, tmp_path):
         "id_lot": resultat.id_lot,
         "modele": "externe",
         "pid_moteur": None,
+        "workflow": "fiches",
+        "langue": "fr",
     }
     fiches = evenements[1:-1]
     assert len(fiches) == 60
@@ -70,6 +75,44 @@ def test_lot_nominal_30_notes(config_test, tmp_path):
     notes = [e["note"] for e in fiches[::2]]
     assert notes == sorted(notes, key=str.casefold)
     assert str(tmp_path) not in (sortie / "journal.jsonl").read_text(encoding="utf-8")
+
+
+def test_lot_anglais_details_langue_et_word_anglais(config_test, faux_moteur, tmp_path):
+    """[v2] CAP-8 (contrats §9, §23) : `--langue en` -> `details.langue`, Word aux libellés en."""
+    dossier = tmp_path / "notes"
+    dossier.mkdir()
+    shutil.copy(DEMO / "01-xss-reflechi.md", dossier / "01-xss-reflechi.md")
+    fm = faux_moteur()
+
+    resultat = executer_lot(RequeteLot(dossier=dossier, langue="en"), _vers(config_test, fm))
+
+    demarre = _journal(resultat)[0]
+    assert demarre["details"]["langue"] == "en"
+    # [revue L1] La langue du lot atteint le workflow (copie de configuration, §9 v2) : consigne
+    # anglaise envoyée au moteur et fiche rédigée depuis les textes anglais du constat.
+    assert fm.requetes[0]["messages"][0]["content"].endswith(CONSIGNES["en"])
+    (fiche,) = resultat.rapport.fiches
+    constat = CatalogueYaml(config_test.chemins.catalogue).obtenir(fiche.tracabilite.constat_id)
+    assert fiche.titre == "[adapté] " + constat.textes("en").titre
+    document = Document(str(resultat.chemin_rapport))
+    titres = [p.text for p in document.paragraphs if p.style.name == "Title"]
+    assert LIBELLES["en"]["titre"] in titres
+    assert LIBELLES["fr"]["titre"] not in titres
+
+
+def test_lot_sans_langue_reste_francais(config_test, tmp_path):
+    """Un lot sans `--langue` se comporte comme en v0.1.0 (français)."""
+    dossier = tmp_path / "notes"
+    dossier.mkdir()
+    shutil.copy(DEMO / "01-xss-reflechi.md", dossier / "01-xss-reflechi.md")
+
+    resultat = executer_lot(RequeteLot(dossier=dossier), config_test)
+
+    demarre = _journal(resultat)[0]
+    assert demarre["details"]["langue"] == "fr"
+    document = Document(str(resultat.chemin_rapport))
+    titres = [p.text for p in document.paragraphs if p.style.name == "Title"]
+    assert LIBELLES["fr"]["titre"] in titres
 
 
 def test_id_lot_unique_dans_la_meme_seconde(config_test, monkeypatch):

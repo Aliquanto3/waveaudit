@@ -94,14 +94,15 @@ def fabriquer(
     moteurs: list[MoteurOpenAI],
 ) -> Callable[..., tuple[pipeline.WorkflowFiches, FauxMoteur]]:
     def fabrique(
-        scenario: str = "nominal", *, prefixe: str = "", **moteur_cfg: object
+        scenario: str = "nominal", *, prefixe: str = "", langue: str = "fr", **moteur_cfg: object
     ) -> tuple[pipeline.WorkflowFiches, FauxMoteur]:
         fm = faux_moteur(scenario)
         config = config_test.model_copy(
             update={
                 "moteur": config_test.moteur.model_copy(
                     update={"base_url": fm.base_url, **moteur_cfg}
-                )
+                ),
+                "fiches": config_test.fiches.model_copy(update={"langue": langue}),
             }
         )
         moteur = MoteurOpenAI(fm.base_url, "modele-test", timeout_s=config.moteur.timeout_s)
@@ -184,6 +185,29 @@ def test_erreur_500_repli_moteur_immediat(fabriquer) -> None:
     assert len(fm.requetes) == 1
     assert isinstance(resultat, Fiche) and resultat.statut == Statut.A_REVOIR
     assert _codes(resultat) == [CodeMotif.REPLI_MOTEUR]
+
+
+def test_lot_anglais_textes_anglais(fabriquer, constats) -> None:
+    """[v2] CAP-8 (contrats §23) : un lot `en` produit des textes anglais (faux moteur nominal)."""
+    workflow, _ = fabriquer("nominal", langue="en")
+    resultat = workflow.traiter(_note(NOTE_XSS))
+
+    assert isinstance(resultat, Fiche) and resultat.statut == Statut.OK
+    constat = next(c for c in constats if c.id == resultat.tracabilite.constat_id)
+    assert resultat.titre == "[adapté] " + constat.en.titre
+    assert resultat.description == "[adapté] " + constat.en.description
+
+
+def test_lot_anglais_repli_textes_anglais(fabriquer, constats) -> None:
+    """[v2] CAP-8 : le repli (moteur injoignable) construit sa sortie en anglais pour un lot en."""
+    workflow, _ = fabriquer("erreur_500", langue="en")
+    resultat = workflow.traiter(_note(NOTE_XSS))
+
+    assert isinstance(resultat, Fiche) and resultat.statut == Statut.A_REVOIR
+    assert _codes(resultat) == [CodeMotif.REPLI_MOTEUR]
+    constat = next(c for c in constats if c.id == resultat.tracabilite.constat_id)
+    assert resultat.titre == constat.en.titre
+    assert resultat.description == constat.en.description
 
 
 def test_rubrique_absente_vaut_sortie_invalide(fabriquer, monkeypatch) -> None:
