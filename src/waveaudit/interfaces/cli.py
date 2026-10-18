@@ -305,8 +305,11 @@ def banc(
     langue: Langue | None = typer.Option(
         None, "--langue", help="Langue des fiches du lot mesuré (défaut : config)"
     ),
+    seed: int | None = typer.Option(
+        None, "--seed", help="Seed du moteur pour ce banc (défaut : config)"
+    ),
 ) -> None:
-    """Exécute un lot instrumenté (mémoire, durées) — contrats §20."""
+    """Exécute un lot instrumenté (mémoire, durées, recopie) — contrats §20, §29."""
     cfg = _charger_config()
 
     from waveaudit.securite.garde_reseau import garde
@@ -316,7 +319,7 @@ def banc(
         if module is None:
             _echouer("banc : disponible en story 15", 2)
         with _codes_retour("banc"):
-            module.executer_banc(dossier, cfg, modele, langue)
+            module.executer_banc(dossier, cfg, modele, langue, seed)
 
 
 @app.command()
