@@ -379,3 +379,199 @@ def test_installer_erreur_os_code_4(monkeypatch):
     resultat = runner.invoke(app, ["installer"])
 
     assert resultat.exit_code == 4
+
+
+# --- exporter (contrats §27, CAP-13, CAP-17) ---------------------------------------------------
+
+
+def _lot_a_exporter(
+    config_chemin: Path, id_lot: str, *, valide: bool = True, notes_non_validees: int = 0
+) -> Path:
+    """Lot `fiches` : une entrée (validée ou non), plus `notes_non_validees` jamais validées."""
+    from waveaudit.application import relecture as relecture_app
+    from waveaudit.application.config import charger_configuration
+    from waveaudit.application.lot import dossier_sorties, ecrire_fiche_lot
+    from waveaudit.domaine.modeles import (
+        Candidat,
+        Cvss,
+        Fiche,
+        Note,
+        Reference,
+        Statut,
+        Tracabilite,
+    )
+    from waveaudit.domaine.relecture import valider
+
+    cfg = charger_configuration(config_chemin)
+    dossier = dossier_sorties(cfg) / id_lot
+    dossier.mkdir(parents=True, exist_ok=True)
+    ecrire_fiche_lot(dossier, id_lot=id_lot, workflow="fiches", langue="fr", modele_demande=None)
+    noms = ["01-sqli.md"] + [f"0{2 + i}-autre.md" for i in range(notes_non_validees)]
+    notes = [
+        Note(
+            fichier=nom,
+            titre="Injection",
+            actif=None,
+            severite_pressentie=None,
+            constat_attendu="WEB-001",
+            corps="Paramètre id injectable.",
+        )
+        for nom in noms
+    ]
+    relecture_app.initialiser(
+        dossier, id_lot=id_lot, langue="fr", modele="externe", modele_demande=None, elements=notes
+    )
+    cvss = Cvss(
+        vecteur="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", score=9.8, severite="critique"
+    )
+    ref = Reference(id="CWE-89", titre="Injection SQL", url="https://cwe.mitre.org/data/89")
+
+    def _fiche(nom: str) -> Fiche:
+        return Fiche(
+            titre="Injection SQL",
+            description="d" * 30,
+            impact="i" * 30,
+            recommandation="r" * 30,
+            cvss=cvss,
+            references=[ref],
+            statut=Statut.OK,
+            motifs=[],
+            tracabilite=Tracabilite(
+                note=nom,
+                constat_id="WEB-001",
+                candidats=[Candidat(id="WEB-001", score=3.2)],
+                constat_attendu=None,
+            ),
+        )
+
+    for index, nom in enumerate(noms, start=1):
+        relecture_app.enregistrer_resultat(dossier, index, _fiche(nom))
+    if valide:
+        relecture_app.modifier(dossier, 1, 2, valider)
+    return dossier
+
+
+def test_exporter_final_sans_fiche_validee_code_2(tmp_path, faux_moteur):
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    _lot_a_exporter(config, "lot-final", valide=False)
+
+    resultat = runner.invoke(app, ["exporter", "lot-final", "--config", str(config)])
+
+    assert resultat.exit_code == 2  # aucune fiche validée
+    assert not garde_reseau._actif
+
+
+def test_exporter_final_avec_fiche_validee_code_0(tmp_path, faux_moteur):
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    dossier = _lot_a_exporter(config, "lot-final-ok", valide=True)
+
+    resultat = runner.invoke(app, ["exporter", "lot-final-ok", "--config", str(config)])
+
+    assert resultat.exit_code == 0, resultat.output
+    lignes = resultat.output.splitlines()
+    assert lignes[0] == BANDEAU
+    assert lignes[-1] == BANDEAU
+    assert any("rapport :" in ligne for ligne in lignes)
+    assert (dossier / "rapport-lot-final-ok.docx").is_file()
+    assert not garde_reseau._actif
+
+
+def test_exporter_brouillon_sans_ligne_fiches_non_validees(tmp_path, faux_moteur):
+    """[revue A17] La ligne « fiches non validées » n'existe qu'en mode final (contrats §27)."""
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    _lot_a_exporter(config, "lot-brouillon", valide=False)
+
+    resultat = runner.invoke(
+        app, ["exporter", "lot-brouillon", "--brouillon", "--config", str(config)]
+    )
+
+    assert resultat.exit_code == 0, resultat.output
+    assert "fiches non validées" not in resultat.output
+    assert any("rapport :" in ligne for ligne in resultat.output.splitlines())
+
+
+def test_exporter_final_annonce_les_fiches_non_validees(tmp_path, faux_moteur):
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    _lot_a_exporter(config, "lot-final-mixte", valide=True, notes_non_validees=1)
+
+    resultat = runner.invoke(app, ["exporter", "lot-final-mixte", "--config", str(config)])
+
+    assert resultat.exit_code == 0, resultat.output
+    assert "fiches non validées : 1 (exclues, listées en annexe)" in resultat.output
+
+
+def test_exporter_lot_inconnu_code_2(tmp_path, faux_moteur):
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+
+    resultat = runner.invoke(app, ["exporter", "jamais-cree", "--config", str(config)])
+
+    assert resultat.exit_code == 2
+
+
+def test_exporter_lot_incident_code_2(tmp_path, faux_moteur):
+    from waveaudit.application.config import charger_configuration
+    from waveaudit.application.lot import dossier_sorties, ecrire_fiche_lot
+
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    cfg = charger_configuration(config)
+    dossier = dossier_sorties(cfg) / "incident-1"
+    dossier.mkdir(parents=True, exist_ok=True)
+    ecrire_fiche_lot(
+        dossier, id_lot="incident-1", workflow="incident", langue=None, modele_demande=None
+    )
+
+    resultat = runner.invoke(app, ["exporter", "incident-1", "--config", str(config)])
+
+    assert resultat.exit_code == 2
+
+
+def test_exporter_lot_en_cours_code_2(tmp_path, faux_moteur, monkeypatch):
+    from waveaudit.application import composition
+
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    dossier = _lot_a_exporter(config, "lot-en-cours", valide=True)
+    # pid d'un autre processus (jamais `os.getpid()` du test), simulé vivant (§30).
+    chemin_lot_json = dossier / "lot.json"
+    contenu = json.loads(chemin_lot_json.read_text(encoding="utf-8"))
+    chemin_lot_json.write_text(
+        json.dumps(contenu | {"pid": 999_999_999}, ensure_ascii=False), encoding="utf-8"
+    )
+    monkeypatch.setattr(composition, "processus_actif", lambda pid, cree_le: True)
+
+    resultat = runner.invoke(app, ["exporter", "lot-en-cours", "--config", str(config)])
+
+    assert resultat.exit_code == 2
+
+
+def test_exporter_fichier_cible_verrouille_code_4(tmp_path, faux_moteur):
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    dossier = _lot_a_exporter(config, "lot-verrou", valide=True)
+    # Un dossier à la place du fichier cible : `os.replace` lève `PermissionError` sous Windows,
+    # comme un document ouvert dans Word.
+    (dossier / "rapport-lot-verrou.docx").mkdir()
+
+    resultat = runner.invoke(app, ["exporter", "lot-verrou", "--config", str(config)])
+
+    assert resultat.exit_code == 4
+    assert "accès refusé" in resultat.output
+    assert "fermez le document dans Word" in resultat.output
+    assert not list(dossier.glob(".*.partiel"))
+    assert str(tmp_path) not in resultat.output
+
+
+def test_exporter_aucune_commande_ne_valide_une_fiche(tmp_path, faux_moteur):
+    from waveaudit.application import relecture as relecture_app
+    from waveaudit.application.config import charger_configuration
+    from waveaudit.application.lot import dossier_sorties
+
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    dossier = _lot_a_exporter(config, "lot-sans-validation-cli", valide=False)
+
+    runner.invoke(
+        app, ["exporter", "lot-sans-validation-cli", "--brouillon", "--config", str(config)]
+    )
+
+    cfg = charger_configuration(config)
+    assert dossier == dossier_sorties(cfg) / "lot-sans-validation-cli"
+    entree = relecture_app.charger(dossier).entrees[0]
+    assert entree.statut_relecture == "a_valider"
