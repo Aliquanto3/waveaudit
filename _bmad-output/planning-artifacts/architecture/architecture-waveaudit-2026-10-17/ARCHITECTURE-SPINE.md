@@ -1,35 +1,40 @@
 ---
-name: 'WaveAudit POC'
+name: 'WaveAudit'
 type: architecture-spine
 purpose: build-substrate
 altitude: feature
 paradigm: 'hexagonal (ports et adaptateurs) avec un noyau de workflow en pipeline (pipes-and-filters)'
-scope: 'POC WaveAudit : notes brutes vers fiches de vulnérabilité, hors ligne, CLI + UI locale'
+scope: 'WaveAudit : notes brutes vers fiches de vulnérabilité et journaux vers rapport d''incident, hors ligne, CLI + UI locale ; v2 : qualité, relecture dans l''UI, anglais, incident dans l''UI'
 status: final
 created: '2026-10-17'
-updated: '2026-10-17'
-binds: [CAP-1, CAP-2, CAP-3, CAP-4, CAP-5, CAP-6, CAP-7, CAP-8, CAP-9, CAP-10, CAP-11, CAP-12]
+updated: '2026-10-18'
+binds: [POC CAP-1 à CAP-12, CERT CAP-1 à CAP-7, V2 CAP-1 à CAP-17]
 sources:
   - ../../../specs/spec-waveaudit-poc/SPEC.md
+  - ../../../specs/spec-waveaudit-cert/SPEC.md
+  - ../../../specs/spec-waveaudit-v2/SPEC.md
+  - ../../ux/EXPERIENCE.md
 companions:
   - contrats.md
+  - impacts-v2.md
+  - ../../../specs/spec-waveaudit-v2/formats.md
   - ../../../specs/spec-waveaudit-poc/formats.md
 ---
 
-# Architecture Spine — WaveAudit POC
+# Architecture Spine — WaveAudit (POC, CERT, v2)
 
 ## Design Paradigm
 
 Hexagonal. Le **domaine** (modèles, règles pures) et les **workflows** (pipeline par élément) ne connaissent que des **ports** (`typing.Protocol`). Les **adaptateurs** (moteur HTTP, llama-server, catalogue YAML, notes sur disque, export Word) implémentent ces ports. Une seule **racine de composition** les assemble. Les **interfaces** (CLI, web) n'appellent que le service de lot de l'**application**.
 
-Workflow `fiches` = pipeline par note : `lire → rechercher → adapter → controler`, puis `assembler` sur le lot. Le workflow CERT se branchera plus tard comme un second workflow derrière les mêmes ports.
+Workflow `fiches` = pipeline par note : `lire → rechercher → adapter → controler`, puis `assembler` sur le lot. Le workflow CERT a son propre service derrière les mêmes ports (AD-17). La v2 ajoute un état de relecture persistant par lot (AD-19), servi à l'UI par une API locale (AD-22).
 
 ```mermaid
 flowchart TD
-  interfaces["interfaces/ (cli, web)"] --> application["application/ (lot, composition)"]
-  application --> workflows["workflows/ (fiches, registre)"]
+  interfaces["interfaces/ (cli, web)"] --> application["application/ (lot, incident, composition, relecture, moteur_demande, lots, export)"]
+  application --> workflows["workflows/ (fiches, incident, registre)"]
   application --> adaptateurs["adaptateurs/"]
-  workflows --> domaine["domaine/ (modèles, règles, ports)"]
+  workflows --> domaine["domaine/ (modèles, règles, ports, relecture, qualite_texte)"]
   adaptateurs --> domaine
   securite["securite/ (garde réseau)"] -.activé par.- interfaces
   installation["installation/ (manifeste, SHA-256, SBOM)"] --> domaine
@@ -54,6 +59,15 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
     - `tests/conftest.py`, `tests/faux_moteur.py` et `tests/unitaires/test_architecture.py`.
   - Les stories suivantes ne modifient pas ces fichiers. Un manque (champ, dépendance, fixture) s'arrête et se signale.
   - Elles ajoutent leurs propres modules, et leurs tests sous `tests/unitaires/test_<module>.py` ou `tests/e2e/test_<sujet>.py`.
+  - **[v2]** Fichiers du socle touchés par la v2, tous par la seule story de socle v2 (AD-18) :
+    - `domaine/modeles.py` (§1 v2) ;
+    - `domaine/configuration.py` et `config/waveaudit.toml` (§2 v2) ;
+    - `domaine/ports.py` (§3 : `seed`, `OptionsExport`) ;
+    - `config/artefacts.toml` (§11 : rôles, champs facultatifs, avec `installation/manifeste.py`) ;
+    - `tests/faux_moteur.py` (§13 v2) ;
+    - `tests/unitaires/test_architecture.py` (règle des noms privés de `lot.py`).
+
+    Aucune nouvelle dépendance : `pyproject.toml` et `uv.lock` ne changent pas. `tests/conftest.py`, `domaine/erreurs.py`, `application/config.py` et `workflows/registre.py` ne changent pas. Les aides de test web vont dans `tests/web_outils.py`.
 
 ### AD-1 — Sens des dépendances
 
@@ -67,8 +81,9 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
     - `fastapi`, `jinja2`, `multipart` : `interfaces/web/` ;
     - `uvicorn`, `typer` : `interfaces/cli.py`.
   - `installation` est importé seulement par `application/` et `interfaces/cli.py`.
-  - Seul `application/composition.py` instancie des adaptateurs.
-  - `tests/unitaires/test_architecture.py` (analyse des `import` par `ast`) fait respecter ces règles ; `tests/` n'y est pas soumis.
+  - Seul `application/composition.py` instancie des adaptateurs. **[v2]** Il expose aussi `creer_exporteur`, `creer_catalogue`, `modeles_installes` et `journal_reconnu` : l'UI et le banc n'atteignent les adaptateurs et le manifeste que par là.
+  - **[v2]** `domaine/relecture.py` et `domaine/qualite_texte.py` relèvent de la règle du domaine (stdlib, `pydantic`, `domaine`). `interfaces/web/` importe `application/` et `domaine/`, jamais `installation`, `adaptateurs` ni `workflows`. La régénération passe par `application/relecture.py`, seul module applicatif hors `lot.py` qui importe `workflows.fiches`.
+  - `tests/unitaires/test_architecture.py` (analyse des `import` par `ast`) fait respecter ces règles ; `tests/` n'y est pas soumis, sauf pour la règle v2 des noms privés de `lot.py` (AD-18).
 
 ### AD-2 — Un seul service de lot pour la CLI et l'UI [ADOPTED]
 
@@ -76,7 +91,7 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
 - **Prevents:** deux implémentations du pipeline qui divergent entre la CLI et l'UI, ou des identifiants de lot différents.
 - **Rule:**
   - Point d'entrée unique : `application.lot.executer_lot(requete: RequeteLot, config: Configuration, abonne) -> ResultatLot` (contrats §1, §9).
-  - La CLI l'appelle directement. L'UI l'exécute dans un thread, un lot à la fois (HTTP 409 sinon).
+  - La CLI l'appelle directement. L'UI l'exécute dans un thread, un lot à la fois (HTTP 409 sinon). **[v2]** « Un à la fois » couvre lot de fiches, incident et régénération (AD-20).
   - `id_lot` vient de `nouvel_id_lot` et sert partout (`var/entrees/`, `var/sorties/`, routes).
   - L'avancement passe exclusivement par `EvenementLot`.
 
@@ -90,6 +105,7 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
   - `httpx.Client(trust_env=False)` : le proxy d'entreprise est ignoré à l'exécution.
   - `SortieInvalide` est levée seulement pour un contenu non JSON ou qui n'est pas un objet. `MoteurInjoignable` est levée pour une connexion refusée, un timeout ou un statut différent de 200.
   - L'adaptateur ne valide pas le schéma.
+  - **[v2]** Le port porte `seed` facultatif (contrats §3) ; `repeat_penalty` et `reflexion` sont des réglages de l'adaptateur, venus du manifeste ou de la configuration, jamais du workflow.
 
 ### AD-4 — Contrat de sortie du modèle [ADOPTED]
 
@@ -99,6 +115,7 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
   - Un appel par fiche, avec `response_format` json_schema = `schema_sortie(longueur_max_rubrique)` (contrats §1) : 4 rubriques et métriques CVSS en enums. Aucun champ de références.
   - Le prompt suit contrats §8 : balises `<constat>` et `<note>` dans le dernier message `user`, corps tronqué à `taille_max_note`.
   - Le préfixe système propre au modèle (`/no_think` pour Qwen3) arrive par `Ports.prefixe_systeme`.
+  - **[v2]** Les balises `note`/`constat` présentes dans la note sont neutralisées (`<` → `‹`, même longueur). La consigne et les textes du constat suivent la langue du lot (contrats §8, AD-21).
 
 ### AD-5 — Garde-fous déterministes après le modèle
 
@@ -111,13 +128,20 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
   4. rubrique trop courte → texte du constat type.
   - Score et sévérité viennent uniquement de `domaine/cvss31.evaluer`.
   - `statut = a_revoir` si et seulement si `motifs` n'est pas vide.
+  - **[v2]** Ordre révisé (contrats §6 v2) :
+    - seuils titre 5 / rubriques 20 ;
+    - URL citée par la note conservée ;
+    - puis répétition et langue (`domaine/qualite_texte`, partagé avec les récits d'incident). Ces deux garde-fous signalent sans réécrire le texte.
+
+    Algorithmes et seuils mesurés sur 17 lots réels : contrats §6.
+  - **Touche :** `domaine/garde_fous.py`, `domaine/garde_fous_incident.py`, `domaine/qualite_texte.py` ; tests `test_garde_fous.py`, `test_garde_fous_incident.py`, `test_qualite_texte.py`, `test_pipeline*.py`.
 
 ### AD-6 — Repli et continuité du lot
 
 - **Binds:** CAP-1, CAP-4, CAP-7
 - **Prevents:** un lot interrompu par une seule note, ou des comportements d'erreur différents selon l'interface.
 - **Rule:**
-  - `SortieInvalide`, y compris une rubrique absente vue par le workflow, déclenche un seul nouvel essai, puis le repli `repli_sortie_invalide`.
+  - `SortieInvalide`, y compris une rubrique absente vue par le workflow, déclenche un seul nouvel essai, puis le repli `repli_sortie_invalide`. **[v2]** Le nouvel essai passe `seed = moteur.seed + 1`, en fiches comme en incident (contrats §5).
   - `MoteurInjoignable` en cours de lot déclenche un repli immédiat (`repli_moteur`). Le repli reprend le constat type, avec le statut `a_revoir`.
   - Une note invalide donne une `EntreeEcartee` `non_traitee`.
   - Score BM25 maximal `<= 0` : `EntreeEcartee` `non_rattachee`, sans appel au modèle (pas de génération ex nihilo).
@@ -131,6 +155,7 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
   - `domaine/recherche.classer`, BM25 sans dépendance externe, avec la tokenisation, la pondération par répétition des champs et l'IDF positif de contrats §7.
   - La requête n'inclut jamais `constat_attendu` ni `actif`.
   - Le constat retenu est le premier candidat ; les 3 premiers vont dans `Tracabilite.candidats`.
+  - **[v2]** Un seul index bilingue (textes fr et `en` du constat dans le même document), quelle que soit la langue du lot. Le réglage CAP-5 se fait sur cet index ; `test_rattachement_demo.py` devient bloquant (contrats §7, §29).
 
 ### AD-8 — Résultats d'un lot et événements
 
@@ -139,7 +164,13 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
 - **Rule:**
   - Chaque lot écrit dans `var/sorties/<id_lot>/` : `fiches.json` (= `Rapport`), `journal.jsonl` et `rapport.docx`.
   - `application/lot.py` est le seul émetteur d'`EvenementLot` et le seul écrivain de `journal.jsonl` ; il écrit avant d'appeler l'abonné.
-  - L'exporteur ne lit qu'un `Rapport`.
+  - L'exporteur ne lit qu'un `Rapport`. **[v2]** Exports final et brouillon : un `Rapport` dérivé de `relecture.json` par `domaine/relecture.rapport_export`, plus `OptionsExport` (contrats §27).
+  - **[v2]** Fichiers d'un lot : liste fermée (contrats §30). Écrivains uniques :
+    - `journal.jsonl` → `JournalLot` ;
+    - `relecture.json` → `application/relecture.py` (AD-19) ;
+    - `lot.json` → le service du lot.
+
+    L'état d'un lot affiché par l'UI se lit sur le disque (`application/lots.py`), jamais dans un registre en mémoire.
   - Éléments triés par nom de note (`casefold`) ; noms de fichiers seulement, jamais de chemin absolu, dans la traçabilité et le journal.
 
 ### AD-9 — Hors ligne vérifiable
@@ -174,6 +205,7 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
     - est rattaché à un Job Object `KILL_ON_JOB_CLOSE` par `OpenProcess` ;
     - écrit sa sortie dans `var/journaux/`, jamais dans un tube non lu.
   - Le modèle de repli est choisi si la RAM disponible est sous `ram_min_defaut_go`.
+  - **[v2]** `composition.ouvrir` reste le seul démarreur. Il est appelé par le lot, par l'incident et par `MoteurALaDemande` (AD-20), jamais deux à la fois.
 
 ### AD-12 — Manifeste des artefacts et installation
 
@@ -183,8 +215,9 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
   - `config/artefacts.toml` est un tableau `[[artefact]]` (contrats §11). Rôles :
     - `moteur` : llama-server b11714 ;
     - `modele_defaut` : granite-4.0-1b ;
-    - `modele_repli` : MiniCPM5-1B ;
-    - `candidat` : Qwen3-1.7B (`/no_think`), Qwen3.5-0.8B.
+    - `modele_repli` : Qwen3.5-0.8B (**[v2]**, `reflexion = false`) ;
+    - `candidat` : Qwen3-1.7B (`/no_think`), MiniCPM5-1B (**[v2]**, gardé pour le banc).
+    - **[v2]** Permutation granite / qwen3-1.7b seulement par la story de rebanc, sur les seuils de CAP-7 (contrats §11).
   - `waveaudit installer` installe le moteur, le défaut et le repli ; `--candidats` ajoute les candidats. Les fichiers passent par `.part`, puis sont vérifiés (taille et SHA-256) et renommés. En cas d'écart : suppression et code 5.
   - Les tests utilisent `httpx.MockTransport`.
   - Les chemins ne s'obtiennent que par `installation.manifeste`.
@@ -206,8 +239,10 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
 - **Binds:** CAP-6, CAP-7, CAP-8
 - **Prevents:** une charte Wavestone qui fuit dans le dépôt, un export qui échoue sans elle, ou une sortie sans bandeau.
 - **Rule:**
-  - Le rapport Word suit contrats §17 : intitulés exacts, bandeau en en-tête et en pied, annexe des entrées écartées. Il utilise `theme-prive/` s'il existe, le thème générique sinon.
-  - Le bandeau exact `Démonstration — données fictives` figure aussi sur chaque page web et en première et dernière ligne de la sortie CLI de `fiches`.
+  - Le rapport Word suit contrats §17 : intitulés exacts, bandeau en en-tête et en pied, annexe des entrées écartées. Il utilise `theme-prive/` s'il existe, le thème générique sinon. **[v2]** Libellés par langue : contrats §27.
+  - **[v2, révisé]** La palette Wavestone est publique, versionnée dans `interfaces/web/static/tokens.css` (contrats §28). Seul le logo reste privé : `theme-prive/web/logo.svg`, servi par `/theme/logo.svg` s'il existe, sans erreur s'il manque. La charte Word (`modele.docx`, `theme.toml`) reste dans `theme-prive/`.
+  - Le bandeau exact `Démonstration — données fictives` figure aussi sur chaque page web (en haut et en bas, non masquable) et en première et dernière ligne de la sortie CLI de `fiches`, `incident` et **[v2]** `exporter`. Le Word d'un lot `en` porte `Demonstration — fictitious data`.
+  - **Touche :** `adaptateurs/export_docx.py`, `interfaces/web/static/`, `interfaces/web/templates/`, `interfaces/web/app.py` ; tests `test_export_docx.py`, `test_ui.py`.
 
 ### AD-15 — Extension par workflow
 
@@ -225,6 +260,7 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
 - **Rule:**
   - Les modèles, ports, erreurs, codes retour, format de manifeste, faux moteur, API web et CLI sont ceux de `contrats.md`. Les identifiants de constat et de notes sont ceux de contrats §16.
   - Toute divergence nécessaire passe par une mise à jour de `contrats.md` dans une story dédiée, jamais par une variante locale.
+  - **[v2]** S'y ajoutent les formes v2 : `TextesConstat`, `Langue`, `OptionsExport`, `EtatRelecture` et ses entrées, `Occupation`, `ResumeLot`, `ModeleInstalle`, les codes d'erreur de l'API (contrats §26) et le schéma YAML bilingue (contrats §15).
 
 ### AD-17 — Workflow incident (CERT), service dédié
 
@@ -238,6 +274,87 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
   - Conditions des règles, champs normalisés, chronologie de démo et schéma de l'oracle sont normatifs dans `formats-incident.md`. C1 les traduit en constantes (`domaine/incident.py`) et en fixture (`tests/donnees/incident/canoniques.yaml`) : c'est là que C2, C3 et C4 se rencontrent.
   - L'oracle `donnees/demo/incident-attendu.yaml` est hors du dossier lu et ne se régénère jamais depuis une sortie du programme.
   - La détection, les indicateurs et la chronologie sont déterministes ; le SLM ne rédige que le récit.
+
+### AD-18 — Socle v2 livré seul et en premier
+
+- **Binds:** SPEC-waveaudit-v2 (toutes les CAP), CAP-1 et CAP-16 en propre
+- **Prevents:** des stories v2 parallèles qui ajoutent chacune leur champ à `ConstatType`, leur code à `CodeMotif`, leur clé à la configuration ou leur scénario au faux moteur, de façon incompatible ; un port `Moteur` modifié deux fois.
+- **Rule:**
+  - La story S0 transcrit, en une fois et avant toute autre story v2, les formes partagées v2 :
+    - contrats §1 v2, §2 v2, §3 v2 (`seed`, `OptionsExport`) ;
+    - §11 (rôles, `Artefact` avec `repeat_penalty` et `duree_indicative_s`) ;
+    - §13 v2 (scénarios du faux moteur) ;
+    - §25 (formes de `domaine/relecture.py`) ;
+    - les noms publics de `lot.py` (§9 v2) et la règle d'architecture associée.
+  - S0 ne change aucun comportement : tous les nouveaux arguments ont un défaut qui reproduit la v0.1.0. La suite complète reste verte, réalignée selon `impacts-v2.md` (lignes 1 à 6 et 13).
+  - Les stories v2 suivantes appliquent AD-0 à ces fichiers.
+  - **Deux exceptions nommées, sur des valeurs seulement (aucune clé, aucun champ) :**
+    - la story de rattachement (CAP-5) peut changer `[recherche] k1` et `b` dans `config/waveaudit.toml` ;
+    - la story de rebanc (CAP-6, CAP-7) peut changer `role`, `repeat_penalty` et `duree_indicative_s` des entrées existantes de `config/artefacts.toml`, et `test_config.py::test_manifeste_artefacts` avec eux.
+- **Touche :** `domaine/modeles.py`, `domaine/configuration.py`, `domaine/ports.py`, `domaine/relecture.py` (nouveau), `application/lot.py`, `application/incident.py`, `interfaces/cli.py` (import), `installation/manifeste.py`, `config/*.toml`, `tests/faux_moteur.py`, `tests/unitaires/test_architecture.py` ; tests `test_modeles.py`, `test_config.py`, `test_faux_moteur.py`, `test_composition.py`, `e2e/test_lot.py`.
+
+### AD-19 — État de relecture : un fichier, un écrivain, des versions
+
+- **Binds:** V2 CAP-10, CAP-11, CAP-12, CAP-13, CAP-17
+- **Prevents:** des corrections perdues entre le fil du lot, la régénération et deux onglets ; un export qui ne lit pas la même vérité que l'UI ; une validation possible en CLI ; une relance qui écrase le travail d'un autre lot.
+- **Rule:**
+  - L'état de relecture d'un lot est `var/sorties/<id>/relecture.json` (`EtatRelecture`, contrats §25). C'est la seule source des exports final et brouillon (UI et CLI).
+  - **Écrivain unique :** `application/relecture.py`. Écriture atomique (`.partiel` puis `os.replace`, retenté sur `PermissionError`), sous un verrou par fichier. Le lot l'alimente entrée par entrée, avant l'événement de fin de fiche.
+  - **Règles pures :** dans `domaine/relecture.py` (corriger, valider, remplacer, exporter). Le score CVSS ne vient que de `cvss31`.
+  - **Concurrence :** chaque entrée porte une `version`. Toute modification venue de l'UI fournit la version lue : un écart donne `conflit_version` (409), jamais une fusion.
+  - **Cycle :** la fiche générée reste immuable jusqu'à un changement de candidat, qui l'efface avec la correction (après confirmation si une correction existe). Toute modification d'une fiche validée la repasse `a_valider`.
+  - Aucune commande CLI n'écrit `relecture.json` hors du lot. Relancer crée un nouveau lot.
+- **Touche :** `domaine/relecture.py`, `application/relecture.py`, `application/export.py`, `application/lot.py`, `interfaces/web/app.py`, `interfaces/cli.py` ; tests `test_relecture*.py`, `test_export.py`, `e2e/test_relecture_ui.py`, `e2e/test_cli.py`.
+
+### AD-20 — Verrou unique et moteur à la demande
+
+- **Binds:** V2 CAP-9, CAP-11, CAP-14 ; poste 16 Go (une seule instance de llama-server)
+- **Prevents:** deux llama-server chargés en même temps (RAM de l'EliteBook) ; une régénération lancée pendant un lot ; un moteur oublié en mémoire après la relecture ; trois verrous différents pour les fiches, l'incident et la régénération.
+- **Rule:**
+  - Un `VerrouUnique` par processus UI, pris sans attendre par un lot de fiches, un incident ou une régénération. Prise impossible : 409 `lot_en_cours`, avec l'occupation courante (contrats §24).
+  - **Moteur à la demande :** `MoteurALaDemande` sert seulement à la régénération. Il passe par `composition.ouvrir`, reste ouvert pour le modèle du lot, et se ferme après `ui.inactivite_moteur_s` (300 s) sans usage, ou à l'arrêt de l'application.
+  - Un lot ou un incident, verrou pris, ferme d'abord le moteur à la demande, puis garde son propre cycle de vie (AD-11).
+  - La CLI n'utilise ni verrou ni moteur à la demande : un lot CLI concurrent d'un lot UI reste possible, comme en v0.1.0.
+- **Touche :** `application/moteur_demande.py`, `interfaces/web/app.py`, `config/waveaudit.toml` (`[ui] inactivite_moteur_s`) ; tests `test_moteur_demande.py`, `e2e/test_ui.py`, `e2e/test_relecture_ui.py`, `e2e/test_incident_ui.py`.
+
+### AD-21 — Langue du lot
+
+- **Binds:** V2 CAP-4, CAP-5, CAP-8, CAP-13
+- **Prevents:** un lot à moitié anglais (consigne en anglais et repli français, libellés Word dans une langue, garde-fou dans l'autre) ; un catalogue traduit à l'exécution ; un index par langue qui change les rangs de CAP-5.
+- **Rule:**
+  - **Valeur :** `Langue` (`fr`, `en`), fixée au lancement (`RequeteLot.langue`, sinon `config.fiches.langue`) et consignée dans `lot.json`, `relecture.json` et `lot_demarre`.
+  - **Diffusion :** le lot la transmet au workflow par une copie de la configuration (`fiches.langue`), sans changer `REGISTRE` ni le protocole `Workflow`.
+  - **Textes :** tous les textes de constat passent par `ConstatType.textes(langue)`. Le catalogue porte ses deux langues (bloc `en`, contrats §15), refusé incomplet au chargement.
+  - **Ce qui reste fixe :** l'index BM25 est bilingue et identique pour les deux langues ; le workflow incident et l'UI restent en français.
+- **Touche :** `domaine/modeles.py`, `domaine/recherche.py`, `domaine/garde_fous.py`, `workflows/fiches/prompt.py`, `workflows/fiches/pipeline.py`, `adaptateurs/catalogue_yaml.py`, `adaptateurs/export_docx.py`, `application/lot.py`, `application/banc.py`, `interfaces/cli.py`, `interfaces/web/app.py`, `donnees/catalogue/*.yaml` ; tests `test_catalogue.py`, `test_recherche.py`, `test_rattachement_demo.py`, `test_prompt.py`, `test_pipeline.py`, `test_export_docx.py`, `e2e/test_lot.py`, `e2e/test_cli.py`, `e2e/test_ui.py`.
+
+### AD-22 — API HTTP de l'UI : enveloppe de sécurité et état lu sur le disque
+
+- **Binds:** V2 CAP-9 à CAP-15 ; AD-9
+- **Prevents:** une page locale pilotée depuis un autre site (CSRF, DNS rebinding) ; un script en ligne ou une ressource externe introduits par une story d'écran ; deux formats d'erreur ; un état de lot perdu au redémarrage du serveur ; des stories web qui se marchent dessus dans `app.py`.
+- **Rule:**
+  - Les routes, formats JSON, codes d'erreur et limites de taille sont ceux de contrats §26, et seulement ceux-là.
+  - **Middleware commun, appliqué à toutes les routes :**
+    - Host en liste fermée ;
+    - Origin contrôlé sur `POST`/`PUT` ;
+    - jeton CSRF par instance (`X-CSRF-Token`) sur `POST`/`PUT` ;
+    - `Content-Length` borné ;
+    - CSP `default-src 'self'`, `nosniff`, `no-referrer`.
+  - Ni script ni style en ligne. Erreurs JSON : `{"detail", "code"}`.
+  - **État :** l'état d'un lot vient de `journal.jsonl`, `lot.json` et `relecture.json` (`application/lots.py`, `application/relecture.py`), plus l'occupation du verrou. Aucun registre en mémoire.
+  - **Structure :** `app.py` assemble des `APIRouter` par surface (pages, lots, relecture, incidents, thème). La première story web pose le middleware, les routeurs vides et `tests/web_outils.py` ; les suivantes ajoutent chacune leur routeur.
+- **Touche :** `interfaces/web/` (app, routeurs, gabarits, static), `application/lots.py` ; tests `e2e/test_ui.py`, `e2e/test_hors_ligne.py`, `e2e/test_relecture_ui.py`, `e2e/test_incident_ui.py`, `tests/web_outils.py`.
+
+### AD-23 — Qualité de sortie mesurée, pas supposée
+
+- **Binds:** V2 CAP-5, CAP-6, CAP-7
+- **Prevents:** des seuils de garde-fou, une consigne ou des rôles de modèles changés sans chiffre ; une recopie mesurée différemment d'un banc à l'autre.
+- **Rule:**
+  - **Rattachement :** mesuré sans modèle par `test_rattachement_demo.py`, bloquant aux seuils de CAP-5.
+  - **Recopie et taux `ok` :** mesurés par `waveaudit banc` (`banc.json` v2, contrats §29), sur le sous-ensemble de 6 notes, sur l'EliteBook, selon `mesures-qualite.md`.
+  - **Changements soumis au rebanc :** consigne (CAP-6), `repeat_penalty` du manifeste et permutation des rôles (CAP-7). Chaque changement est consigné avec ses chiffres dans `bilan-modeles.md`.
+  - Une baisse du taux `ok` due aux nouveaux garde-fous est consignée telle quelle.
+- **Touche :** `application/banc.py`, `application/composition.py` (`creer_catalogue`), `workflows/fiches/prompt.py`, `config/artefacts.toml`, `tests/unitaires/test_rattachement_demo.py` ; tests `e2e/test_banc.py`.
 
 ## Consistency Conventions
 
@@ -294,18 +411,18 @@ waveaudit/
     catalogue/<famille>.yaml
     demo/notes/NN-<sujet>.md
   src/waveaudit/
-    domaine/                # modeles.py, ports.py, erreurs.py, configuration.py, recherche.py, garde_fous.py, cvss31.py
+    domaine/                # modeles.py, ports.py, erreurs.py, configuration.py, recherche.py, garde_fous.py, cvss31.py, incident.py, detection.py, indicateurs.py, garde_fous_incident.py, [v2] relecture.py, qualite_texte.py
     workflows/              # registre.py, fiches/ (pipeline.py, prompt.py)
     adaptateurs/            # moteur_openai.py, llama_server.py, catalogue_yaml.py, notes_fichiers.py, export_docx.py, theme_generique.py, memoire_psutil.py
-    application/            # config.py, composition.py, lot.py, banc.py
+    application/            # config.py, composition.py, lot.py, journal.py, incident.py, banc.py, [v2] relecture.py, moteur_demande.py, lots.py, export.py
     installation/           # manifeste.py, telechargement.py, sbom.py
     securite/               # garde_reseau.py
-    interfaces/             # cli.py, web/ (app.py, templates/, static/)
+    interfaces/             # cli.py, web/ (app.py + [v2] routeurs par surface, templates/, static/ dont tokens.css)
   tests/
     conftest.py  faux_moteur.py
     unitaires/  e2e/  donnees/
   var/                      # ignoré : moteur/, modeles/, sorties/, entrees/, journaux/
-  theme-prive/              # ignoré : modele.docx, theme.toml
+  theme-prive/              # ignoré : modele.docx, theme.toml, [v2] web/logo.svg
 ```
 
 ```mermaid
@@ -343,7 +460,28 @@ flowchart LR
   var --> llama
 ```
 
-CLI, routes UI, banc et leurs formats : contrats §18 à §20.
+CLI, routes UI, banc et leurs formats : contrats §18 à §20 ; v2 : §23 à §30.
+
+```mermaid
+sequenceDiagram
+  participant N as Navigateur
+  participant W as interfaces/web
+  participant V as VerrouUnique
+  participant R as application.relecture
+  participant D as MoteurALaDemande
+  participant F as workflows.fiches
+  N->>W: POST /lots/{id}/entrees/{n}/candidat (CSRF, version)
+  W->>V: prendre(regeneration)
+  W->>R: demarrer_regeneration -> generation=en_cours (relecture.json)
+  W-->>N: 202
+  W->>R: regenerer (fil)
+  R->>D: utiliser(modèle du lot)
+  D->>F: rediger(note, constat, candidats)
+  F-->>R: Fiche (garde-fous)
+  R->>R: remplacer_fiche, version+1 (écriture atomique)
+  R->>V: liberer
+  N->>W: GET /lots/{id}/entrees/{n} (sondage)
+```
 
 ## Capability → Architecture Map
 
@@ -361,7 +499,19 @@ CLI, routes UI, banc et leurs formats : contrats §18 à §20.
 | CAP-10 installation | `installation/`, `config/artefacts.toml` | AD-12 |
 | CAP-11 hors ligne + SBOM | `securite/garde_reseau.py`, `tests/e2e/test_hors_ligne.py`, `installation/sbom.py` | AD-9, AD-12 |
 | CAP-12 banc | `application/banc.py`, `adaptateurs/memoire_psutil.py` | AD-8, AD-11, contrats §20 |
-| Socle partagé | `domaine/`, `config/`, `tests/conftest.py`, `tests/faux_moteur.py` | AD-0, AD-16 |
+| Socle partagé | `domaine/`, `config/`, `tests/conftest.py`, `tests/faux_moteur.py` | AD-0, AD-16, AD-18 |
+| V2 CAP-1 seed + 1 | `workflows/*/pipeline.py`, `adaptateurs/moteur_openai.py`, `domaine/ports.py` | AD-6, AD-18, contrats §5 |
+| V2 CAP-2 échappement | `workflows/*/prompt.py` | AD-4, contrats §8 |
+| V2 CAP-3, CAP-4 garde-fous | `domaine/garde_fous*.py`, `domaine/qualite_texte.py` | AD-5, contrats §6, §21 |
+| V2 CAP-5 rattachement | `domaine/recherche.py`, `donnees/catalogue/` | AD-7, AD-23 |
+| V2 CAP-6, CAP-7 recopie et rôles | `workflows/fiches/prompt.py`, `config/artefacts.toml`, `application/banc.py` | AD-12, AD-23, contrats §11, §29 |
+| V2 CAP-8 anglais | catalogue bilingue, prompt, export, CLI, UI | AD-21, contrats §15, §23, §27 |
+| V2 CAP-9, CAP-10 création, suivi, lots récents | `interfaces/web/`, `application/lots.py` | AD-20, AD-22, contrats §26, §30 |
+| V2 CAP-11, CAP-12 relecture, correction, validation | `domaine/relecture.py`, `application/relecture.py`, `application/moteur_demande.py`, `interfaces/web/` | AD-19, AD-20, contrats §24 à §26 |
+| V2 CAP-13, CAP-17 exports | `application/export.py`, `adaptateurs/export_docx.py`, `interfaces/cli.py` | AD-8, AD-19, contrats §27 |
+| V2 CAP-14 incident dans l'UI | `interfaces/web/`, `application/incident.py` | AD-17, AD-20, AD-22 |
+| V2 CAP-15 thème et accessibilité | `interfaces/web/static/`, `templates/` | AD-14, AD-22, contrats §28 |
+| V2 CAP-16 contrat aligné | `contrats.md`, `application/lot.py` | AD-18, contrats §9 |
 
 ## Deferred
 
@@ -370,7 +520,11 @@ CLI, routes UI, banc et leurs formats : contrats §18 à §20.
 - Workflow CERT : spécifié dans SPEC-waveaudit-cert et AD-17, développé après le MVP.
 - Installateur Windows packagé (Inno Setup), variante archive hors ligne des poids : après les retours des testeurs.
 - Authentification vers un LLM interne Wavestone : à définir quand l'endpoint existera ; `Configuration.moteur.cle_api` est seulement prévue.
-- Contenu de la charte Wavestone : hors dépôt (AD-14).
+- Contenu de la charte Word Wavestone (`modele.docx`) et logo : hors dépôt (AD-14). La palette web est publique depuis la v2.
 - CI GitHub : non requise pour le POC ; la suite locale fait foi.
-- Risque à lever au premier test `slow` : le comportement de `--jinja` avec `response_format` json_schema sur granite-4.0-1b et MiniCPM5-1B (gabarit de chat, grammaire). En cas d'échec, une option `moteur.mode_json = "json_object"` est à ajouter par mise à jour de `contrats.md`.
-- Pas d'authentification sur l'UI locale au-delà des contrôles Host/Origin (contrats §18) : suffisant pour des données fictives, à revoir au pilote.
+- (Levé en V1) Mode JSON : `json_schema` fonctionne sur les 4 modèles ; `reflexion = false` est requis pour MiniCPM5 et Qwen3.5 (contrats §22).
+- Pas d'authentification sur l'UI locale au-delà des contrôles Host/Origin et du jeton CSRF par instance (contrats §26) : suffisant pour des données fictives sur un poste mono-utilisateur, à revoir au pilote.
+- Passage du moteur du lot au moteur à la demande, sans rechargement : la première régénération après un lot paie le chargement du modèle. À revoir si la mesure sur l'EliteBook le rend gênant.
+- Verrou entre processus (lot CLI concurrent d'un lot UI) : hors v2, accepté par Anaël (2026-10-18) ; deux llama-server restent possibles dans ce cas, comme en v0.1.0, limite documentée dans le README v2. Verrou fichier en v3 si besoin.
+- Persistance de l'état du tiroir (ouvert ou replié) : confort local, non contractuel (EXPERIENCE).
+- Langue du rapport d'incident : français seulement en v2.

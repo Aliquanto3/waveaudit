@@ -729,7 +729,10 @@ function rendreAccueil(){
   }
   page.appendChild(carteDepot);
 
-  if(state.workflowChoisi === "fiches"){
+  {
+    // Modèle : proposé pour les deux workflows (fiches et incident, décision Anaël 2026-10-18 —
+    // les récits d'incident passent eux aussi par le SLM). Langue du lot : fiches seulement, le
+    // rapport d'incident reste en français.
     var ligne = el("div", {class:"ligne-selecteurs"});
     var champModele = el("div", {class:"champ-selecteur"});
     champModele.appendChild(el("label", {for:"select-modele", text:"Modèle"}));
@@ -744,17 +747,19 @@ function rendreAccueil(){
     champModele.appendChild(selectModele);
     ligne.appendChild(champModele);
 
-    var champLangue = el("div", {class:"champ-selecteur"});
-    champLangue.appendChild(el("label", {for:"select-langue", text:"Langue du lot"}));
-    var selectLangue = el("select", {id:"select-langue", disabled: disabledDepot?"disabled":null,
-      onchange:function(e){ state.langueChoisie = e.target.value; }});
-    [["fr","Français"],["en","English"]].forEach(function(p){
-      var opt = el("option", {value:p[0], text:p[1]});
-      if(p[0]===state.langueChoisie) opt.selected = true;
-      selectLangue.appendChild(opt);
-    });
-    champLangue.appendChild(selectLangue);
-    ligne.appendChild(champLangue);
+    if(state.workflowChoisi === "fiches"){
+      var champLangue = el("div", {class:"champ-selecteur"});
+      champLangue.appendChild(el("label", {for:"select-langue", text:"Langue du lot"}));
+      var selectLangue = el("select", {id:"select-langue", disabled: disabledDepot?"disabled":null,
+        onchange:function(e){ state.langueChoisie = e.target.value; }});
+      [["fr","Français"],["en","English"]].forEach(function(p){
+        var opt = el("option", {value:p[0], text:p[1]});
+        if(p[0]===state.langueChoisie) opt.selected = true;
+        selectLangue.appendChild(opt);
+      });
+      champLangue.appendChild(selectLangue);
+      ligne.appendChild(champLangue);
+    }
     page.appendChild(ligne);
   }
 

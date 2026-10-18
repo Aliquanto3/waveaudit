@@ -2,6 +2,8 @@
 
 Annexe normative de `ARCHITECTURE-SPINE.md`. La story `socle` (AD-0) transcrit ce fichier en code. Les autres stories l'appliquent sans en modifier les formes. Un écart nécessaire s'arrête et se signale.
 
+**Amendement v2 (2026-10-18, SPEC-waveaudit-v2).** Les ajouts et changements v2 sont marqués **[v2]** dans les sections existantes ; les écarts entérinés (`spec-waveaudit-v2/ecarts-contrat.md`) sont marqués **[entériné v2]**. Nouveaux contrats : §23 à §30. Impact par fichier et par test : `impacts-v2.md`. Les formes partagées v2 (§1, §2, §3, §23, §25) sont posées par la story de socle v2 (AD-0, AD-18) avant toute autre story v2.
+
 ## 1. Modèles partagés — `domaine/modeles.py`
 
 Tous en `model_config = ConfigDict(extra="forbid", frozen=True)`.
@@ -63,6 +65,26 @@ class ResultatLot(BaseModel):
 def schema_sortie(longueur_max: int) -> dict
 ```
 
+**[v2] Ajouts à `domaine/modeles.py`** (story de socle v2) :
+
+```python
+Langue = Literal["fr", "en"]
+LANGUES: tuple[Langue, ...] = ("fr", "en")
+class TextesConstat(BaseModel):            # extra="forbid", frozen
+    titre: str; description: str; impact: str; recommandation: str   # chacun non vide après strip
+class ConstatType(BaseModel):              # champs v0.1.0 inchangés (= textes français), plus :
+    en: TextesConstat | None = None        # None toléré par le modèle ; refusé par CatalogueYaml et verifier (§15)
+    def textes(self, langue: Langue) -> TextesConstat: ...  # "fr" : champs racine ; "en" : self.en, ValueError si None
+class CodeMotif(StrEnum):                  # valeurs v0.1.0 et INDICATEUR_RETIRE inchangées, plus :
+    REPETITION = "repetition"              # §6 étape 5, detail = nom de la rubrique
+    LANGUE = "langue"                      # §6 étape 6, detail = "<rubrique> : mots-outils <langue>" | "<rubrique> : écriture non latine"
+    LOT_INTERROMPU = "lot_interrompu"      # §25, entrée jamais traitée d'un lot échoué ou interrompu
+class RequeteLot(BaseModel):               # champs v0.1.0 inchangés, plus :
+    langue: Langue | None = None           # None : config.fiches.langue
+```
+
+`Fiche`, `EntreeEcartee`, `Rapport`, `EvenementLot` et `TypeEvenement` ne changent pas. `EvenementLot.details` de `lot_demarre` (fiches) devient `{"id_lot", "modele", "pid_moteur", "workflow": "fiches", "langue"}` **[v2]**.
+
 `schema_sortie` renvoie le JSON Schema envoyé au moteur, sans `$ref` ni `$defs` et avec `additionalProperties: false` à chaque niveau : `titre`, `description`, `impact`, `recommandation` (`string`, `minLength` 1, `maxLength` = `longueur_max`) et `cvss` (objet des 8 métriques en enum). Tous les champs sont requis. Aucun champ de références.
 
 Sérialisation de `fiches.json` : `Rapport.model_dump(mode="json")`, c'est-à-dire `{"fiches": [...], "ecartees": [...]}`.
@@ -108,6 +130,20 @@ hote = "127.0.0.1"
 port = 8765
 ```
 
+**[v2] Clés ajoutées** (story de socle v2 ; `config/waveaudit.toml`, `domaine/configuration.py` et `config_test` en même temps) :
+
+```toml
+[moteur]
+mode_json = "json_schema"      # déjà livré par V1 (§22), consigné ici
+repeat_penalty = 0.0           # 0.0 = non envoyé (défaut du serveur, 1.0 sur llama-server b11714) ; sinon 0 < x <= 2.0, envoyé (§3) ; le manifeste prime (§11)
+[fiches]                       # ConfigFiches, extra="forbid"
+langue = "fr"                  # Literal["fr","en"] ; langue des lots sans choix explicite (§23)
+[ui]
+inactivite_moteur_s = 300.0    # > 0 ; arrêt du moteur à la demande après cette inactivité (§24)
+```
+
+`[incident]` et `[chemins]` sont ceux du §21. Aucune autre clé.
+
 API de `application/config.py` :
 - `racine_projet() -> Path` : le dossier qui contient `config/waveaudit.toml`, résolu depuis l'emplacement du paquet ;
 - `charger_configuration(chemin: Path | None = None) -> Configuration` : fusion profonde des défauts, de `racine_projet()/waveaudit.local.toml` s'il existe, puis de `chemin`. Une erreur lève `ConfigurationInvalide`.
@@ -120,14 +156,20 @@ Tout chemin relatif se résout contre `racine_projet()`, jamais contre `cwd`. Un
 class Message(TypedDict): role: Literal["system","user"]; content: str
 class Moteur(Protocol):
     def sonder(self) -> None: ...                 # GET {base_url}/models ; statut != 200 -> MoteurInjoignable
-    def generer_json(self, messages: list[Message], schema: dict, *, max_tokens: int) -> dict: ...
+    def generer_json(self, messages: list[Message], schema: dict, *, max_tokens: int,
+                     seed: int | None = None) -> dict: ...   # [v2] seed : None = seed configurée (§5)
 class Catalogue(Protocol):
     def constats(self) -> list[ConstatType]: ...  # triés par id, ids uniques
     def obtenir(self, id: str) -> ConstatType: ... # EntreeInvalide si absent
 class SourceNotes(Protocol):
     def lire(self, dossier: Path) -> list[Note | NoteInvalide]: ...
 class Exporteur(Protocol):
-    def exporter(self, rapport: Rapport, chemin: Path) -> None: ...
+    def exporter(self, rapport: Rapport, chemin: Path, options: OptionsExport = OptionsExport()) -> None: ...  # [v2] options
+@dataclass(frozen=True)
+class OptionsExport:                               # [v2] §27
+    langue: Langue = "fr"
+    mode: Literal["lot", "final", "brouillon"] = "lot"   # "lot" = rapport.docx v0.1.0, inchangé
+    non_validees: frozenset[str] = frozenset()     # noms de note des fiches marquées « Non validée » (brouillon seulement)
 class MesureMemoire(Protocol):
     def rss_octets(self, pid: int) -> int | None: ...  # None si le processus n'existe plus
 @dataclass(frozen=True)
@@ -141,6 +183,10 @@ Sémantique de `generer_json` (`adaptateurs/moteur_openai.py`) :
 - `POST {base_url}/chat/completions` avec `{"model", "messages", "temperature", "seed", "max_tokens", "response_format": {"type": "json_schema", "json_schema": {"name": "sortie_fiche", "strict": true, "schema": schema}}}`. llama-server ignore `strict` ; le champ est envoyé pour les endpoints compatibles qui l'appliquent.
 - Il lève `SortieInvalide` **seulement** si `choices[0].message.content` n'est pas du JSON ou si ce n'est pas un objet. Il ne valide pas le schéma.
 - Il lève `MoteurInjoignable` sur une connexion refusée, un timeout (`timeout_s`) ou tout statut HTTP différent de 200 (400 et 500 compris).
+- **[entériné v2]** Statut 200 avec une enveloppe non conforme (corps non JSON, `choices` vide ou absent, `message` absent) → `MoteurInjoignable`. `content` null ou non textuel → `SortieInvalide`.
+- **[v2] `seed`** : le corps porte `seed` si l'argument est donné, sinon la seed du constructeur (`moteur.seed`).
+- **[v2] `repeat_penalty`** : valeur effective = celle de l'entrée du manifeste si elle est renseignée (local-gere), sinon `moteur.repeat_penalty`. Si elle vaut `0.0`, la clé est absente du corps (corps v0.1.0 inchangé) ; sinon `"repeat_penalty": <valeur>` est ajouté au corps. Constructeur : `MoteurOpenAI(..., repeat_penalty: float = 0.0)`, passé par `composition._moteur`.
+- **[entériné v2]** `reflexion` (§22) : `chat_template_kwargs = {"enable_thinking": <bool>}` ajouté seulement si l'entrée du manifeste le renseigne.
 - Le client `httpx.Client(trust_env=False, timeout=timeout_s)` envoie l'en-tête `Authorization: Bearer <cle_api>` seulement si `cle_api` n'est pas vide.
 
 ## 4. Erreurs — `domaine/erreurs.py`
@@ -155,7 +201,9 @@ Sémantique de `generer_json` (`adaptateurs/moteur_openai.py`) :
 | `ConnexionInterdite`, `PermissionError` sur `-o`, toute autre exception | 4 |
 | `EmpreinteInvalide` | 5 |
 
-La CLI affiche un message d'une ligne en français, sans trace ; la trace va dans `logging`.
+La CLI affiche un message d'une ligne en français, sans trace ; la trace va dans `logging`. **[entériné v2]** Aucun chemin absolu dans les messages d'erreur de la CLI (`lot.sans_chemin`, §9).
+
+**[v2]** Ces codes ne changent pas. `waveaudit exporter` (§27) les réutilise : lot inconnu, lot incident, export final sans fiche validée → 2 ; fichier cible verrouillé (`PermissionError`, document ouvert dans Word) → 4.
 
 ## 5. Workflow — `workflows/registre.py`
 
@@ -172,7 +220,11 @@ Pipeline `fiches.traiter(element)` :
 2. `classer(...)` (§7) → score maximal `<= 0` → `EntreeEcartee(non_rattachee, motif aucun_constat)`, sans appel au modèle.
 3. `prompt.construire(note, constat, prefixe_systeme, taille_max_note) -> list[Message]` (§8).
 4. `generer_json`. Le workflow vérifie la présence des 4 rubriques (chaînes) ; sinon il lève `SortieInvalide`. `SortieInvalide` → un seul nouvel essai, puis un repli avec le motif `repli_sortie_invalide`. `MoteurInjoignable` → repli immédiat avec le motif `repli_moteur`.
-5. `garde_fous.appliquer(sortie_brute: dict, constat, note, candidats, longueur_max) -> Fiche`. Le repli passe aussi par là, avec une sortie construite depuis le constat type et le motif de repli.
+   - **[v2] Nouvelle tentative (CAP-1)** : premier appel `generer_json(messages, schema, max_tokens=m.max_tokens)` (seed configurée) ; second appel, mêmes messages, `generer_json(messages, schema, max_tokens=m.max_tokens, seed=config.moteur.seed + 1)`. Le repli après deux échecs est inchangé. Même règle dans le pipeline incident (§21, `_generer_avec_un_essai`).
+5. `garde_fous.appliquer(sortie_brute: dict, constat, note, candidats, longueur_max, *, motifs_initiaux=(), langue="fr") -> Fiche` **[v2] `langue`**. Le repli passe aussi par là, avec une sortie construite depuis `constat.textes(langue)` et le motif de repli.
+
+**[v2] Langue et régénération.** `WorkflowFiches` lit `config.fiches.langue` (le lot lui passe une configuration où cette valeur est la langue du lot, §9). Il expose en plus, hors protocole `Workflow` (le registre ne change pas) :
+- `rediger(note: Note, constat_id: str, candidats: list[Candidat]) -> Fiche` : étapes 3 à 5 sur le constat `constat_id` (lu par `ports.catalogue.obtenir`), mêmes repli et garde-fous ; utilisé par `traiter` (avec `candidats[0].id`) et par la régénération (§25).
 
 ## 6. Garde-fous — `domaine/garde_fous.py`, `domaine/cvss31.py`
 
@@ -191,14 +243,39 @@ Pipeline `fiches.traiter(element)` :
   4. Une rubrique vide ou de moins de 20 caractères après nettoyage reçoit le texte du constat type, avec le motif `rubrique_completee`. Une rubrique de plus de `longueur_max` caractères est tronquée.
   5. `statut = a_revoir` si et seulement si `motifs` n'est pas vide.
 
+**[v2] Ordre révisé d'`appliquer` (CAP-3, CAP-4)** — remplace la liste ci-dessus ; « textes du constat » = `constat.textes(langue)` :
+
+  1. `references` = celles du constat type (inchangé).
+  2. Retrait des références inventées : motifs, casse et comparaison des identifiants inchangés. **URL** : un jeton URL, après retrait de la ponctuation finale `.,;:)]}>"'`, est conservé s'il est égal à l'`url` d'une référence du constat **ou** s'il figure tel quel (sous-chaîne exacte, casse comprise) dans `note.corps` ou dans `note.actif`. Note entière, pas la version tronquée du prompt. Une URL absente de la note et du constat est retirée (`reference_retiree`), comme avant. Les identifiants (CWE…) cités par la note restent soumis à la règle v0.1.0.
+  3. Métriques (inchangé).
+  4. Longueur minimale après nettoyage : `titre` **5** caractères, `description`, `impact`, `recommandation` **20** caractères (constantes `LONGUEUR_MIN_TITRE = 5`, `LONGUEUR_MIN_RUBRIQUE = 20`). Une rubrique trop courte reçoit le texte du constat (`rubrique_completee`, detail = rubrique). Puis troncature à `longueur_max`.
+  5. **Répétition** (nouveau, `domaine/qualite_texte.est_repetitif`), sur chaque rubrique non complétée à l'étape 4, texte final :
+     - mots = `re.findall(r"\w+", texte.lower())` ; trigrammes = n-uplets de 3 mots consécutifs ;
+     - `repetitif` si `len(trigrammes) >= 10` et `1 - len(set(trigrammes)) / len(trigrammes) >= 0.30` ;
+     - ou si `re.search(r"(.{3,50}?)\1{4,}", texte, re.DOTALL)` trouve un motif de 3 à 50 caractères répété au moins 5 fois d'affilée (boucle sans espaces) ;
+     - motif `repetition` (detail = rubrique) ; le texte est conservé tel quel (le consultant le voit).
+     - Mesure (2026-10-18, 17 lots réels de `var/sorties/`, 264 rubriques) : les 3 rubriques dégénérées (bouclées jusqu'à 1 200 caractères) valent 0,44, 0,66 et 0,83 ; le maximum des 261 autres vaut 0,14.
+  6. **Langue** (nouveau, `domaine/qualite_texte.motif_langue(texte, langue) -> str | None`) :
+     - **Écriture**, sur les 4 rubriques non complétées : une lettre (`c.isalpha()`) dont `unicodedata.name(c, "")` ne commence pas par `LATIN`, hors `µ`, suffit → `"<rubrique> : écriture non latine"`.
+     - **Mots-outils**, sur `description`, `impact`, `recommandation` seulement (jamais le titre) : mots = `re.findall(r"[^\W\d_]+", texte.lower())` ; `n_cible` et `n_autre` = nombre de mots présents dans la liste de la langue cible et de l'autre langue ; signalé si `n_autre >= 2` et `n_autre > n_cible` → `"<rubrique> : mots-outils <autre langue>"`.
+     - Listes figées dans le module (sans mots ambigus entre les deux langues : ni `a`, `an`, `as`, `on`, `or`, `en`) :
+       - `MOTS_OUTILS["fr"]` = `le la les un une des du de et est sont dans pour par sur avec qui que ne pas au aux ce cette ces leur leurs il elle ils peut permet afin être son sa ses d l qu` ;
+       - `MOTS_OUTILS["en"]` = `the of and is are to in for with that this which by be can could should may from it its not allows into their has have will`.
+     - Un motif `langue` par rubrique signalée ; texte conservé.
+     - Mesure (2026-10-18) : 0 mot-outil anglais dans les 264 rubriques françaises réelles, dans les textes du catalogue ni dans les récits français ; le récit anglais de MiniCPM5 donne 7, 5 et 3 mots-outils anglais pour 0 français ; le caractère japonais de la note 26 (MiniCPM5 puis granite, lot `20261018-020204`) est détecté.
+  7. `statut = a_revoir` si et seulement si `motifs` n'est pas vide.
+
+`domaine/qualite_texte.py` (nouveau, stdlib seule) est partagé avec les garde-fous incident (§21).
+
 ## 7. Recherche — `domaine/recherche.py`
 
 `classer(constats: list[ConstatType], requete: str, *, k1: float, b: float) -> list[Candidat]`
 
 Tri par score décroissant, puis par `id` croissant ; la fonction renvoie tous les constats, et le workflow garde les 3 premiers.
 
-- **Tokenisation :** minuscules, NFKD sans diacritiques, découpage sur `[^a-z0-9]+`, jetons d'au moins 2 caractères, mots vides français et anglais d'une liste figée dans le module.
+- **Tokenisation :** minuscules, NFKD sans diacritiques, découpage sur `[^a-z0-9]+`, jetons d'au moins 2 caractères, mots vides français et anglais d'une liste figée dans le module. **[entériné v2]** `œ`, `æ`, `ß` sont remplacés par `oe`, `ae`, `ss` avant NFKD.
 - **Document indexé :** `titre` ×3, puis `" ".join(mots_cles)` ×3, puis `description` ×1, concaténés en une seule suite de jetons. `avgdl` est calculé sur ces documents.
+- **[v2] Index bilingue (CAP-8)** : un seul document par constat, quelle que soit la langue du lot : `titre` fr ×3, `en.titre` ×3, `mots_cles` ×3, `description` fr ×1, `en.description` ×1 (le bloc `en` est sauté s'il vaut `None`, cas des fixtures de test). `N` = nombre de constats (pas de doublon). Les réglages de CAP-5 (mots-clés, `k1`, `b`, pondérations) se font **sur cet index bilingue**, sans regarder les notes 21 à 30 ; les pondérations restent des constantes du module.
 - **IDF :** `ln(1 + (N - n + 0.5) / (n + 0.5))`. Le score est le BM25 classique.
 - **Requête :** `(note.titre or "") + "\n" + note.corps`, jamais `constat_attendu` ni `actif`.
 - Non rattachée si score maximal `<= 0.0`.
@@ -213,6 +290,21 @@ Tri par score décroissant, puis par `id` croissant ; la fonction renvoie tous l
   - `<constat>` + `json.dumps(constat.model_dump(include={"id","titre","description","impact","recommandation","cvss_vecteur"}), ensure_ascii=False)` + `</constat>` ;
   - puis `<note>` + l'actif s'il existe (`Actif : …`) + le corps tronqué à `taille_max_note`, suivi de `[…tronqué]` en cas de troncature + `</note>`.
 - Une troncature ajoute le motif `note_tronquee`. Le pipeline le transmet aux garde-fous par `appliquer(..., motifs_initiaux=[...])`.
+
+**[v2] Échappement (CAP-2).** Avant troncature, `note.corps` et `note.actif` passent par `echapper(texte) -> str` :
+
+```python
+_BALISE = re.compile(r"<(?=\s*/?\s*(?:note|constat)\b)", re.IGNORECASE)
+def echapper(texte: str) -> str: return _BALISE.sub("‹", texte)   # U+2039, même longueur
+```
+
+Toute balise ouvrante ou fermante `note`/`constat` (casse et espaces quelconques) perd son `<` au profit de `‹`. Le texte reste lisible et sa longueur ne change pas : la troncature et le motif `note_tronquee` sont inchangés. Le message utilisateur contient donc exactement un `<constat>`, un `</constat>`, un `<note>` et un `</note>`. Même règle dans le prompt incident pour `regle`/`preuves`, appliquée à chaque ligne de preuve (§21, décision technique v2).
+
+**[v2] Langue (CAP-8).** Signature `construire(note, constat, prefixe_systeme, taille_max_note, *, langue: Langue = "fr") -> list[Message]`.
+- `CONSIGNES: dict[Langue, str]` : `CONSIGNES["fr"]` est la consigne française (révisée par la story de prompt, CAP-6) ; `CONSIGNES["en"]` dit la même chose en anglais et demande des rubriques rédigées en anglais. `CONSIGNE = CONSIGNES["fr"]` reste exporté.
+- `<constat>` = `json.dumps({"id", "cvss_vecteur"} + constat.textes(langue).model_dump(), ensure_ascii=False)`, clés dans l'ordre `id, titre, description, impact, recommandation, cvss_vecteur`.
+- Libellé de l'actif : `Actif : …` (fr) ou `Asset: …` (en). La note n'est pas traduite.
+- La consigne de départ du réglage CAP-6 est celle de l'essai 3 de `bilan-modeles.md`. Son texte final appartient au code, pas au contrat. Le faux moteur exige seulement les balises.
 
 ## 9. Lot et composition — `application/lot.py`, `application/composition.py`
 
@@ -231,6 +323,27 @@ Tri par score décroissant, puis par `id` croissant ; la fonction renvoie tous l
 - **Seul `lot.py` écrit `journal.jsonl`** (`model_dump_json()`, une ligne par événement, flush), avant d'appeler l'abonné. Une exception de l'abonné est journalisée et ignorée.
 - Seules `EntreeInvalide`, `ConfigurationInvalide`, `MoteurInjoignable` (sonde) et `ConnexionInterdite` sortent d'`executer_lot`.
 - Traçabilité et journal : noms de fichiers seulement, jamais de chemin absolu.
+
+**[entériné v2] Signatures.** `composition.ouvrir(config, modele, *, id_lot: str | None = None)` ; `ouvrir_moteur_incident(config, modele, *, id_lot=None)`. `id_lot` nomme le journal `llama-server-<id_lot>.log` (horodatage sinon).
+
+**[v2] Noms publics de `lot.py` (CAP-16, story de socle v2).** Renommages sans changement de comportement :
+
+| v0.1.0 (privé) | v2 (public) |
+|---|---|
+| `_ID_LOT` | `MOTIF_ID_LOT` (`re.Pattern`, `[0-9A-Za-z][0-9A-Za-z-]*`, `fullmatch`) |
+| `_Emetteur` | `Emetteur(journal: JournalLot, abonne: Abonne \| None)`, attribut `total`, méthode `emettre(type_, *, index, note, statut, duree_s, details)` |
+| `_sans_chemin` | `sans_chemin(message: str) -> str` |
+| `_sorties` | `dossier_sorties(config: Configuration) -> Path` (`config.chemins.var / "sorties"`) |
+
+S'y ajoute `verifier_id_lot(id_lot: str, config) -> Path` : la vérification d'un `id_lot` fourni, aujourd'hui dupliquée dans `lot.py` et `incident._id_lot` (motif, `mkdir`, nom réservé Windows → `EntreeInvalide`). Elle renvoie le dossier de sortie et sert aussi aux routes web et à `exporter`. `test_architecture.py` interdit, hors de `application/lot.py`, tout import d'un nom de `waveaudit.application.lot` commençant par `_` (tests compris : `tests/e2e/test_lot.py` passe à `lot.sans_chemin`).
+
+**[v2] Lot des fiches.** `executer_lot(requete, config, abonne)` :
+1. `langue = requete.langue or config.fiches.langue` ; le workflow reçoit `config.model_copy(update={"fiches": config.fiches.model_copy(update={"langue": langue})})`.
+2. Écrit `lot.json` (§30) dès que le dossier de sortie existe, avant l'ouverture du moteur.
+3. Après `preparer` et le tri : `relecture.initialiser(dossier_sortie, id_lot=…, langue=…, modele=info.nom_modele, modele_demande=requete.modele, elements=…)` crée `relecture.json` (§25), une entrée `attente` par élément.
+4. Après chaque `traiter` et **avant** l'événement de fin de fiche : `relecture.enregistrer_resultat(dossier_sortie, index, resultat)`. Une fiche est donc relisible dès son événement (CAP-10).
+5. `lot_demarre.details` reçoit `workflow` et `langue`. L'exporteur de fin de lot est appelé avec `OptionsExport(langue=langue)` (`mode="lot"`) : `rapport.docx` et `fiches.json` sont inchangés.
+6. Une exception qui sort d'`executer_lot` laisse `relecture.json` tel quel : les entrées encore `attente` sont les notes non traitées (§25).
 
 ## 10. llama-server — `adaptateurs/llama_server.py`
 
@@ -259,6 +372,28 @@ Un tableau `[[artefact]]` aux champs `nom, role, version, url, sha256, taille, l
 
 Les tailles et les SHA-256 sont dans la table Stack du spine. Les modèles ont `destination = "modeles/<fichier>"`.
 
+**[v2] Rôles (CAP-7) et champs facultatifs.**
+
+| nom | role v2 | facultatifs |
+|---|---|---|
+| `granite-4.0-1b-q4km` | `modele_defaut` | |
+| `qwen3.5-0.8b-q4km` | **`modele_repli`** (au lieu de `candidat`) | `reflexion = false` |
+| `minicpm5-1b-q4km` | **`candidat`** (au lieu de `modele_repli`) : gardé pour comparer au banc, téléchargé seulement avec `--candidats` | `reflexion = false` |
+| `qwen3-1.7b-q4km` | `candidat` | `prefixe_systeme = "/no_think"` |
+
+- Si le rebanc de CAP-7 promeut qwen3-1.7b (au moins 5/6 `ok`, recopie < 0,6, médiane < 40 s sur l'EliteBook), la story de rebanc permute les rôles : `qwen3-1.7b-q4km` devient `modele_defaut` et `granite-4.0-1b-q4km` devient `candidat`. Décision et chiffres consignés dans `bilan-modeles.md`.
+- Ordre des entrées dans le fichier : moteur, défaut, repli, puis candidats.
+- Champs facultatifs des modèles (`Artefact`, `extra="forbid"`) :
+  - `mode_json` (§22) ;
+  - `reflexion: bool | None` **[entériné v2]**, §22 ;
+  - **[v2]** `repeat_penalty: float | None` (`0 < x <= 2.0`), prime sur `moteur.repeat_penalty` (§3) ;
+  - **[v2]** `duree_indicative_s: float | None`, durée médiane par fiche mesurée au banc et affichée par l'UI (§26, `GET /api/modeles`). Valeurs initiales tirées de `bilan-modeles.md`.
+
+**[v2] Modèles installés.** `application/composition.modeles_installes(config) -> list[ModeleInstalle]` (dataclass figée, `application/composition.py`) : `nom, role, taille_o, duree_indicative_s, defaut: bool`.
+- En `local-gere` : les artefacts de rôle `modele_defaut`, `modele_repli` ou `candidat` dont `manifeste.chemin(...)` existe sur le disque, dans l'ordre du manifeste. `defaut` vaut vrai pour celui que `choisir_modele(config, artefacts, None)` désigne s'il est installé, sinon pour le premier installé.
+- En `externe` : une seule entrée, `nom = moteur.modele_api or "externe"`, `role = "externe"`, `taille_o = 0`, `defaut = True`.
+- Seul point d'accès de l'UI au manifeste : `interfaces/web/` n'importe pas `installation` (AD-1).
+
 API de `installation/manifeste.py` :
 - `charger(chemin) -> list[Artefact]` ;
 - `par_nom(nom)` ;
@@ -278,7 +413,7 @@ API de `installation/manifeste.py` :
 - `activer(hotes: list[str])` :
   - idempotente ;
   - résout chaque nom par `getaddrinfo` ;
-  - sauvegarde puis remplace `socket.socket.connect`, `socket.socket.connect_ex` et `socket.create_connection` ;
+  - sauvegarde puis remplace `socket.socket.connect`, `socket.socket.connect_ex` et `socket.create_connection`, et **[entériné v2]** `socket.socket.sendto` et `socket.socket.sendmsg` (UDP) ;
   - lève `ConnexionInterdite` vers une IP hors liste, et l'enregistre.
 - `desactiver()` restaure les fonctions sauvegardées.
 - `@contextmanager garde(hotes)`.
@@ -310,6 +445,20 @@ API de `installation/manifeste.py` :
 
 - La fixture `config_test(tmp_path, faux_moteur)` renvoie une `Configuration` avec `mode="externe"`, la `base_url` du faux moteur, `timeout_s=1.0` et `chemins.var = tmp_path / "var"`. Le catalogue est celui du dépôt, sauf surcharge. Tous les tests passent par elle et n'écrivent jamais dans le `var/` du dépôt.
 
+**[v2] Faux moteur** (story de socle v2 ; `SCENARIOS` complété, scénarios v0.1.0 inchangés) :
+
+| Scénario | Comportement |
+|---|---|
+| `nominal` | inchangé ; en lot `en`, le `<constat>` reçu est en anglais : la sortie est `"[adapté] "` + textes anglais |
+| `repetition` | nominal, avec `description` = `("sans restriction d'accès, " * 60)[:longueur]`, où `longueur` = `maxLength` de `description` lu dans `response_format.json_schema.schema` (1 200 par défaut) |
+| `langue_anglaise` | nominal, avec `description`, `impact` et `recommandation` remplacées par un texte anglais fixe (`TEXTE_ANGLAIS`, au moins 3 mots-outils anglais par rubrique) ; en mode incident, même chose pour `recit`, `impact` et `recommandation` |
+| `langue_francaise` | nominal, avec les mêmes rubriques remplacées par un texte français fixe (`TEXTE_FRANCAIS`) |
+| `ecriture_etrangere` | nominal, avec `"経"` ajouté à la fin de `description` (de `recit` en mode incident) |
+| `url_de_la_note` | nominal, avec la première URL `https?://\S+` trouvée dans `<note>` (ponctuation finale retirée) ajoutée à `description` ; si aucune, aucune modification |
+
+- Chaque requête reste enregistrée dans `FauxMoteur.requetes` : c'est là qu'on lit `seed` (CAP-1) et `repeat_penalty` (CAP-6).
+- Les nouveaux tests de garde-fous unitaires peuvent aussi appeler `appliquer` directement, sans faux moteur.
+
 ## 14. Notes sur disque — `adaptateurs/notes_fichiers.py`
 
 - **Sélection :** `*.md` et `*.txt` (extension insensible à la casse), sans descendre dans les sous-dossiers, en ignorant tout autre fichier ; tri par `casefold()`. `EntreeInvalide` seulement si le dossier est absent ou s'il ne contient aucune note.
@@ -329,7 +478,32 @@ API de `installation/manifeste.py` :
   - au moins une référence ;
   - des références `id` de forme canonique (`CWE-79`, `CAPEC-63`, `WSTG-INPV-01`, `A03:2021`, `ANSSI-<SIGLE>`, `CERTFR-AAAA-XXX-NNN`) et `url` en `https://` ;
   - la présence des 35 identifiants figés (§16) ;
-  - un total d'au moins 30 constats.
+  - un total d'au moins 30 constats ;
+  - **[v2]** la présence du bloc `en` (`TextesConstat`), avec ses 4 textes non vides. Erreur : `fichier:id: textes anglais manquants (en.<champ>)`.
+
+**[v2] Schéma YAML bilingue (CAP-8).** Chaque entrée garde ses champs v0.1.0 (textes français à la racine) et reçoit un bloc `en` :
+
+```yaml
+- id: WEB-XSS-REFLECHI
+  titre: Injection de script réfléchie (XSS réfléchi)
+  famille: web
+  mots_cles: [...]            # inchangés, déjà fr + en
+  description: >- ...
+  impact: >- ...
+  recommandation: >- ...
+  en:
+    titre: Reflected cross-site scripting (XSS)
+    description: >- ...
+    impact: >- ...
+    recommandation: >- ...
+  cvss_vecteur: ...           # inchangé
+  references: [...]           # inchangées : id, titre et url non traduits
+  source: ...
+```
+
+- `CatalogueYaml` refuse au chargement une entrée sans `en` complet (`ConfigurationInvalide`, `fichier:index: textes anglais manquants`). La story qui introduit le schéma traduit donc les 50 entrées du catalogue en une fois.
+- Anaël relit un échantillon de 10 constats avant fusion (CAP-8).
+- `test_catalogue.py` vérifie aussi que, pour chaque entrée, `en.titre != titre` et que `en.description` ne contient aucun mot-outil français au sens du §6 étape 6 (garde-fou de langue appliqué au catalogue).
 - **Sortie :** code 0 si tout est valide, sinon code 2 avec une ligne par erreur (`fichier:id: message`).
 
 ## 16. Identifiants figés
@@ -356,8 +530,14 @@ API de `installation/manifeste.py` :
   - titre du document `Rapport de constats`, puis une table de synthèse `N° | Titre | Sévérité | Score | Statut` ;
   - puis, par fiche, un titre de niveau 2 (`N. <titre>`) et les intitulés de niveau 3, exactement : `Description`, `Impact`, `Recommandation`, `CVSS 3.1` (vecteur, score, sévérité affichée parmi `Aucune`, `Faible`, `Moyenne`, `Élevée`, `Critique`), `Références` (`id — titre — url`), `Statut` (`OK`, ou `À revoir` suivi des motifs `code : detail`), `Traçabilité` (note, constat type).
 - **Annexe :** titre de niveau 1 `Annexe — notes écartées`, puis un tableau `Note | Statut | Motif`, présent seulement si `ecartees` n'est pas vide.
+- **[entériné v2]** Un thème privé invalide (`theme.toml` illisible, `modele.docx` illisible) lève `ConfigurationInvalide` (code 2) dès le constructeur `ExportDocx(theme_prive)`, donc avant le démarrage du moteur.
+- **[v2]** Libellés par langue (`OptionsExport.langue`) et modes `final` / `brouillon` : §27. Les libellés français ci-dessus restent ceux de `langue="fr"`. `BANDEAU` reste la constante publique française ; `BANDEAUX: dict[Langue, str]` est ajouté.
 
 ## 18. Interface web — `interfaces/web/`
+
+**[v2]** L'API HTTP complète de la v2 est au §26, qui prime sur cette section. Les règles ci-dessous restent valables, avec les écarts entérinés :
+- **[entériné v2]** `Host: [::1]:<port>` est accepté (origine `http://[::1]:<port>` aussi) ;
+- **[entériné v2]** `GET /lots/{id}/etat?depuis=N` (facultatif, `N >= 0`) ne renvoie que les événements d'indice `>= N` ; `0` donne la réponse complète.
 
 - **Création :** `creer_app(config) -> FastAPI`, qui n'active pas le garde.
 - **Démarrage :** la commande `ui` active le garde puis lance `uvicorn.run(app, host=config.ui.hote, port=config.ui.port)`. Elle refuse de démarrer (code 2) si `ui.hote` n'est pas `127.0.0.1` ou `::1`.
@@ -382,16 +562,32 @@ API de `installation/manifeste.py` :
   - puis la synthèse : le nombre de fiches `ok` et `a_revoir`, le nombre d'entrées écartées, le chemin du rapport ;
   - le bandeau `Démonstration — données fictives`, en première et en dernière ligne.
 - `--modele` en `externe` surcharge `modele_api`. En `local-gere`, un nom absent du manifeste donne le code 2.
+- **[entériné v2]** `--modele` inconnu est vérifié contre le manifeste avant tout traitement (code 2), y compris pour `incident`, où le moteur n'est pas ouvert sans détection. Les messages d'erreur passent par `lot.sans_chemin` : aucun chemin absolu.
+- **[v2] Ajouts** (les commandes, options et codes v0.1.0 ne changent pas) :
+  - `fiches DOSSIER [...] [--langue fr|en]` : défaut `config.fiches.langue`. Une valeur hors liste est refusée par typer (code 2). Le bandeau console reste français.
+  - `banc DOSSIER [--modele NOM] [--langue fr|en]` (§29).
+  - `exporter LOT [--brouillon] [--config F]` (§27).
+  - `incident` ne reçoit pas `--langue` : le rapport d'incident reste en français.
 
 ## 20. Banc — `application/banc.py`
 
 - **Fonctionnement :** le banc est un abonné du lot. Il lit `pid_moteur` dans `lot_demarre`, puis échantillonne toutes les 0,5 s, dans son propre thread, `MesureMemoire.rss_octets` de l'application (`os.getpid()`) et du moteur, jusqu'à `lot_termine` ou `lot_echoue`.
 - **`var/sorties/<id>/banc.json` :** `{"id_lot", "modele", "fiches": [{"note", "duree_s"}], "duree_mediane_s", "duree_max_s", "pic_rss_app_o", "pic_rss_moteur_o", "pic_rss_total_o", "top1", "top3", "etiquetees"}`. `top1` et `top3` sont calculés depuis `tracabilite` et `EntreeEcartee`.
 - **Affichage :** un résumé lisible en console.
+- **[entériné v2]** `pic_rss_total_o` = maximum, sur les échantillons, de la somme application + moteur **au même instant** (et non la somme des deux pics).
+- **[v2]** Champs ajoutés et indicateur de recopie : §29.
 
 ## 21. Workflow incident (CERT) — `domaine/incident.py`, `workflows/incident/`, `application/incident.py`
 
 Ajouté le 2026-10-17 (SPEC-waveaudit-cert), révisé après la revue adversariale (`specs/spec-waveaudit-cert/reviews/review-adversariale.md`). C1 crée les formes, ports, constantes, fixtures et les deux extractions du socle (journal, moteur) ; C2 à C6b les appliquent sans toucher au socle. Conditions des règles, champs, chronologie de démo et oracle : `formats-incident.md` (normatif).
+
+**[v2] Écarts entérinés et ajouts au workflow incident :**
+- **[entériné v2]** Signatures : `ExporteurIncidentDocx(theme_prive, *, max_preuves: int)` ; `assembler_rapport(lecture, recits, regles: dict[str, Regle])` (les `recommandations` type sont lues dans `regles`).
+- **[entériné v2]** Neutralisation du point final avant les motifs (garde-fous, étapes 2 et 3) : on cherche les jetons sur une copie de même longueur, où chaque suite de `.` suivie d'un blanc, d'une ponctuation fermante ou séparatrice (`) ] } > » " ' ” ’ , ; : ! ?`) ou de la fin du texte devient autant d'espaces. Un `.` suivi d'un chiffre n'est jamais touché. Les positions trouvées servent à retirer les jetons du texte d'origine.
+- **[v2] CAP-1** : la nouvelle tentative du récit passe `seed=config.moteur.seed + 1` (§5).
+- **[v2] CAP-4** : `appliquer_recit(..., motifs_initiaux=(), langue: Langue = "fr")`. Après l'étape 5 (complétion), les étapes 5 et 6 du §6 v2 (répétition, puis langue) s'appliquent aux rubriques non complétées : l'écriture sur `titre`, `recit`, `impact` et `recommandation` ; les mots-outils sur `recit`, `impact` et `recommandation`. Le service passe toujours `langue="fr"` : le rapport d'incident reste en français en v2.
+- **[v2]** Prompt : échappement des balises `regle` et `preuves` dans chaque ligne de preuve, même forme qu'au §8.
+- **[v2]** Le service incident écrit `lot.json` (§30, `workflow="incident"`, `langue=None`) et utilise `lot.Emetteur`, `lot.verifier_id_lot`, `lot.sans_chemin` et `lot.dossier_sorties` (noms publics, §9).
 
 ### Formes (`domaine/incident.py`, C1)
 
@@ -617,3 +813,317 @@ Si le test réel montre que `response_format` en `json_schema` échoue avec un m
 En `json_object`, l'adaptateur envoie `response_format = {"type": "json_object"}` et ajoute le schéma, en texte, à la fin du message système. Le reste du contrat ne change pas.
 
 Le workflow incident (§21) passe par le même adaptateur : `mode_json` s'y applique sans changement, et C1 conserve le réglage tel que V1 l'a laissé.
+
+**[entériné v2] État livré par V1.** `moteur.mode_json` et le champ `mode_json` du manifeste existent (aucune entrée ne le renseigne). S'y ajoute un champ facultatif `reflexion: bool | None` par entrée du manifeste :
+- `None` (absent) : rien n'est envoyé ;
+- un booléen : transmis en `chat_template_kwargs = {"enable_thinking": <valeur>}`.
+
+`minicpm5-1b-q4km` et `qwen3.5-0.8b-q4km` portent `reflexion = false` : sans lui, leur `content` arrive vide.
+
+## 23. Langue d'un lot de fiches (CAP-8) — `domaine/modeles.py`, `workflows/fiches/`, `adaptateurs/export_docx.py`
+
+Ajouté le 2026-10-18 (v2).
+
+- **Valeurs :** `Langue = Literal["fr", "en"]`. Défaut : `config.fiches.langue` (`"fr"`), donc un lot sans choix se comporte comme en v0.1.0.
+- **Choix :** fixé au lancement, jamais modifié ensuite. Sources : `RequeteLot.langue`, option CLI `--langue` (§19), champ `langue` de `POST /lots` (§26). La langue est consignée dans `lot.json` (§30), `relecture.json` (§25) et `lot_demarre.details`.
+- **Effets, et rien d'autre :**
+  - consigne `CONSIGNES[langue]` et textes du constat `constat.textes(langue)` dans le prompt (§8) ;
+  - repli et complétion des garde-fous (§6) depuis `constat.textes(langue)` ;
+  - langue vérifiée par le garde-fou (§6 étape 6) ;
+  - libellés et bandeau du Word (§27) ;
+  - la recopie du banc compare au texte du constat dans la langue du lot (§29).
+- **Ce qui ne change pas :** l'index BM25, toujours bilingue (§7) ; les notes, jamais traduites ; les références (`id`, `titre`, `url`) ; l'UI, en français, avec l'attribut `lang` de la langue du lot sur le panneau note et le formulaire de fiche ; la sortie console de la CLI ; le workflow incident, en français.
+
+## 24. Verrou unique et moteur à la demande — `application/moteur_demande.py`
+
+Ajouté le 2026-10-18 (v2, CAP-9, CAP-11, CAP-14).
+
+```python
+@dataclass(frozen=True)
+class Occupation:
+    nature: Literal["fiches", "incident", "regeneration"]; id_lot: str; index: int | None; debut: datetime
+class VerrouUnique:                       # un par processus UI, créé par creer_app
+    def prendre(self, occupation: Occupation) -> bool: ...   # non bloquant ; False si déjà pris
+    def liberer(self) -> None: ...
+    def occupation(self) -> Occupation | None: ...           # copie, sous verrou interne
+class MoteurALaDemande:                   # un par processus UI, créé par creer_app
+    def __init__(self, config: Configuration) -> None: ...   # inactivite_s = config.ui.inactivite_moteur_s
+    @contextmanager
+    def utiliser(self, modele: str | None) -> Iterator[tuple[Ports, InfoMoteur]]: ...
+    def fermer(self) -> None: ...         # idempotent
+```
+
+- **Un seul travail à la fois :** lot de fiches, lot incident et régénération prennent le même `VerrouUnique`. Prise en échec : HTTP 409 `lot_en_cours`, rien n'est écrit. Le verrou est rendu dans un `finally` du fil de travail, ou avant son démarrage si la requête échoue.
+- **Un seul llama-server à la fois :** un lot ou un incident, une fois le verrou pris, appelle `MoteurALaDemande.fermer()` avant `executer_lot` / `executer_incident`. Ces deux services gardent leur cycle de vie (AD-11) : ouverture au début, fermeture à la fin. La CLI n'utilise ni l'un ni l'autre.
+- **`utiliser(modele)`**, appelé seulement sous le verrou (régénération) :
+  - le moteur est-il déjà ouvert pour `modele` ? On le réutilise ;
+  - sinon, on ferme l'ancien, puis `composition.ouvrir(config, modele)` (journal `llama-server-<horodatage>.log`) et `ports.moteur.sonder()`. Un échec referme et remonte `MoteurInjoignable` ou `ConfigurationInvalide`.
+- **Arrêt après inactivité :** en sortie de bloc, un `threading.Timer(inactivite_s)` est armé (le précédent est annulé). À l'échéance, le moteur est fermé si aucun `utiliser` n'est en cours. `fermer()` est aussi appelé à l'arrêt de l'application (lifespan FastAPI).
+- **Mode `externe` :** même objet, sans processus ; `utiliser` ouvre et réutilise le client `MoteurOpenAI`.
+- **Modèle :** la régénération utilise le modèle demandé par le lot (`relecture.json`, champ `modele_demande`). Si ce modèle n'est plus installé : `generation = "echec"`, avec le message « Le modèle « … » n'est plus installé. ».
+
+## 25. État de relecture d'un lot — `domaine/relecture.py`, `application/relecture.py`
+
+Ajouté le 2026-10-18 (v2, CAP-10 à CAP-13, CAP-17). Fichier `var/sorties/<id_lot>/relecture.json`, UTF-8, `EtatRelecture.model_dump_json(indent=2)`.
+
+### Formes (`domaine/relecture.py`, story de socle v2)
+
+Toutes `ConfigDict(extra="forbid", frozen=True)`.
+
+```python
+StatutRelecture = Literal["a_valider", "validee"]
+EtatEntree = Literal["attente", "fiche", "ecartee"]
+EtatGeneration = Literal["aucune", "en_cours", "echec"]
+class FicheCorrigee(BaseModel):
+    titre: str; description: str; impact: str; recommandation: str
+    cvss_vecteur: str                 # saisi tel quel (≤ 100 caractères), éventuellement invalide
+    cvss: Cvss | None                 # cvss31.evaluer(cvss_vecteur), None si invalide
+    references: list[Reference]       # sous-ensemble ordonné de fiche_generee.references
+class EntreeRelecture(BaseModel):
+    index: int                        # >= 1, rang dans le lot (tri casefold) = index des événements
+    note: str                         # nom de fichier seul
+    source: Note | None               # None pour une NoteInvalide
+    raison_invalide: str | None
+    etat: EtatEntree
+    candidats: list[Candidat]         # top 3 de la recherche (vide pour une note invalide)
+    candidat_choisi: str | None       # constat de la fiche courante
+    fiche_generee: Fiche | None
+    fiche_corrigee: FicheCorrigee | None
+    ecartee: EntreeEcartee | None
+    statut_relecture: StatutRelecture | None
+    generation: EtatGeneration = "aucune"
+    erreur_generation: str | None = None
+    version: int = 1                  # +1 à chaque écriture de cette entrée
+class EtatRelecture(BaseModel):
+    version_schema: Literal[1] = 1
+    id_lot: str; langue: Langue
+    modele: str                       # nom affiché (InfoMoteur.nom_modele)
+    modele_demande: str | None        # RequeteLot.modele tel que reçu ; repassé tel quel à la régénération
+    entrees: list[EntreeRelecture]    # triées par index
+class RefusRelecture(EntreeInvalide):  # code machine repris tel quel par l'API (§26)
+    def __init__(self, code: str, message: str) -> None: ...
+```
+
+Invariants (validateurs) :
+- `etat == "fiche"` ⇔ `fiche_generee` et `statut_relecture` renseignés ;
+- `etat == "ecartee"` ⇔ `ecartee` renseignée ;
+- `fiche_corrigee` ⇒ `etat == "fiche"` ;
+- `candidat_choisi` ∈ `{c.id for c in candidats}` ou `None`.
+
+### Règles pures (`domaine/relecture.py`)
+
+- `fiche_courante(e) -> Fiche` : `fiche_generee` sans correction. Avec une correction, `fiche_generee.model_copy` avec les 4 textes, `references` et `cvss` corrigés ; si `cvss` corrigé vaut `None`, le `cvss` généré est gardé (brouillon seulement : une fiche validée a toujours un CVSS valide). `statut`, `motifs` et `tracabilite` restent ceux de la génération (« signalé à la génération »).
+- `corriger(e, correction, longueur_max) -> EntreeRelecture`. Refus :
+  - `non_modifiable` si `etat != "fiche"` ;
+  - `generation_en_cours` ;
+  - `rubrique_trop_longue` (au-delà de `longueur_max`) ;
+  - `reference_ajoutee` (id absent de `fiche_generee.references`).
+  
+  Sinon, `cvss` recalculé et `statut_relecture = "a_valider"`. Une correction identique à l'état courant ne change rien (pas d'incrément de version).
+- `valider(e) -> EntreeRelecture`. Refus :
+  - `non_modifiable` ;
+  - `generation_en_cours` ;
+  - `vecteur_invalide` (CVSS corrigé `None`) ;
+  - `rubrique_vide` (un texte vide après strip).
+  
+  Sinon `statut_relecture = "validee"`.
+- `remplacer_fiche(e, fiche: Fiche, constat_id) -> EntreeRelecture` : `etat="fiche"`, `fiche_generee=fiche`, `fiche_corrigee=None`, `candidat_choisi=constat_id`, `ecartee=None`, `statut_relecture="a_valider"`, `generation="aucune"`.
+- `rapport_export(etat, mode: Literal["final","brouillon"]) -> tuple[Rapport, frozenset[str]]` :
+  - **final** : `fiches` = `fiche_courante` des entrées `validee` ;
+  - **brouillon** : `fiches` = toutes les entrées `fiche`, et l'ensemble renvoyé = notes des entrées `a_valider` ;
+  - **les deux** : `ecartees` = entrées `ecartee`, plus les entrées `attente` converties en `EntreeEcartee(non_traitee, Motif(lot_interrompu, "lot interrompu avant cette note"), candidats=[], constat_attendu=source.constat_attendu)`. Ordre : `index`.
+
+### Persistance (`application/relecture.py`)
+
+- `FICHIER = "relecture.json"`. Le module n'importe ni `lot.py` ni `moteur_demande.py` au niveau module (`lot.py` l'importe : pas de cycle) ; `sans_chemin` est importé dans `regenerer`, `MoteurALaDemande` sous `TYPE_CHECKING`.
+- Écritures, toutes sous un verrou propre au fichier : `_VERROUS: dict[str, threading.Lock]` indexé par le chemin résolu, créé sous un verrou global. Chaque écriture fait lire, modifier, puis écrire de façon atomique :
+  - écriture dans `.relecture.json.partiel` ;
+  - puis `os.replace`, retenté 5 fois à 50 ms d'écart sur `PermissionError` (lecteur Windows concurrent, par exemple `waveaudit exporter`).
+- Seul écrivain de `relecture.json`. Lecture sans verrou possible : le remplacement est atomique.
+- `initialiser(dossier, *, id_lot, langue, modele, modele_demande, elements)` : une entrée `attente` par élément, `index` 1..n. Une `Note` donne `source = note` ; une `NoteInvalide` donne `source=None` et `raison_invalide`.
+- `enregistrer_resultat(dossier, index, resultat: ResultatElement)` :
+  - `Fiche` → `etat="fiche"`, `candidats = tracabilite.candidats`, `candidat_choisi = constat_id`, `statut_relecture="a_valider"` ;
+  - `EntreeEcartee` → `etat="ecartee"`, avec ses `candidats`.
+  - `version + 1`, sans contrôle de version.
+- `charger(dossier) -> EtatRelecture`. Sans `relecture.json` mais avec `fiches.json` (lot v0.1.0) : état reconstruit en mémoire, sans l'écrire :
+  - toutes les fiches `a_valider`, les entrées écartées en `ecartee`, `source=None` ;
+  - `langue="fr"`, `modele` lu dans `lot_demarre` (sinon `""`), `modele_demande = None` ;
+  - la première modification l'écrit.
+  
+  Sans l'un ni l'autre : `RefusRelecture("lot_inconnu")`.
+- `modifier(dossier, index, version_attendue, operation) -> EntreeRelecture` : `version_attendue != version` → `RefusRelecture("conflit_version")`. Sinon `operation(entree)` (une règle pure ci-dessus) et `version + 1`.
+- `regenerer(config, dossier, index, constat_id, moteur: MoteurALaDemande) -> None` : exécuté dans le fil de travail, sous le `VerrouUnique` déjà pris (§24).
+  1. `with moteur.utiliser(etat.modele_demande) as (ports, _)` (même résolution que le lot : en local-gere, `None` redonne le choix défaut/repli, qui dépend de la RAM du moment) ;
+  2. `pipeline.creer(config_lot, ports).rediger(source, constat_id, candidats)`, où `config_lot` porte la langue du lot ;
+  3. `modifier(..., remplacer_fiche)` sans contrôle de version.
+  
+  Le repli des garde-fous donne toujours une fiche. Seul l'échec d'ouverture du moteur donne `generation="echec"` et `erreur_generation` (message passé par `sans_chemin`). Une régénération n'émet aucun `EvenementLot` et n'écrit pas dans `journal.jsonl` : sa trace est dans `relecture.json` (`candidat_choisi`, `version`).
+- `demarrer_regeneration(dossier, index, version_attendue, constat_id, confirmer) -> EntreeRelecture` : vérifie, puis passe `generation="en_cours"` (version + 1) avant le lancement du fil. Refus, dans cet ordre :
+  - `conflit_version` ;
+  - `generation_en_cours` ;
+  - `non_generable` : entrée `attente`, ou `ecartee` `non_traitee` ;
+  - `candidat_inconnu` : `constat_id` hors `candidats` ;
+  - `confirmation_requise` : `fiche_corrigee` renseignée et `confirmer` faux.
+- **Génération interrompue :** une entrée lue avec `generation="en_cours"` alors que l'occupation courante n'est pas `(regeneration, id_lot, index)` est réécrite `generation="echec"`, `erreur_generation="génération interrompue"`. L'API le fait à la lecture de l'entrée (§26).
+- **Relance :** relancer des notes crée toujours un nouveau lot ; aucun code ne réécrit le `relecture.json` d'un autre lot.
+
+## 26. API HTTP v2 de l'interface web — `interfaces/web/app.py`
+
+Ajouté le 2026-10-18 (v2, CAP-9 à CAP-15). Prime sur le §18 (le reste du §18 reste valable).
+
+### Règles communes
+
+- **Création :** `creer_app(config) -> FastAPI` crée `VerrouUnique`, `MoteurALaDemande` et `app.state.jeton_csrf = secrets.token_urlsafe(32)`. Le garde réseau n'est pas activé ici (inchangé). Lifespan : `MoteurALaDemande.fermer()` à l'arrêt.
+- **Middleware, dans cet ordre :**
+  1. `Host` hors `{127.0.0.1:<port>, localhost:<port>, [::1]:<port>, testserver}` → 400 `hote_refuse` ;
+  2. sur `POST`/`PUT` : `Origin` présent et hors `http://<hôte autorisé>` → 403 `origine_refusee` ;
+  3. sur `POST`/`PUT` : en-tête `X-CSRF-Token` absent ou différent de `app.state.jeton_csrf` (`secrets.compare_digest`) → 403 `csrf_invalide` ;
+  4. sur `POST`/`PUT` : `Content-Length` absent → 411 `longueur_requise` ; supérieur à la limite de la route → 413 `trop_volumineux`. Limites : `POST /lots` 20 Mio ; `POST /incidents` 50 Mio ; les autres 256 Kio.
+- **En-têtes de toute réponse :**
+  - `Content-Security-Policy: default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'` ;
+  - `X-Content-Type-Options: nosniff` ;
+  - `Referrer-Policy: no-referrer` ;
+  - `Cache-Control: no-store` sur les réponses JSON.
+- **Pages :**
+  - chaque gabarit porte `<meta name="csrf" content="{{ jeton_csrf }}">` ; le JS le renvoie dans `X-CSRF-Token` à chaque `POST`/`PUT` (formulaires multipart compris, envoyés par `fetch`) ;
+  - aucun `<script>` en ligne, aucun attribut `style=`, aucun attribut `on*=` : la CSP les bloque ;
+  - le bandeau est en haut et en bas de chaque page (AD-14) ;
+  - `<html lang="fr">`.
+- **Erreurs JSON :** `{"detail": "<message français, sans chemin absolu>", "code": "<code>"}`, plus des champs propres à certains codes (`occupation`, `entree`). Les messages de `EXPERIENCE.md` (Voice and Tone) sont repris tels quels pour `trop_volumineux`, `nom_refuse`, `lot_en_cours`, `moteur_injoignable` et `modele_indisponible`.
+- **Identifiant de lot dans un chemin :** il doit vérifier `MOTIF_ID_LOT` et désigner un dossier existant de `var/sorties/`, sinon 404 `lot_inconnu`. Une page `/lots/{id}` d'un lot incident redirige (303) vers `/incidents/{id}`, et inversement.
+- **`index` :** entier `>= 1`, sinon 404 `entree_inconnue`.
+
+### Routes
+
+| Méthode et chemin | Entrée | Succès | Erreurs |
+|---|---|---|---|
+| `GET /` | — | HTML accueil : workflows, modèles (`modeles_installes`, défaut présélectionné), langues (fiches), occupation courante, lien « Lots récents » s'il existe au moins un lot | — |
+| `GET /lots` | — | HTML lots récents | — |
+| `GET /api/lots` | — | 200 `{"lots": [ResumeLot]}` (§30), au plus 50, `id_lot` décroissant | — |
+| `GET /api/modeles` | — | 200 `{"modeles": [{"nom","role","taille_o","duree_indicative_s","defaut"}], "langues": ["fr","en"], "langue_defaut"}` | — |
+| `POST /lots` | multipart : `notes` (1 à 100 fichiers, règles de nom du §18, au plus 1 Mio chacun), `modele` (facultatif, nom de `/api/modeles`), `langue` (facultatif, `fr`\|`en`) | 303 → `/lots/{id}` | 409 `lot_en_cours` (+`occupation`, rien d'écrit) ; 400 `nom_refuse` ; 400 `aucune_note` ; 413 `trop_volumineux` ; 422 `modele_indisponible` ; 422 `langue_invalide` |
+| `GET /lots/{id}` | — | HTML suivi et relecture | 404 |
+| `GET /lots/{id}/etat?depuis=N` | `N >= 0` | 200 `{"id_lot","workflow","etat","total","evenements","erreur"}` (§30) | 404 |
+| `GET /lots/{id}/relecture` | — | 200 `{"id_lot","langue","modele","etat_lot","entrees": [{"index","note","etat","statut_generation","statut_relecture","generation","version","titre"}]}` | 404 |
+| `GET /lots/{id}/entrees/{index}` | — | 200 `{"entree": EntreeRelecture, "fiche_courante": Fiche\|null, "candidats_detail": [{"id","score","titre"}], "generable": bool, "modifiable": bool}` ; les titres sont dans la langue du lot | 404 |
+| `PUT /lots/{id}/entrees/{index}/correction` | JSON `{"version","titre","description","impact","recommandation","cvss_vecteur","references": [id]}` | 200 `{"entree"}` | 409 `conflit_version` (+`entree`), `generation_en_cours` ; 422 `non_modifiable`, `rubrique_trop_longue`, `reference_ajoutee`, `corps_invalide` |
+| `POST /lots/{id}/entrees/{index}/validation` | JSON `{"version"}` | 200 `{"entree"}` | 409 `conflit_version`, `generation_en_cours` ; 422 `non_modifiable`, `vecteur_invalide`, `rubrique_vide` |
+| `POST /lots/{id}/entrees/{index}/candidat` | JSON `{"version","constat_id","confirmer": false}` | 202 `{"entree"}` (`generation="en_cours"`), suivi en relisant l'entrée | 409 `lot_en_cours` (verrou), `conflit_version`, `generation_en_cours`, `confirmation_requise` ; 422 `non_generable`, `candidat_inconnu` |
+| `GET /lots/{id}/export?type=final\|brouillon` | — | 200 docx en pièce jointe, nommé `rapport-<id>.docx` ou `brouillon-<id>.docx` (§27) | 404 ; 409 `lot_en_cours` (ce lot tourne), `aucune_fiche_validee` (final), `export_verrouille` (`PermissionError`) ; 422 `type_invalide` |
+| `GET /lots/{id}/rapport.docx` | — | v0.1.0 inchangé (rapport de fin de lot) | 404 ; 409 `lot_non_termine` |
+| `POST /incidents` | multipart : `journaux` (1 à 50 fichiers, au plus 10 Mio chacun ; nom `^[A-Za-z0-9][A-Za-z0-9 ._-]{0,99}$`, noms réservés Windows et doublons refusés), `modele` (facultatif), `annee` (facultatif, 1970 à 2100, année courante par défaut) | 303 → `/incidents/{id}` | 409 `lot_en_cours` ; 400 `nom_refuse`, `aucun_journal_reconnu` (aucun fichier routé selon `composition.journal_reconnu`) ; 413 ; 422 `modele_indisponible`, `annee_invalide` |
+| `GET /incidents/{id}` | — | HTML suivi et résultat | 404 |
+| `GET /incidents/{id}/etat?depuis=N` | — | forme de `/lots/{id}/etat` | 404 |
+| `GET /incidents/{id}/resultat` | — | 200 `{"id_lot","rapport": RapportIncident, "par_severite": {"critique","elevee","moyenne","faible"}, "total"}` | 404 ; 409 `lot_non_termine` |
+| `GET /incidents/{id}/rapport-incident.docx` | — | docx | 404 ; 409 `lot_non_termine` |
+| `GET /theme/logo.svg` | — | `image/svg+xml`, `theme-prive/web/logo.svg` (§28) | 404 `logo_absent` |
+| `GET /static/{fichier}` | — | fichiers statiques locaux | 404 |
+
+- **Lancement d'un lot ou d'un incident**, dans cet ordre :
+  1. `VerrouUnique.prendre` ;
+  2. validation des fichiers, du modèle et de la langue ;
+  3. `nouvel_id_lot` ;
+  4. écriture dans `var/entrees/<id>/` ;
+  5. `MoteurALaDemande.fermer()` ;
+  6. fil `daemon` qui exécute `executer_lot(RequeteLot(dossier, id_lot=id, modele, langue))` ou `executer_incident(RequeteIncident(dossier, annee, modele, id_lot=id))`, puis libère le verrou dans un `finally`.
+  
+  Tout refus libère le verrou. En `externe`, `modele` vaut le seul nom proposé par `/api/modeles`.
+- **Changement de candidat :** `VerrouUnique.prendre(Occupation("regeneration", id, index))`, puis `relecture.demarrer_regeneration`, puis le fil `relecture.regenerer`, qui libère le verrou à la fin. Un refus de `demarrer_regeneration` libère aussitôt le verrou.
+- **Enregistrement des corrections :** le client envoie le corps complet de la fiche à chaque anti-rebond (~800 ms, EXPERIENCE) avec la dernière `version` reçue. Le serveur ne fusionne jamais champ à champ. Un 409 `conflit_version` renvoie l'entrée à jour : le client l'affiche et signale « Enregistrement en échec ».
+- **CVSS à la frappe :** le recalcul immédiat côté client est un aperçu. Le score et la sévérité qui font foi sont ceux que renvoie `PUT …/correction` (`domaine/cvss31`). Le JS peut calculer le score localement, mais il ne l'envoie jamais.
+- **Export pendant un lot :** refusé tant que ce lot tourne (409 `lot_en_cours`). Il est permis pour un lot terminé, échoué ou interrompu.
+
+## 27. Exports final et brouillon, commande `exporter` — `application/export.py`, `adaptateurs/export_docx.py`, `interfaces/cli.py`
+
+Ajouté le 2026-10-18 (v2, CAP-13, CAP-17).
+
+- **Service :** `application/export.exporter_lot(config, id_lot: str, mode: Literal["final","brouillon"]) -> Path` :
+  1. `verifier_id_lot` (dossier existant, sinon `RefusRelecture("lot_inconnu")`) ;
+  2. un lot incident (`lot.json`) donne `RefusRelecture("lot_incident")` ;
+  3. `relecture.charger`, puis `rapport_export(etat, mode)` ; en `final`, aucune fiche → `RefusRelecture("aucune_fiche_validee")` ;
+  4. `composition.creer_exporteur(config).exporter(rapport, chemin, OptionsExport(langue=etat.langue, mode=mode, non_validees=…))`.
+  
+  `chemin` = `var/sorties/<id>/rapport-<id>.docx` ou `brouillon-<id>.docx`, écrasé à chaque export (écriture atomique de l'exporteur). Le `rapport.docx` de fin de lot n'est pas touché.
+- **Rendu (`ExportDocx`) :** structure du §17, libellés `LIBELLES[langue]` de `formats.md` (v2), adoptés par Anaël le 2026-10-18 ; les titres des références ne sont pas traduits.
+
+| clé | fr | en |
+|---|---|---|
+| bandeau | `Démonstration — données fictives` | `Demonstration — fictitious data` |
+| titre | `Rapport de constats` | `Findings report` |
+| synthèse | `N° \| Titre \| Sévérité \| Score \| Statut` | `No. \| Title \| Severity \| Score \| Status` |
+| rubriques | `Description`, `Impact`, `Recommandation`, `CVSS 3.1`, `Références`, `Statut`, `Traçabilité` | `Description`, `Impact`, `Recommendation`, `CVSS 3.1`, `References`, `Status`, `Traceability` |
+| sévérités | `Aucune`…`Critique` (§17) | `None`, `Low`, `Medium`, `High`, `Critical` |
+| statuts | `OK`, `À revoir` | `OK`, `To review` |
+| annexe | `Annexe — notes écartées`, `Note \| Statut \| Motif` | `Appendix — excluded notes`, `Note \| Status \| Reason` |
+| marque | `Non validée` | `Not validated` |
+| validée | `Validée` | `Validated` |
+
+- **Mode `lot` :** rendu v0.1.0 dans la langue demandée. `rapport.docx`, en français, reste identique à la v0.1.0.
+- **Mode `brouillon` :** le titre de niveau 2 d'une fiche dont la note est dans `non_validees` devient `"{N}. {titre} — {marque}"`. La section `Statut` garde le statut de génération et ses motifs.
+- **Mode `final` :** pas de marque. La section `Statut` porte `Validée` (`Validated`) sans les motifs de génération, et la colonne `Statut` de la synthèse aussi (décision d'Anaël, 2026-10-18).
+- **Annexe :** les deux modes y listent les entrées écartées, y compris `lot_interrompu` (§25).
+- **CLI :** `waveaudit exporter LOT [--brouillon] [--config F]`.
+  - Charge la configuration, puis tout le reste sous `garde(...)`.
+  - Mode `final` par défaut, `brouillon` avec `--brouillon`.
+  - Affiche le bandeau français en première et dernière ligne, puis `rapport : <nom de fichier> (lot <id>)`.
+  - Codes : 0 ; 2 pour `lot_inconnu`, `lot_incident`, `aucune_fiche_validee`, `ConfigurationInvalide` (thème invalide) ; 4 pour `PermissionError` (« fermez le document dans Word ») et toute autre erreur.
+  - Aucune commande CLI ne valide une fiche.
+- **`composition.creer_exporteur(config) -> Exporteur`** (nouveau) : `ExportDocx(config.chemins.theme_prive)`, seul point d'instanciation hors `ouvrir`.
+
+## 28. Thème de l'interface — `interfaces/web/static/`, `interfaces/web/templates/`
+
+Ajouté le 2026-10-18 (v2, CAP-15).
+
+- **`static/tokens.css`** (nouveau, versionné, public) : propriétés CSS sur `:root`, une par token de `DESIGN.md` :
+  - couleurs : `--couleur-<nom>`, où `<nom>` est la clé YAML de `colors` (`primaire`, `accent-texte`…), valeurs exactes de `DESIGN.md` ;
+  - focus : `--focus-contour`, `--focus-decalage` ;
+  - typographie : `--police-texte`, `--police-chasse-fixe`, `--taille-<niveau>`.
+  
+  `style.css` n'utilise que ces propriétés pour les couleurs. Aucune `@font-face`, aucun `url()` hors `/static/` ou `/theme/`.
+- **Logo :** `GET /theme/logo.svg` sert `config.chemins.theme_prive / "web" / "logo.svg"` s'il existe (relu à chaque requête, `FileResponse`), sinon 404.
+  - Les gabarits reçoivent `logo_present: bool`, calculé à chaque rendu par `is_file()`. Ils n'affichent `<img src="/theme/logo.svg" alt="">` que si le fichier existe.
+  - Aucun autre fichier de `theme-prive/` n'est servi. `theme-prive/web/theme.css` n'existe plus.
+- **Tests :**
+  - aucune URL `http://` ou `https://` hors `127.0.0.1` dans `templates/` et `static/` (test v0.1.0, étendu à `tokens.css`) ;
+  - CSP présente sur `/`, `/lots/{id}` et `/incidents/{id}` ;
+  - logo servi seulement si le fichier existe (deux `theme_prive` sous `tmp_path`) ;
+  - bandeau en haut et en bas de chaque page ;
+  - rôles ARIA : `listbox`/`option` du tiroir, `tablist`/`tab`/`tabpanel` des candidats, `dialog` des confirmations, d'après EXPERIENCE (analyse du HTML rendu).
+
+## 29. Banc v2 — `application/banc.py`
+
+Ajouté le 2026-10-18 (v2, CAP-5 à CAP-7 ; protocole `spec-waveaudit-v2/mesures-qualite.md`).
+
+- **Signature :** `executer_banc(dossier, config, modele=None, langue=None) -> Path`. Le lot reçoit `RequeteLot(..., langue=langue)`.
+- **`banc.json`** garde ses champs v0.1.0 et en ajoute :
+  - `"langue"` ;
+  - `"ok"` et `"a_revoir"` : nombre de fiches par statut de génération ;
+  - `"recopie"` : moyenne non pondérée des valeurs ci-dessous, `null` sans fiche ;
+  - `"recopie_par_rubrique"` : `{"titre","description","impact","recommandation"}`, moyenne par rubrique ;
+  - `"motifs"` : `{code: nombre}` sur toutes les fiches.
+- **Recopie :** pour chaque fiche et chaque rubrique R, `difflib.SequenceMatcher(None, fiche.R, textes.R).ratio()`, où :
+  - `textes = catalogue.obtenir(fiche.tracabilite.constat_id).textes(langue)` ;
+  - le texte de la fiche est celui de `fiches.json`, après garde-fous (définition de `bilan-modeles.md`) ;
+  - aucune normalisation.
+  
+  Le banc lit le catalogue par `composition.creer_catalogue(config)` (nouveau, `CatalogueYaml(config.chemins.catalogue)`).
+- **Console :** une ligne de plus, `ok X/N, recopie 0,xx (titre … description … impact … recommandation …)`.
+- **top1 / top3 :** inchangés dans `banc.json`. La mesure déterministe de CAP-5 (sans modèle) est `tests/unitaires/test_rattachement_demo.py`, qui devient bloquante : notes 01 et 29 au rang 1 ; 01 à 20 au moins 17/20 en top1 et 20/20 en top3 ; 21 à 30 au moins 8/10 en top1 et 10/10 en top3.
+
+## 30. Fiche d'un lot et liste des lots — `application/lots.py`
+
+Ajouté le 2026-10-18 (v2, CAP-9, CAP-10).
+
+- **`var/sorties/<id>/lot.json`**, écrit une fois par `executer_lot` et `executer_incident` dès que le dossier de sortie existe : `{"id_lot", "workflow": "fiches"|"incident", "langue": "fr"|"en"|null, "modele_demande": str|null, "cree_le": ISO 8601 avec fuseau}`.
+- **`application/lots.py`** (lecture seule) :
+  - `ResumeLot` (dataclass figée) : `id_lot, workflow, etat, total: int | None, langue, modele, cree_le, url` ;
+  - `lister_lots(config, occupation: Occupation | None) -> list[ResumeLot]` ;
+  - `etat_lot(config, id_lot, occupation, depuis=0) -> dict` (forme de `/lots/{id}/etat`).
+- **Règles :**
+  - **`workflow`** : `lot.json`, sinon `incident` si `incident.json` ou `rapport-incident.docx` existe (lot v0.1.0), sinon `fiches`.
+  - **`etat`** : `termine` si le dernier événement de `journal.jsonl` est `lot_termine` ; `echoue` si c'est `lot_echoue` (`erreur = details.message`) ; `en_cours` si l'occupation courante porte ce lot (nature `fiches` ou `incident`) ; `interrompu` sinon (processus arrêté). L'UI traite `interrompu` comme `echoue` (EXPERIENCE, State Patterns).
+  - **`total`** : celui de `lot_demarre`, sinon `None`. **`modele`** : `lot_demarre.details.modele`, sinon `modele_demande`.
+  - **`url`** : `/lots/{id}` ou `/incidents/{id}`.
+  - **Source :** `journal.jsonl` sur le disque, relu à chaque appel, qui remplace le registre en mémoire du §18. Une ligne illisible est ignorée (log).
+- La CLI et l'UI n'écrivent rien d'autre dans `var/sorties/<id>/` que les fichiers listés dans ce contrat : `lot.json`, `journal.jsonl`, `fiches.json`, `relecture.json`, `rapport.docx`, `rapport-<id>.docx`, `brouillon-<id>.docx`, `banc.json`, `incident.json` et `rapport-incident.docx`.
+- `composition.journal_reconnu(nom: str) -> bool` (nouveau) délègue à `adaptateurs/journaux.router_journal(nom)`, le nom public de l'actuel `_router` : l'UI refuse un dépôt incident sans journal routé avant de créer le lot.

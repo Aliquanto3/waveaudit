@@ -97,7 +97,7 @@ Comportement ; les spécifications visuelles sont dans `DESIGN.md.Components`.
 | Lots récents | Liste | Un lot par ligne : nom/horodatage, nombre de notes, statut (en cours / terminé / échoué) ; clic reprend ce lot (`GET /lots/{id}` ou `/incidents/{id}` selon le workflow). |
 | Suivi d'un lot (fiches) | En cours | Barre de progression + journal qui s'allonge ; aucune action possible sauf attendre. |
 | Suivi d'un lot (fiches) | Terminé | Redirection douce vers la relecture (ou affichage direct si déjà sur la page). |
-| Suivi d'un lot (fiches) | Échoué | Message d'erreur en haut (ex. moteur injoignable), journal conservé jusqu'à l'échec, pas de relecture possible pour ce lot. |
+| Suivi d'un lot (fiches) | Échoué | Message d'erreur en haut (ex. moteur injoignable), journal conservé jusqu'à l'échec ; les fiches déjà produites restent relisibles et exportables, les notes non traitées sont listées comme telles (relance = nouveau lot). |
 | Suivi d'un lot (incident) | En cours | Même traitement que fiches : barre de progression + journal, aucune action possible sauf attendre. |
 | Suivi d'un lot (incident) | Terminé | Redirection douce vers le Résultat incident (ou affichage direct si déjà sur la page). |
 | Suivi d'un lot (incident) | Échoué | Message d'erreur en haut (ex. dossier illisible), journal conservé jusqu'à l'échec, pas de résultat affiché pour ce lot. |
@@ -183,8 +183,10 @@ accès réseau sortant à l'exécution. Navigateurs cibles : Edge et Chrome réc
    l'envoyer au client, le lendemain matin comme prévu.
 
 Échec : si le moteur devient injoignable en cours de lot, le journal affiche l'erreur, les fiches
-déjà terminées restent utilisables en relecture ; Camille peut relancer plus tard en reprenant le
-même lot depuis « Lots récents ».
+déjà terminées restent relisibles et exportables, les notes non traitées sont listées comme
+telles. Camille relance plus tard ces notes depuis l'Accueil : la relance crée un nouveau lot ;
+les corrections et validations du lot d'origine restent intactes (retrouvable dans « Lots
+récents »).
 
 Chemin alternatif — brouillon : à 17h, avec seulement 9 des 12 fiches validées, Camille doit
 partir ; elle clique « Exporter un brouillon ». Le rapport Word se télécharge immédiatement,
@@ -195,8 +197,9 @@ reprendra la relecture le lendemain matin depuis « Lots récents » avant l'exp
 
 1. Karim ouvre WaveAudit, choisit le workflow « Incident » et dépose le dossier exporté du
    bastion (journaux Windows en `.json`, `.log` Linux).
-2. Il lance l'analyse et suit la barre de progression ; pas de choix de modèle ni de langue pour
-   ce workflow (règles de détection, pas de génération par modèle).
+2. Avant de lancer, il choisit le modèle parmi les modèles installés (même sélecteur que pour un
+   lot de fiches) : les récits de détection passent par le SLM. Pas de choix de langue pour ce
+   workflow (le rapport incident reste en français).
 3. Une fois terminé, il arrive sur le résumé des détections, groupées par sévérité. Il clique la
    carte « Critique » : la liste se filtre sur les détections correspondantes (ex. « Accès
    LSASS »).
@@ -204,9 +207,10 @@ reprendra la relecture le lendemain matin depuis « Lots récents » avant l'exp
 5. **Climax** : il clique « Télécharger le rapport ». Le fichier `.docx` se télécharge
    immédiatement ; il le joint à sa main courante d'incident sans étape intermédiaire.
 
-Échec : si le dossier déposé ne contient aucun fichier reconnu, le résumé affiche « Aucune
-détection sur ce dépôt » plutôt qu'une erreur — le dépôt a été lu, simplement rien n'y correspond
-aux règles.
+Échec : si le dépôt ne contient aucun journal reconnu, il est refusé à l'envoi (HTTP 400
+`aucun_journal_reconnu`) : l'Accueil affiche le message d'erreur et aucun lot n'est créé. Le
+message « Aucune détection sur ce dépôt » est réservé à un dépôt lu dont rien ne correspond aux
+règles (Résultat incident, état vide).
 
 ## Questions ouvertes
 
@@ -223,8 +227,6 @@ le cadrage, pas par cette spine :
   génération pour cette seule fiche ; impact sur la numérotation des événements du journal.
 - **Liste des modèles proposée à l'UI** : contrats.md ne décrit pas encore l'endpoint qui expose
   le manifeste des modèles installés avec durée et mémoire indicatives.
-- **Export brouillon** : format exact de la mention « non validée » dans le corps du document
-  Word (ligne ajoutée, filigrane, les deux ?) — à confirmer avec contrats §18 (export).
 - **Persistance de l'état du tiroir** (ouvert/replié) entre deux ouvertures de la même page : pas
   demandée explicitement, laissée en confort local (voie rapide) plutôt que verrouillée ici.
 

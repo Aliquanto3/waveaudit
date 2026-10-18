@@ -1,0 +1,543 @@
+# Ordre (liste = ordre d'exécution ; dépendances dans chaque invoke_dev_with) :
+#   vague 0 : S0 seule (AD-18), intégrée, suite verte sur main ;
+#   vague 1 : Q1, Q2, R1, M1, X1, W1 en parallèle (fichiers disjoints) ;
+#   vague 2 : Q3 (après Q2), W5 (après W1) ;
+#   vague 3 : Q4 (après Q3), L1 (après Q1, Q2, Q3, X1) ;
+#   vague 4 : B1 (après L1), R2 (après R1, M1, L1) ;
+#   vague 5 : Q5 rebanc EliteBook (après Q4, B1), X2 (après X1, R2, B1), W2 (après W5, R2, M1, L1) ;
+#   vague 6 : W3a (après W2, X2), W4 (après W2) ;
+#   vague 7 : W3b (après W3a, W4) ; puis DOC ; puis REC (recette EliteBook).
+# Collisions tenues par l'ordre (impacts-v2.md) : catalogue YAML Q3 puis Q4 ; prompt.py et
+# pipeline.py Q1 puis L1 puis Q5 ; lot.py S0 puis L1 puis R2 ; app.py W1 (routeurs) puis W5,
+# W2, puis W3a et W4 (un routeur chacun), puis W3b ; style.css W5, W2, W4, W3b en séquence.
+# composition.py (Q1, B1, X2, W2, W4) et cli.py (L1, B1, X2) : ajouts de fonctions ou de
+# commandes seulement, en fin de bloc ; X2 et W2 peuvent se croiser sur composition.py :
+# conflit d'adjacence résolu à l'intégration, jamais en réécrivant la fonction de l'autre.
+# Contrat commun : SPEC.md, formats.md, mesures-qualite.md, ecarts-contrat.md ; contrats.md
+# (normatif, sections [v2] et §23 à §30) ; ARCHITECTURE-SPINE.md AD-18 à AD-23 ;
+# impacts-v2.md (table des tests) ; EXPERIENCE.md et DESIGN.md pour les écrans.
+# Après S0, aucune story ne modifie les fichiers du socle (AD-0 v2) : un manque s'arrête et se
+# signale. Exceptions nommées d'AD-18 : Q4 (valeurs k1, b) et Q5 (role, repeat_penalty,
+# duree_indicative_s du manifeste). Aucun test sur le vrai modèle ni le réseau hors `slow`.
+# Pièges Windows communs : écriture atomique `.partiel` puis os.replace retenté sur
+# PermissionError (lecteur concurrent, Word ouvert) ; encoding="utf-8" explicite partout ;
+# noms de fichiers comparés en casefold, Path.name seulement, jamais de chemin absolu dans un
+# message (sans_chemin) ; aucun test ne dépend de l'heure ou de l'année courante ; minuteries
+# de test courtes (0,1 s) et attentes par sondage borné, jamais de sleep fixe long ; fils
+# daemon et verrous libérés dans un finally ; TestClient : jeton CSRF posé par
+# tests/web_outils.py dès W1.
+- id: "S0"
+  title: Socle v2 (formes partagées, configuration, ports, faux moteur, noms publics de lot.py)
+  description: >-
+    Transcrit en une fois les formes partagées v2 sans changer aucun comportement (AD-18) :
+    langue, textes bilingues, nouveaux motifs, configuration, ports, formes de relecture,
+    rôles du manifeste, scénarios du faux moteur, noms publics de lot.py (CAP-1 port, CAP-7
+    rôles, CAP-16).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Seule et en premier. Contrats §1 v2, §2 v2, §3 v2 (Moteur.generer_json(..., seed=None),
+    OptionsExport, Exporteur.exporter(..., options=OptionsExport())), §9 v2 (noms publics),
+    §11 (rôles, Artefact.repeat_penalty, Artefact.duree_indicative_s), §13 v2, §25 « Formes » ;
+    impacts-v2.md lignes 1 à 6 et 13, plus les champs Artefact de la ligne 12. Fichiers :
+    src/waveaudit/domaine/modeles.py (Langue, TextesConstat, ConstatType.en et textes(),
+    CodeMotif repetition, langue, lot_interrompu, RequeteLot.langue) ;
+    domaine/configuration.py et config/waveaudit.toml ensemble (moteur.repeat_penalty borné
+    0 à 2, [fiches] langue, ui.inactivite_moteur_s) ; domaine/ports.py ;
+    domaine/relecture.py (nouveau : formes, invariants, RefusRelecture ; aucune règle pure,
+    c'est R1) ; config/artefacts.toml (qwen3.5-0.8b modele_repli, minicpm5 candidat) et
+    installation/manifeste.py ; tests/faux_moteur.py (scénarios repetition, langue_anglaise,
+    langue_francaise, ecriture_etrangere, url_de_la_note, modes fiche et incident) ;
+    application/lot.py (ID_LOT, Emetteur, sans_chemin, sorties publics, verifier_id_lot),
+    application/incident.py (imports publics, _id_lot dupliqué supprimé), interfaces/cli.py
+    (import de sans_chemin, l. 63) ; tests/unitaires/test_architecture.py (aucun import d'un
+    nom _… de waveaudit.application.lot hors de lot.py, tests/ compris, par ast). Tests à
+    réaligner : e2e/test_lot.py::test_sans_chemin_avec_espaces et
+    ::test_sans_chemin_garde_les_url (lot.sans_chemin), commentaire de e2e/test_incident.py
+    l. 207-208 ; u/test_config.py::test_manifeste_artefacts (noms, rôles, CHAMPS_FACULTATIFS)
+    et ::test_defauts_du_toml_egaux_au_modele ;
+    u/test_composition.py::test_local_gere_demarre_llama_server (RAM 2 Go : qwen3.5-0.8b-q4km,
+    Qwen3.5-0.8B-Q4_K_M.gguf), ::test_choix_par_ram et u/test_installation.py restent verts.
+    Nouveaux tests : u/test_modeles.py (textes("en") lève si en vaut None, RequeteLot.langue
+    None par défaut, 3 codes), u/test_config.py (défauts et bornes, repeat_penalty > 2
+    refusé), u/test_relecture_modeles.py (invariants, aller-retour JSON), u/test_faux_moteur.py
+    (un test par scénario, fiche et incident). pyproject.toml, uv.lock, conftest.py,
+    erreurs.py, application/config.py, registre.py inchangés. Suite complète verte.
+- id: "Q1"
+  title: Nouvelle tentative seed + 1, balises neutralisées, repeat_penalty transmis
+  description: >-
+    La nouvelle tentative après sortie invalide change de seed (CAP-1), les balises de prompt
+    présentes dans une note ne ferment plus rien (CAP-2) et repeat_penalty part dans le corps
+    de requête (CAP-6, transmission).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après S0 ; parallèle à Q2, R1, M1, X1, W1. Contrats §5 v2, §3 (seed, repeat_penalty dans
+    le corps), §8 v2 (‹ à la place de <, même longueur ; regle et preuves en incident), §11
+    (manifeste prime sur la config) ; impacts-v2.md lignes 7, 8 et 12 (transmission).
+    Fichiers : src/waveaudit/adaptateurs/moteur_openai.py ; workflows/fiches/pipeline.py et
+    workflows/incident/pipeline.py (_generer_avec_un_essai seulement) ;
+    workflows/fiches/prompt.py et workflows/incident/prompt.py (échappement seulement, pas la
+    consigne : L1 et Q5) ; application/composition.py (_moteur seulement). Ne pas toucher
+    domaine/garde_fous*.py (Q2). Tests à réaligner : u/test_pipeline.py::
+    test_json_invalide_une_fois_nouvel_essai_reussi et
+    ::test_json_invalide_repli_apres_un_seul_nouvel_essai, u/test_pipeline_incident.py::
+    test_json_invalide_une_fois_puis_succes et ::test_json_invalide_deux_fois_repli (seed 42
+    puis 43, repli inchangé) ; à relire, verts : u/test_pipeline.py::
+    test_prompt_balises_dans_le_dernier_user_sans_references_ni_attendu,
+    ::test_prompt_sans_prefixe_ni_actif, u/test_prompt_incident.py::test_ligne_de_preuve,
+    u/test_moteur_openai.py::test_nominal_corps_de_requete_conforme et CLES_CORPS (clé
+    absente à 0.0). Nouveaux : u/test_prompt.py (</note> et </constat> dans le corps et
+    l'actif, une seule fermante de chaque, longueur conservée, troncature inchangée),
+    u/test_prompt_incident.py (</preuves> dans un message), u/test_moteur_openai.py (seed
+    explicite transmis ; repeat_penalty absent à 0.0, présent sinon), u/test_composition.py
+    (repeat_penalty du manifeste prime sur la config).
+- id: "Q2"
+  title: Garde-fous v2 (seuils, URL de la note, répétition, langue)
+  description: >-
+    Les garde-fous gardent un titre court et l'URL de la note, et marquent à revoir une
+    rubrique répétitive ou rédigée dans une autre langue, pour les fiches et les récits
+    d'incident (CAP-3, CAP-4).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après S0 ; parallèle à Q1, R1, M1, X1, W1. Contrats §6 v2 (ordre révisé d'appliquer,
+    étapes 5 répétition et 6 langue, paramètre langue="fr", repli et complétion depuis
+    constat.textes(langue)), §21 v2 (appliquer_recit(..., langue="fr")) ; impacts-v2.md
+    lignes 9, 10 et 11. Fichiers : src/waveaudit/domaine/qualite_texte.py (nouveau : trigrammes,
+    boucle sans espace, listes de mots-outils fr/en embarquées, écriture non latine, µ
+    toléré ; seuils de §6), domaine/garde_fous.py, domaine/garde_fous_incident.py. Ne pas
+    modifier workflows/*/pipeline.py (Q1 en parallèle) : les défauts langue="fr" couvrent la
+    v0.1.0 et le service incident ; le passage de la langue du lot est fait par L1. Tests à
+    relire, verts : u/test_garde_fous.py::test_rubrique_courte_remplacee_par_le_texte_du_constat,
+    ::test_rubrique_vide_remplacee_par_le_texte_du_constat,
+    ::test_references_inventees_retirees_casse_ponctuation_url, u/test_pipeline.py::
+    test_references_inventees_retirees, u/test_garde_fous_incident.py (16 tests) ; vérifier
+    que e2e/test_lot.py::test_lot_nominal_30_notes et la démo CERT de e2e/test_incident.py
+    restent ok. Nouveaux : u/test_qualite_texte.py (vecteurs trigrammes 0,30, boucle sans
+    espace, mots-outils, 経, µ, aucun faux positif sur les textes fr du catalogue) ;
+    u/test_garde_fous.py (titre de 5 à 19 caractères gardé, titre de 4 complété, autre
+    rubrique de 19 complétée, URL du corps et de l'actif gardée, URL absente retirée, motifs
+    repetition et langue avec fixtures bilingues) ; u/test_pipeline_qualite.py (nouveau
+    fichier, pour ne pas croiser Q1 dans test_pipeline.py : faux moteur repetition,
+    langue_anglaise en lot fr, ecriture_etrangere → a_revoir + motif ; url_de_la_note → ok) ;
+    u/test_garde_fous_incident.py (récit anglais → motif langue) ; e2e/test_incident.py
+    (scénario langue_anglaise → a_revoir).
+- id: "R1"
+  title: Règles pures de relecture
+  description: >-
+    Correction, validation, remplacement de fiche, fiche courante et contenu des exports, en
+    fonctions pures sur les formes de relecture (CAP-11 à CAP-13, logique sans disque).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après S0 ; parallèle à Q1, Q2, M1, X1, W1. Contrats §25 « Règles pures » ; AD-19 ;
+    impacts-v2.md ligne 22. Fichier : src/waveaudit/domaine/relecture.py (ajout de
+    fiche_courante, corriger, valider, remplacer_fiche, rapport_export ; les formes de S0 ne
+    changent pas) ; CVSS par domaine/cvss31 seulement. Codes de refus exacts : non_modifiable,
+    generation_en_cours, rubrique_trop_longue, reference_ajoutee, vecteur_invalide,
+    rubrique_vide. Nouveau : u/test_relecture_regles.py (CVSS recalculé, vecteur invalide →
+    validation refusée, ajout de référence refusé, correction identique sans incrément,
+    validée puis modifiée → a_valider, fiche_courante garde statut, motifs, tracabilite et le
+    CVSS généré si le corrigé vaut None, rapport_export final et brouillon avec l'ensemble des
+    non validées, entrées attente → lot_interrompu dans les écartées, ordre par index).
+- id: "M1"
+  title: Verrou unique et moteur à la demande
+  description: >-
+    Un seul travail à la fois par processus UI (lot, incident, régénération) et un moteur
+    ouvert à la demande pour la régénération, fermé après inactivité (CAP-9, CAP-11, CAP-14 ;
+    AD-20).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après S0 ; parallèle à Q1, Q2, R1, X1, W1. Contrats §24 ; AD-11, AD-20 ; impacts-v2.md
+    ligne 25. Fichier : src/waveaudit/application/moteur_demande.py (nouveau : Occupation,
+    VerrouUnique, MoteurALaDemande ; passe par composition.ouvrir, n'en modifie rien). Pas
+    d'intégration web ici (W2). Nouveau : u/test_moteur_demande.py (prendre non bloquant,
+    occupation copiée, réutilisation pour le même modèle, changement de modèle → fermeture
+    puis ouverture, échec d'ouverture refermé et remonté, arrêt après inactivite_s à 0,1 s,
+    minuterie réarmée, fermer idempotent, mode externe sans processus ; _FauxServeur de
+    u/test_composition.py réutilisé pour local-gere, par import, sans le modifier).
+- id: "X1"
+  title: Rendu Word bilingue, modes final et brouillon
+  description: >-
+    L'exporteur Word rend les libellés fr ou en et les modes lot, final et brouillon (marque
+    « Non validée », statut « Validée » sans motifs) ; base de CAP-8 et CAP-13.
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après S0 ; parallèle à Q1, Q2, R1, M1, W1. Contrats §27 « Rendu » (table LIBELLES fr/en
+    adoptée, marque dans le titre de niveau 2 « {N}. {titre} — {marque} », mode final :
+    Validée/Validated dans la section Statut et la colonne Statut de la synthèse, sans
+    motifs), §17 ; impacts-v2.md ligne 23 (partie adaptateur). Fichier :
+    src/waveaudit/adaptateurs/export_docx.py (LIBELLES, BANDEAUX, OptionsExport de S0) ; titres
+    des références non traduits. Pas de service ni de CLI (X2). À garder verts sans changer
+    leurs cas : u/test_export_docx.py (8 tests, mode lot fr : rapport.docx identique à la
+    v0.1.0). Nouveaux dans u/test_export_docx.py : en (bandeau, intitulés, sévérités, statuts,
+    annexe), brouillon (marque sur les seules fiches non validées, statut de génération et
+    motifs gardés), final (aucune marque, Validée, aucun motif), annexe avec lot_interrompu.
+- id: "W1"
+  title: Socle web (routeurs, CSRF, en-têtes de sécurité, erreurs codées)
+  description: >-
+    Découpe app.py en routeurs par surface et pose l'enveloppe de sécurité commune (Host,
+    Origin, jeton CSRF, tailles, CSP) et le format d'erreur {detail, code}, sans changer les
+    parcours v0.1.0 (CAP-15 en partie ; AD-22).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après S0 ; parallèle à Q1, Q2, R1, M1, X1. Doit précéder toute autre story web. Contrats
+    §26 « Règles communes » (ordre du middleware, codes hote_refuse, origine_refusee,
+    csrf_invalide, longueur_requise, trop_volumineux, limites 20 Mio / 50 Mio / 256 Kio ;
+    en-têtes CSP, nosniff, no-referrer, no-store sur JSON) ; AD-22 ; impacts-v2.md ligne 26.
+    Fichiers : src/waveaudit/interfaces/web/app.py (creer_app assemble des APIRouter vides ou
+    existants : pages, lots, relecture, incidents, theme, un module par routeur sous
+    interfaces/web/routeurs/ ; le _RegistreLots v0.1.0 reste jusqu'à W2) ;
+    templates/base.html (meta csrf) ; index.html et static/*.js (formulaire envoyé par fetch
+    avec X-CSRF-Token ; aucun script ni style en ligne, aucun attribut on*= ni style=) ;
+    tests/web_outils.py (nouveau, conftest.py inchangé : client(config) ou client(app) qui
+    pose X-CSRF-Token depuis app.state.jeton_csrf). Tests à réaligner (TOUS les POST, via
+    web_outils) : e2e/test_ui.py::test_lot_nominal_20_notes_puis_telechargement,
+    ::test_second_envoi_pendant_un_lot_refuse_sans_ecriture, ::test_noms_refuses,
+    ::test_rapport_avant_la_fin_et_lot_inconnu, ::test_multipart_malforme_relache_le_verrou,
+    ::test_noms_reserves_windows_avec_point_ou_espace,
+    ::test_etat_depuis_ne_renvoie_que_les_nouveaux_evenements,
+    ::test_origin_etranger_refuse_sur_post ; ::test_host_etranger_refuse (400 + code
+    hote_refuse) et ::test_host_ipv6_boucle_locale_accepte à garder verts ;
+    e2e/test_hors_ligne.py::test_ui_lot_sous_garde_sans_tentative et
+    ::test_negatif_connexion_hors_boucle_locale_refusee ;
+    e2e/test_cli.py::test_ui_lance_uvicorn_avec_la_vraie_creer_app à garder vert. Nouveaux
+    dans e2e/test_ui.py : 403 sans jeton et avec un mauvais jeton, 411, 413, CSP et nosniff
+    sur chaque réponse, corps d'erreur {detail, code} sans chemin absolu.
+- id: "Q3"
+  title: Catalogue bilingue et traduction anglaise des 50 constats
+  description: >-
+    Le catalogue porte un bloc anglais obligatoire par constat, refusé incomplet au chargement
+    et par catalogue verifier, et les 50 entrées sont traduites (CAP-8 ; story de données).
+  spec_checkpoint: false
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Après Q2 (le test de langue du catalogue utilise domaine/qualite_texte.py). Contrats §15
+    v2 (schéma YAML, chargement strict, verifier, en.titre != titre, aucun mot-outil fr dans
+    en.description) ; formats.md « Constat type bilingue » ; impacts-v2.md ligne 16. Fichiers :
+    src/waveaudit/adaptateurs/catalogue_yaml.py ; donnees/catalogue/ad.yaml, autre.yaml,
+    config.yaml, crypto.yaml, infra.yaml, web.yaml (bloc en : titre, description, impact,
+    recommandation ; id, famille, cvss_vecteur, source, mots_cles, références et URL
+    inchangés ; titres des références non traduits). Ne pas toucher mots_cles (Q4) ni
+    domaine/recherche.py. Traduction rédigée par le développeur, en anglais professionnel de
+    rapport de pentest, sans outil en ligne. Tests à réaligner dans u/test_catalogue.py :
+    fixtures de catalogue minimal complétées d'un bloc en
+    (::test_catalogue_minimal_complet_est_valide, tous les ::test_verifier_detecte_*, tous
+    les ::test_charger_leve_*, ::test_constats_leve_configuration_invalide_si_id_duplique),
+    ::test_contenu_du_catalogue_du_depot_suit_le_cahier_des_charges ;
+    e2e/test_cli.py::test_catalogue_verifier_depot_valide_code_0 et
+    ::test_catalogue_verifier_casse_code_2 à garder verts ; u/test_qualite_texte.py : ajouter
+    le cas « aucun faux positif sur les textes en du catalogue ». Nouveaux dans
+    u/test_catalogue.py : en absent ou incomplet refusé par verifier et par CatalogueYaml,
+    en.titre != titre, aucun mot-outil fr dans en.description. Point d'arrêt : Anaël relit un
+    échantillon de 10 constats (au moins un par fichier YAML) avant fusion ; lister ces 10 ids
+    dans le compte rendu.
+- id: "W5"
+  title: Thème public et logo privé de l'interface
+  description: >-
+    Palette Wavestone publique en tokens CSS, logo servi seulement s'il est présent dans
+    theme-prive, bandeau en haut et en bas de chaque page (CAP-15).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après W1 ; parallèle à Q3. Contrats §28 ; DESIGN.md (tokens, contrastes) ; AD-14 ;
+    impacts-v2.md ligne 30. Fichiers : src/waveaudit/interfaces/web/static/tokens.css
+    (nouveau, valeurs exactes de DESIGN.md), static/style.css (couleurs par les propriétés
+    seulement, aucune @font-face, aucun url() hors /static/ et /theme/), templates/base.html
+    (bandeau haut et bas, logo si logo_present), routeur theme (GET /theme/logo.svg, 404
+    logo_absent ; rien d'autre de theme-prive servi). Aucun logo ni charte dans le dépôt.
+    Tests à garder verts : e2e/test_ui.py::test_aucune_url_externe_dans_templates_et_static
+    (couvre tokens.css), ::test_bandeau_sur_chaque_page. Nouveaux dans e2e/test_ui.py : logo
+    200 ou 404 selon deux theme_prive sous tmp_path, logo_present dans le HTML, bandeau haut
+    et bas sur /, CSP sur les pages existantes. Les rôles ARIA du tiroir, des onglets et des
+    dialogues sont testés par W3b, ceux de l'incident par W4.
+- id: "Q4"
+  title: Index BM25 bilingue et rattachement des notes 01 et 29
+  description: >-
+    L'index de recherche lit les deux langues de chaque constat, et le réglage des mots-clés et
+    des pondérations met les notes 01 et 29 au premier rang sans régression (CAP-5).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après Q3 ; parallèle à L1. Contrats §7 v2 (un document par constat : titre fr ×3,
+    en.titre ×3, mots_cles ×3, description fr ×1, en.description ×1 ; bloc en sauté s'il vaut
+    None ; N inchangé), §29 (mesure bloquante) ; AD-7, AD-23 ; mesures-qualite.md ;
+    impacts-v2.md lignes 15 et 17. Fichiers : src/waveaudit/domaine/recherche.py (_document,
+    constantes de pondération) ; donnees/catalogue/*.yaml (mots_cles seulement) ;
+    config/waveaudit.toml (valeurs [recherche] k1 et b seulement, exception d'AD-18, et
+    test_config.py::test_defauts_du_toml_egaux_au_modele aligné si besoin). Réglage sans
+    regarder les notes 21 à 30 (consigner dans le commit les valeurs essayées et leur score
+    01-20). Tests à réaligner : u/test_rattachement_demo.py devient la mesure bloquante
+    (notes 01 et 29 au rang 1 ; 01-20 top1 >= 17/20 et top3 = 20/20 ; 21-30 top1 >= 8/10 et
+    top3 = 10/10, docstrings mises à jour) ; u/test_recherche.py (fixtures sans en, vertes).
+    Nouveau dans u/test_recherche.py : un mot présent seulement dans en.titre rattache le
+    constat ; N inchangé. Mesures top1/top3 recopiées dans
+    _bmad-output/implementation-artifacts/bilan-modeles.md (section v2).
+- id: "L1"
+  title: Langue du lot de fiches, de la CLI au Word
+  description: >-
+    Un lot fr ou en reçoit la consigne et le constat type dans sa langue, des garde-fous dans
+    cette langue et un Word aux libellés de cette langue ; options --langue de fiches et banc
+    (CAP-8 côté CLI).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après Q1, Q2, Q3 et X1 ; parallèle à Q4. Contrats §23, §8 v2 (CONSIGNES par langue,
+    Asset: en anglais), §9 v2 (langue dans executer_lot, lot_demarre.details avec workflow et
+    langue, diffusion par copie de config.fiches.langue), §19 (fiches --langue, banc
+    --langue ; valeur hors fr/en → code 2) ; AD-21 ; impacts-v2.md lignes 18 (sans la
+    consigne révisée de CAP-6, faite par Q5), 19 et 20. Fichiers :
+    src/waveaudit/workflows/fiches/prompt.py (CONSIGNES {"fr": consigne v0.1.0, "en": sa
+    traduction}, CONSIGNE = CONSIGNES["fr"] gardé) ; workflows/fiches/pipeline.py (langue,
+    rediger, appel garde_fous.appliquer(..., langue=...)) ; application/lot.py ;
+    application/banc.py (paramètre langue passé à RequeteLot seulement : les mesures sont B1) ;
+    interfaces/cli.py ; l'exporteur reçoit OptionsExport(langue=...). Tests à réaligner :
+    u/test_pipeline.py::test_prefixe_systeme_vient_des_ports (prompt.CONSIGNE, l. 300) et
+    ::test_prompt_* ; u/test_faux_moteur.py::test_nominal_routes_et_requetes (lit
+    <constat>) ; e2e/test_lot.py::test_lot_nominal_30_notes (égalité exacte de details,
+    l. 56-60) ; e2e/test_cli.py::test_fiches_nominal_30_notes_bandeau_et_garde (vert).
+    Nouveaux : u/test_prompt.py (consigne et constat anglais en en, Asset:) ;
+    u/test_pipeline.py (lot en avec faux moteur → textes anglais, repli anglais) ;
+    e2e/test_lot.py (lot en → details.langue == "en", Word anglais, lot sans langue = fr) ;
+    e2e/test_cli.py (--langue en → Word aux libellés anglais ; --langue de → code 2).
+- id: "B1"
+  title: Banc v2 (recopie, taux ok, motifs, langue)
+  description: >-
+    Le banc mesure la recopie par rubrique, le nombre de fiches ok et à revoir, les motifs et la
+    langue, pour permettre le rebanc de CAP-6 et CAP-7.
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après L1 ; parallèle à R2. Contrats §29 (champs langue, ok, a_revoir, recopie,
+    recopie_par_rubrique, motifs ; difflib sans normalisation sur fiches.json ; ligne console
+    en plus) ; mesures-qualite.md « Indicateurs » ; AD-23 ; impacts-v2.md ligne 31. Fichiers :
+    src/waveaudit/application/banc.py ; application/composition.py (ajout de creer_catalogue
+    seulement) ; interfaces/cli.py (ligne console du banc seulement, si elle y est écrite).
+    Tests à réaligner : e2e/test_banc.py::test_banc_json_nominal (ensemble exact des clés,
+    l. 103-115) ; e2e/test_cli.py::test_banc_succes_code_0 (sortie console). Nouveaux dans
+    e2e/test_banc.py : recopie = 1,0 pour un repli, proche de 1 avec le faux moteur nominal
+    ("[adapté] " + texte), langue en comparée aux textes anglais, recopie null sans fiche.
+- id: "R2"
+  title: Persistance de la relecture et fiche lot.json
+  description: >-
+    Le lot alimente relecture.json entrée par entrée et écrit lot.json ; lecture, modification
+    versionnée et régénération d'une entrée, avec un écrivain unique et des écritures
+    atomiques (CAP-10 à CAP-12 côté disque ; AD-19).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après R1, M1 et L1 ; parallèle à B1. Contrats §25 « Persistance » (initialiser,
+    enregistrer_resultat, charger avec repli fiches.json v0.1.0, modifier, demarrer_regeneration
+    et son ordre de refus, regenerer sous verrou déjà pris, génération interrompue), §30
+    (lot.json écrit par executer_lot et executer_incident) ; AD-19 ; impacts-v2.md ligne 21.
+    Fichiers : src/waveaudit/application/relecture.py (nouveau ; pas d'import de lot.py ni de
+    moteur_demande.py au niveau module ; _VERROUS par chemin résolu ; .relecture.json.partiel
+    puis os.replace retenté 5 fois à 50 ms sur PermissionError) ; application/lot.py
+    (initialiser au démarrage, enregistrer_resultat avant l'événement de fin de fiche,
+    lot.json) ; application/incident.py (lot.json seulement). Tests à réaligner :
+    e2e/test_incident.py::test_id_lot_fourni_et_sans_fichier_provisoire (liste exacte des
+    fichiers : ajouter lot.json) ; e2e/test_lot.py::test_lot_nominal_30_notes (fichiers de
+    sortie). Nouveaux : u/test_relecture.py (initialiser, enregistrer_resultat, aucun
+    .partiel restant, charger en repli depuis fiches.json sans écrire, lot_inconnu,
+    conflit_version, ordre des refus de demarrer_regeneration, régénération avec
+    MoteurALaDemande en externe et faux moteur → nouveau constat_id dans <constat>,
+    garde-fous appliqués, aucun événement écrit, échec d'ouverture → generation echec, fils
+    concurrents lot + corrections sans perte) ; e2e/test_lot.py (lot échoué au milieu, faux
+    moteur coupé → entrées attente restantes, fiches déjà produites présentes).
+- id: "Q5"
+  title: Rebanc EliteBook, consigne révisée et rôles des modèles
+  description: >-
+    Révise la consigne (fr et en) et règle repeat_penalty pour réduire la recopie, mesure
+    granite et qwen3-1.7b sur l'EliteBook et décide du modèle par défaut selon la règle de
+    CAP-7 (CAP-6, CAP-7).
+  spec_checkpoint: false
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Après Q4 et B1 ; parallèle à X2 et W2. À exécuter sur l'EliteBook cible
+    (mesures-qualite.md : i5-1145G7, threads 4, ctx 4096, un seul llama-server, garde réseau
+    actif, sans téléchargement). Contrats §8 v2 et §23 (CONSIGNES), §11 (exception d'AD-18 :
+    role, repeat_penalty, duree_indicative_s des entrées existantes de config/artefacts.toml,
+    rien d'autre), §29 ; AD-23 ; impacts-v2.md ligne 18 (consigne révisée). Point de départ :
+    la consigne de l'essai 3 de bilan-modeles.md. Fichiers : src/waveaudit/workflows/fiches/prompt.py
+    (CONSIGNES fr et en révisées ensemble) ; config/artefacts.toml (valeurs) ;
+    _bmad-output/implementation-artifacts/bilan-modeles.md (section v2 : chaque essai avec
+    consigne, repeat_penalty, ok/6, recopie et par rubrique, médiane, motifs) ; var/ non
+    versionné. Commande : uv run waveaudit banc var/banc-sous-ensemble --modele <nom> (6 notes
+    de mesures-qualite.md), pour granite puis qwen3-1.7b. Seuils : recopie < 0,7 et ok >= taux
+    du prompt livré (6/6) pour les deux modèles (CAP-6) ; qwen3-1.7b devient défaut seulement
+    si >= 5/6 ok, recopie < 0,6 et médiane < 40 s, sinon granite reste défaut (CAP-7). Une
+    baisse de ok due à une vraie sortie dégénérée ou dans une autre langue est consignée telle
+    quelle. Vérifier au premier essai que llama-server b11714 accepte repeat_penalty
+    (hypothèse de l'architecture). Tests à réaligner : u/test_config.py::test_manifeste_artefacts
+    (si les rôles changent) ; u/test_pipeline.py et u/test_prompt.py s'ils citent le texte de la
+    consigne ; u/test_composition.py::test_local_gere_demarre_llama_server et ::test_choix_par_ram
+    si le défaut change. Ajouter un cas slow dans e2e/test_reel.py (lot réel de 2 notes avec
+    repeat_penalty du manifeste, statut et langue vérifiés). Point d'arrêt : Anaël valide le
+    choix du modèle par défaut sur les chiffres du bilan avant fusion.
+- id: "X2"
+  title: Service d'export et commande waveaudit exporter
+  description: >-
+    Exporte en Word le rapport final ou le brouillon d'un lot depuis relecture.json, par un
+    service commun à l'UI et à la nouvelle commande CLI (CAP-13, CAP-17).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après X1, R2 et B1 ; parallèle à Q5 et W2. Contrats §27 « Service » et « CLI » (codes 0 ;
+    2 pour lot_inconnu, lot_incident, aucune_fiche_validee, ConfigurationInvalide ; 4 pour
+    PermissionError et le reste ; bandeau en première et dernière ligne ; tout sous garde ;
+    aucune commande ne valide une fiche) ; AD-19 ; impacts-v2.md lignes 23 (service) et 24.
+    Fichiers : src/waveaudit/application/export.py (nouveau, exporter_lot) ;
+    application/composition.py (ajout de creer_exporteur seulement) ; interfaces/cli.py (ajout
+    de la commande exporter, autres commandes et codes inchangés). rapport.docx de fin de lot
+    jamais touché. Test à garder vert : u/test_composition.py::
+    test_ouvrir_moteur_incident_sans_port_des_fiches (creer_exporteur non appelé par
+    l'incident). Nouveaux : u/test_export.py (aucune_fiche_validee, lot_incident, lot_inconnu,
+    final avec fiches validées dans leur version corrigée, brouillon avec marque, langue du
+    lot, écrasement à chaque export) ; e2e/test_cli.py (exporter : codes 0, 2 lot inconnu, 2
+    incident, 2 aucune validée, 4 PermissionError ; bandeau ; sous garde ; --brouillon).
+- id: "W2"
+  title: Accueil v2, lots récents et suivi lu sur le disque
+  description: >-
+    L'accueil propose les modèles installés et la langue, crée le lot sous le verrou unique,
+    liste les lots récents et lit l'état d'un lot sur le disque au lieu du registre en mémoire
+    (CAP-9, CAP-10).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après W5, R2, M1 et L1 ; parallèle à Q5 et X2. Contrats §26 (GET /, GET /lots, GET
+    /api/lots, GET /api/modeles, POST /lots avec modele et langue, GET /lots/{id},
+    /lots/{id}/etat, ordre de lancement, redirection 303 entre /lots et /incidents, 404
+    lot_inconnu), §30 (lots.py, états termine, echoue, en_cours, interrompu), §11
+    (modeles_installes), §24 (VerrouUnique et MoteurALaDemande créés par creer_app, fermer
+    avant le lot, lifespan) ; EXPERIENCE.md (Accueil, Lots récents, Suivi, message 409 de Voice
+    and Tone, State Patterns) ; impacts-v2.md lignes 14 et 27. Fichiers :
+    src/waveaudit/application/lots.py (nouveau) ; application/composition.py (ajout de
+    modeles_installes seulement) ; interfaces/web/app.py et routeurs pages et lots
+    (_RegistreLots supprimé) ; templates/index.html, lots.html (nouveau), lot.html (suivi) ;
+    static/etat.js et JS de l'accueil. Tests à réaligner dans e2e/test_ui.py :
+    ::test_bandeau_sur_chaque_page (GET /lots/un-identifiant → 404, bandeau vérifié sur un lot
+    réel), ::test_rapport_avant_la_fin_et_lot_inconnu et
+    ::test_etat_depuis_ne_renvoie_que_les_nouveaux_evenements (état lu sur le disque),
+    ::test_second_envoi_pendant_un_lot_refuse_sans_ecriture (409 avec code et occupation),
+    ::test_lot_nominal_20_notes_puis_telechargement ; e2e/test_hors_ligne.py::
+    test_ui_lot_sous_garde_sans_tentative (vert). Nouveaux : u/test_lots.py (workflow et état
+    selon lot.json, journal, occupation, lot v0.1.0, ligne illisible ignorée) ;
+    u/test_composition.py (modeles_installes : local-gere avec fichiers présents ou absents
+    sous tmp_path, défaut, repli si RAM basse ; externe une entrée) ; e2e/test_ui.py
+    (/api/modeles, défaut présélectionné, modèle et langue reçus par le lot — faux moteur :
+    model et <constat> anglais —, 422 modele_indisponible et langue_invalide, 400
+    aucune_note, /api/lots fiches et incident avec interrompu, relance = nouveau lot, lien
+    Lots récents absent sans lot).
+- id: "W3a"
+  title: API de relecture, régénération et export
+  description: >-
+    Routes JSON de relecture d'un lot : liste et détail des entrées, correction enregistrée,
+    validation, changement de candidat et export final ou brouillon (CAP-10 à CAP-13 côté
+    serveur).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après W2 et X2 ; parallèle à W4. Contrats §26 (GET /lots/{id}/relecture, GET et PUT
+    /lots/{id}/entrees/{index}…, POST validation, POST candidat avec verrou regeneration, GET
+    /lots/{id}/export?type=, codes et champs entree/occupation, génération interrompue
+    réécrite à la lecture, export refusé pendant que ce lot tourne, export_verrouille), §24,
+    §25 ; AD-19, AD-20 ; impacts-v2.md lignes 28 (partie serveur) et 33 (relecture). Fichiers :
+    routeur relecture sous src/waveaudit/interfaces/web/routeurs/ et son inclusion dans
+    app.py (une ligne). Aucun gabarit ni JS (W3b). Nouveaux : e2e/test_relecture_ui.py
+    (fiche ouvrable pendant le lot avec le faux moteur lent, progression monotone, correction
+    sur disque relue après recréation de l'app, CVSS recalculé par le serveur, vecteur
+    invalide → validation refusée, reference_ajoutee, validée puis modifiée → a_valider,
+    conflit_version avec entree, confirmation_requise, changement de candidat → nouveau
+    constat_id dans <constat> et garde-fous, puis 409 lot_en_cours si un lot tourne,
+    non_rattachee → fiche, non_traitee → 422 non_generable, export final et brouillon relus
+    par python-docx, lot échoué relisible et exportable) ; e2e/test_hors_ligne.py (changement
+    de candidat sous garde(...), tentatives() == []).
+- id: "W4"
+  title: Workflow incident dans l'UI
+  description: >-
+    Depuis l'accueil, l'analyste choisit le modèle, dépose les journaux, suit le lot, lit les
+    détections par sévérité et télécharge le rapport, au même contenu que la CLI (CAP-14).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après W2 ; parallèle à W3a. Contrats §26 (POST /incidents, GET /incidents/{id}, /etat,
+    /resultat, /rapport-incident.docx ; 400 aucun_journal_reconnu à l'envoi ; 422
+    annee_invalide), §30 (journal_reconnu), §21 (service inchangé) ; EXPERIENCE.md Flow 2
+    corrigé et états du suivi et du résultat incident ; DESIGN.md ; impacts-v2.md lignes 29
+    et 33 (incident). Fichiers : routeur incidents sous src/waveaudit/interfaces/web/routeurs/
+    et son inclusion dans app.py (une ligne) ; templates/incident.html (nouveau) ;
+    static/incident.js (nouveau) ; style.css (ajouts) ; application/composition.py (ajout de
+    journal_reconnu seulement) ; adaptateurs/journaux.py (_router renommé router_journal,
+    appelants internes alignés). Aucun test n'importe _router (vérifié). Nouveaux :
+    e2e/test_incident_ui.py (démo CERT → 16 détections, par_severite, docx au même contenu
+    que waveaudit incident sur le même dépôt : sections, chronologie, détections,
+    indicateurs ; dépôt sans détection → total 0, « Aucune détection sur ce dépôt » et docx
+    téléchargeable ; aucun_journal_reconnu sans lot créé ; choix du modèle comme pour les
+    fiches ; verrou partagé avec un lot de fiches → 409 ; rôles ARIA du filtre par sévérité ;
+    cas hors ligne sous garde(...) avec tentatives() == [] dans ce fichier, pas dans
+    test_hors_ligne.py édité par W3a).
+- id: "W3b"
+  title: Écran de relecture (tiroir, candidats, fiche, exports)
+  description: >-
+    Page de relecture accessible au clavier : tiroir des fiches, note brute, onglets des 3
+    candidats, formulaire à enregistrement automatique, encart des motifs, confirmations et
+    boutons d'export (CAP-11 à CAP-13, CAP-15).
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après W3a et W4. EXPERIENCE.md (Relecture : composants, raccourcis Ctrl+Entrée et
+    Ctrl+Alt+↓, anti-rebond ~800 ms avec corps complet et version, indicateur
+    d'enregistrement, encart « signalé à la génération », Voice and Tone, State Patterns) ;
+    DESIGN.md (tokens, contrastes, focus) ; contrats §26 (aucun script ni style en ligne, CVSS
+    calculé localement en aperçu jamais envoyé), §28 (ARIA) ; impacts-v2.md ligne 28 (partie
+    écran). Fichiers : src/waveaudit/interfaces/web/templates/lot.html ;
+    static/relecture.js (nouveau) ; static/style.css (ajouts). Aucune route nouvelle. Tests à
+    garder verts : e2e/test_ui.py::test_aucune_url_externe_dans_templates_et_static et les
+    tests de bandeau et CSP. Nouveaux dans e2e/test_relecture_ui.py (analyse du HTML rendu) :
+    listbox/option du tiroir, tablist/tab/tabpanel des candidats, dialog des confirmations,
+    lang de la langue du lot sur le panneau note et le formulaire, aucun attribut on*= ni
+    style=. La revue manuelle au clavier et des contrastes est faite par REC.
+- id: "DOC"
+  title: Documentation v2 (README et guide des testeurs)
+  description: >-
+    Met à jour le README et le guide des testeurs pour la v2 : relecture dans l'UI, langue,
+    exports, commande exporter, incident dans l'UI, limites connues.
+  spec_checkpoint: false
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Après W3b et Q5. Fichiers : README.md et guide-testeurs.md (racine du dépôt). Contenu :
+    parcours fiches de bout en bout dans l'UI (création, suivi, relecture, changement de
+    candidat, correction, validation, export final et brouillon) ; langue fr/en ; waveaudit
+    fiches --langue, banc --langue, exporter [--brouillon] et leurs codes ; incident dans
+    l'UI (refus d'un dépôt sans journal reconnu) ; modèles installés, rôles et défaut retenu
+    par Q5 avec ses chiffres (renvoi à bilan-modeles.md) ; palette publique, logo privé dans
+    theme-prive/web/logo.svg ; limites connues : un lot CLI lancé pendant un lot UI peut
+    charger un second llama-server (pas de verrou inter-processus en v2), moteur relancé à la
+    première régénération après un lot, rapport d'incident en français seulement. Guide des
+    testeurs : parcours de Camille et de Karim d'EXPERIENCE.md en étapes vérifiables. Aucune
+    capture contenant une donnée réelle. Pas de code.
+- id: "REC"
+  title: Recette finale dans l'UI sur l'EliteBook
+  description: >-
+    Déroule le signal de succès de SPEC.md sur l'EliteBook (parcours de Camille sur les 6 notes
+    du banc, parcours incident de Karim), la revue manuelle clavier et contrastes de CAP-15, et
+    la suite complète.
+  spec_checkpoint: false
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Après DOC. Sur l'EliteBook, Edge ou Chrome entre 1366 et 1920 px, garde réseau actif :
+    déposer les 6 notes de mesures-qualite.md dans l'UI, relire, corriger au moins une fiche,
+    changer le candidat d'au moins une autre (vérifier la confirmation et le redémarrage du
+    moteur après 5 min d'inactivité), valider, exporter le final et un brouillon, ouvrir les
+    deux Word ; lot en anglais sur 2 notes ; parcours incident sur la démo CERT et
+    téléchargement ; parcours 1 et 2 d'EXPERIENCE.md entièrement au clavier ; contrastes de
+    DESIGN.md mesurés. Lancer uv run pytest -q --tb=line -p no:warnings, ruff check et ruff
+    format --check, et les tests slow disponibles. Consigner le résultat, les durées et chaque
+    écart dans _bmad-output/implementation-artifacts/recette-v2.md. Un défaut trouvé donne une
+    correction ciblée, revue comme une story, jamais un test affaibli. Point d'arrêt : Anaël
+    valide la recette ; la session principale publie ensuite la release v0.2.0 (version du
+    manifeste, tag annoté, notes).
