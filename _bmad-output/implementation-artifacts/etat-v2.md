@@ -23,7 +23,7 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 | 6 | W4 | Incident dans l'UI | Sonnet | intégrée 61f0141 |
 | 7 | W3a | API de relecture, régénération et export | Opus | en cours |
 | 8 | W3b | Écran de relecture | Sonnet | à faire |
-| 7 | LIB | Libellés par langue des statuts et motifs dans le Word (annexe des écartées, tous modes) | Sonnet | à faire |
+| 7 | LIB | Libellés par langue des statuts et motifs dans le Word (annexe des écartées, tous modes) | Sonnet | intégrée 1b72836 |
 | 8 | ARR | Arrêt propre de l'UI (llama-server enfant, fermer(timeout)) | Sonnet | à faire |
 | 8 | DOC | README et guide des testeurs | Sonnet | à faire |
 | 8 | REC | Recette finale sur l'EliteBook ★ | avec Anaël | à faire |
@@ -59,7 +59,7 @@ Constats tirés par Q3 (textes `en` dans `donnees/catalogue/*.yaml`) : AD-KERBER
 - Q5 (arbitré : granite défaut, voir « Arbitrages ») : la règle de CAP-7 donne qwen3-1.7b par défaut (médianes 6/6, recopie 0,45, 36,2 s ; granite 6/6, 0,56, 27,9 s), mais CAP-6 n'est pas tenu pour qwen3-1.7b : 5/6 à la seed 242 (note 11 en `repli_moteur`, délai de 180 s dépassé, charge du poste supposée, non démontrée ; rejeu non compté). Options : valider qwen3-1.7b, garder granite (tient CAP-6), ou rebancer la seed 242 poste au repos. Reports : README (DOC), `ram_min_defaut_go` à remesurer, repli qwen3.5 et MiniCPM5 non rebancés. Détail : `bilan-modeles.md` section v2, `revues/story-Q5.md`.
 - X2 : `exporter_lot` prend `occupation` (mot-clé, `None` en CLI) pour refuser un lot en génération dans le même processus (§27 étape 3) ; la signature du §27 ne le porte pas, à ajouter à la prochaine révision du contrat.
 - W4 : sélecteur fiches/incident ajouté à l'accueil (`index.html`, `accueil.js`, hors liste de fichiers de W4, sur décision de l'orchestrateur : sans lui l'incident n'était pas atteignable depuis l'UI, CAP-14). `[hidden]{display:none !important}` global dans `style.css`. REC : vérifier dans un vrai navigateur la bascule, un envoi de journaux et `aucun_journal_reconnu` (aucun test n'exécute le JS). Le rapport incident (`export_incident_docx.py`) écrit toujours `code : detail` (français, conforme §17).
-- LIB : le Word `fr` reste strictement identique à la v0.1.0 (§27, §17) ; seuls les Word `en` reçoivent des libellés.
+- LIB : le Word `fr` reste strictement identique à la v0.1.0 (§27, §17, prouvé par comparaison au rendu de 8ec9079) ; seuls les Word `en` reçoivent des libellés. Les tables `MOTIFS_EN`, `STATUTS_ECARTES_EN`, `RUBRIQUES_EN` dépassent la table normative de §27 et `formats.md` : à reporter au contrat. En `en`, la valeur variable est omise pour `note_invalide`, `aucun_constat` et les replis.
 - Test instable : `tests/e2e/test_ui.py::test_lot_nominal_20_notes_puis_telechargement` a échoué une fois dans la suite complète après Q3 (machine chargée, suite à 173 s), puis passé seul, avec `tests/e2e/` et dans une seconde suite complète (908). À surveiller ; dev-story de correction s'il récidive.
 Suite complète après la vague 5 (W2 + Q5) : 994 verts. Après la vague 6 (X2 + W4) : 1027 verts.
 
