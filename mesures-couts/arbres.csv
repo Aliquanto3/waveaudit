@@ -1,0 +1,92 @@
+session,racine,description,jour,modele,agents,profondeur_max,appels,pic_ctx,cout_usd,part_racine,expirations,cout_reecriture_usd,cout_autre_ttl_usd
+2d242535,3d36fe36,Second avis story 1,2026-10-17,haiku,1,1,24,96569,0.029,,0,0.0,0.036
+2d242535,3222207f,Scan reusable neighbour repos,2026-10-17,haiku,1,1,8,35108,0.008,,0,0.0,0.01
+2d242535,86dd4823,Integrate CERT review fixes,2026-10-17,opus,1,1,27,167456,2.408,,0,0.0,2.821
+2d242535,50fab9ea,Adversarial review CERT spec,2026-10-17,opus,1,1,14,140196,2.068,,1,0.455,2.052
+2d242535,5ab33255,Verify spine tech currency,2026-10-17,sonnet,1,1,29,88251,0.5,,0,0.0,0.632
+2d242535,7a0ea39c,Adversarial spine review,2026-10-17,opus,1,1,7,97138,1.088,,0,0.0,1.38
+2d242535,4c73ae82,Reviewer story 1 socle,2026-10-17,opus,1,1,19,107251,0.96,,0,0.0,1.222
+2d242535,5e81c560,Rubric + reconcile spine review,2026-10-17,sonnet,1,1,6,73855,0.261,,0,0.0,0.372
+2d242535,bbe26c28,Extract SLM results from service-public,2026-10-17,haiku,1,1,10,47349,0.01,,0,0.0,0.013
+2d242535,4b39f9c1,Story 1 socle commun,2026-10-17,opus,1,1,32,140095,2.07,,0,0.0,2.49
+9e634cb6,10c8c92f,Story C6a Rapport incident Word,2026-10-17,sonnet,1,1,39,120917,0.812,,0,0.0,0.993
+9e634cb6,cbc3db34,Story 13 CLI complète,2026-10-17,sonnet,1,1,76,170188,1.697,,0,0.0,1.952
+9e634cb6,6a2a720c,Revue story C2,2026-10-17,opus,1,1,46,101330,1.398,,0,0.0,1.637
+9e634cb6,fd5d378c,Story C5 Workflow incident,2026-10-17,opus,1,1,45,129567,1.809,,0,0.0,2.137
+9e634cb6,2a497854,Second avis story 13,2026-10-17,haiku,1,1,16,56917,0.014,,0,0.0,0.018
+9e634cb6,d6d9e22e,Second avis story 4,2026-10-17,haiku,1,1,16,62876,0.016,,0,0.0,0.021
+9e634cb6,31ab13c5,Story 14 UI web locale,2026-10-17,sonnet,1,1,67,135942,1.376,,0,0.0,1.579
+9e634cb6,02c21408,Story 16 Hors ligne et README,2026-10-17,sonnet,1,1,49,119035,0.824,,0,0.0,0.965
+9e634cb6,94e0c7ad,Second avis story 15,2026-10-17,haiku,1,1,8,34625,0.008,,0,0.0,0.01
+9e634cb6,106a9a70,Second avis story 14,2026-10-17,haiku,1,1,10,41843,0.01,,0,0.0,0.013
+9e634cb6,592c2dbb,Revue story D1,2026-10-17,opus,1,1,23,68577,0.582,,0,0.0,0.723
+9e634cb6,f3d014dd,Second avis story 2,2026-10-17,haiku,1,1,6,32043,0.007,,0,0.0,0.009
+9e634cb6,bab4e17f,Revue story D3,2026-10-17,sonnet,1,1,28,63103,0.331,,0,0.0,0.389
+9e634cb6,b5a59b52,Revue story 7,2026-10-17,opus,1,1,24,73977,1.06,,1,0.225,1.001
+9e634cb6,23300e9a,Revue story D2,2026-10-17,sonnet,1,1,29,65572,0.348,,0,0.0,0.411
+9e634cb6,da669ca1,Story 15 Banc de mesure,2026-10-17,sonnet,1,1,80,149420,1.43,,0,0.0,1.616
+9e634cb6,9aea3a85,Second avis story D3,2026-10-17,haiku,1,1,11,43052,0.01,,0,0.0,0.013
+9e634cb6,4caf4bc5,Second avis story C4,2026-10-17,haiku,1,1,15,59996,0.016,,0,0.0,0.02
+9e634cb6,bd235051,Second avis story 3,2026-10-17,haiku,1,1,7,38897,0.007,,0,0.0,0.01
+9e634cb6,8faa7a60,Second avis story C3,2026-10-17,haiku,1,1,21,61999,0.019,,0,0.0,0.023
+9e634cb6,88b00409,Second avis story 10,2026-10-17,haiku,1,1,13,50356,0.012,,0,0.0,0.016
+9e634cb6,5696d868,Second avis story 6,2026-10-17,haiku,1,1,8,44237,0.009,,0,0.0,0.013
+9e634cb6,7c01de3c,Story 4 Catalogue constats,2026-10-17,sonnet,1,1,56,133086,1.405,,0,0.0,1.605
+9e634cb6,6e5f1429,Revue story 3,2026-10-17,opus,1,1,16,61260,0.513,,0,0.0,0.632
+9e634cb6,7c48aeaf,Revue story 9,2026-10-17,opus,1,1,31,92021,1.249,,0,0.0,1.46
+9e634cb6,440f083b,Revue story 2,2026-10-17,opus,1,1,16,56064,0.543,,0,0.0,0.711
+9e634cb6,5245f63c,Story 8 Installation et SBOM,2026-10-17,sonnet,1,1,33,82559,0.544,,0,0.0,0.668
+9e634cb6,fca5752e,Second avis story 5,2026-10-17,haiku,1,1,9,49703,0.011,,0,0.0,0.015
+9e634cb6,b282120f,Revue story 14,2026-10-17,opus,1,1,26,74016,0.933,,0,0.0,1.155
+9e634cb6,8b062fe6,Revue story C3,2026-10-17,opus,1,1,28,69068,0.726,,0,0.0,0.869
+9e634cb6,c066933b,Story 6 Adaptateur moteur,2026-10-17,sonnet,1,1,27,85651,0.499,,0,0.0,0.627
+9e634cb6,28249624,Revue story C4,2026-10-17,opus,1,1,36,95324,1.123,,0,0.0,1.345
+9e634cb6,36e9397a,Second avis story 16,2026-10-17,haiku,1,1,18,62776,0.017,,0,0.0,0.022
+9e634cb6,baca4884,Second avis story C6a,2026-10-17,haiku,1,1,13,61270,0.016,,0,0.0,0.02
+9e634cb6,37fdf416,Story C1 Extension socle CERT,2026-10-17,opus,1,1,54,179861,3.213,,0,0.0,3.692
+9e634cb6,35c801bd,Second avis story D1,2026-10-17,haiku,1,1,15,70182,0.018,,0,0.0,0.022
+9e634cb6,5e8acfe0,Revue story V1,2026-10-17,opus,1,1,51,123791,1.978,,0,0.0,2.288
+9e634cb6,a8c4d030,Revue story 16,2026-10-17,opus,1,1,21,66203,0.739,,0,0.0,0.937
+9e634cb6,613da3de,Revue story 4,2026-10-17,opus,1,1,33,103143,1.341,,0,0.0,1.651
+9e634cb6,7dcc16dc,Story 7 Garde réseau,2026-10-17,sonnet,1,1,33,81990,0.567,,0,0.0,0.69
+9e634cb6,791551cc,Second avis story 7,2026-10-17,haiku,1,1,7,36288,0.007,,0,0.0,0.009
+9e634cb6,0dfe2f3e,Second avis story C6b,2026-10-17,haiku,1,1,13,52591,0.013,,0,0.0,0.017
+9e634cb6,98d5a290,Second avis story C2,2026-10-17,haiku,1,1,17,79626,0.022,,0,0.0,0.028
+9e634cb6,30c89595,Story 11 Calibrage rattachement,2026-10-17,sonnet,1,1,48,92484,0.679,,0,0.0,0.817
+9e634cb6,4940fc4c,Story C2 Journaux et démo,2026-10-17,sonnet,1,1,46,214343,2.024,,1,0.043,2.423
+9e634cb6,4a2b46f4,Second avis story 8,2026-10-17,haiku,1,1,8,37138,0.009,,0,0.0,0.011
+9e634cb6,3b55afb4,Revue story C5,2026-10-17,opus,1,1,29,91201,0.866,,0,0.0,1.079
+9e634cb6,b446f2d5,Story D1 Catalogue élargi,2026-10-17,sonnet,1,1,76,155668,1.782,,0,0.0,2.015
+9e634cb6,0ed6af03,Second avis story V2,2026-10-18,haiku,1,1,25,59304,0.021,,0,0.0,0.025
+9e634cb6,d8404be1,Revue story C6a,2026-10-17,opus,1,1,23,75806,0.819,,0,0.0,1.046
+9e634cb6,8cf10b4e,Story D3 Guide testeurs,2026-10-17,sonnet,1,1,33,66945,0.438,,0,0.0,0.538
+9e634cb6,de8ff449,Second avis story V1,2026-10-17,haiku,1,1,6,29010,0.006,,0,0.0,0.008
+9e634cb6,6f322359,Story 10 Pipeline fiches,2026-10-17,opus,1,1,23,85686,0.934,,0,0.0,1.13
+9e634cb6,6271377e,Revue story 10,2026-10-17,opus,1,1,19,66492,0.559,,0,0.0,0.698
+9e634cb6,6de1ab22,Second avis story C1,2026-10-17,haiku,1,1,37,116418,0.102,,0,0.0,0.116
+9e634cb6,db1bd060,Second avis story 12,2026-10-17,haiku,1,1,14,55502,0.014,,0,0.0,0.018
+9e634cb6,cd8a7ced,Revue story C6b,2026-10-17,opus,1,1,51,101120,1.514,,0,0.0,1.817
+9e634cb6,da4294c0,Story C4 Indicateurs et garde-fous,2026-10-17,sonnet,1,1,36,124352,0.979,,0,0.0,1.165
+9e634cb6,49fb3de9,Story 9 Export Word,2026-10-17,sonnet,1,1,43,95504,0.717,,0,0.0,0.86
+9e634cb6,934daa52,Revue story 12,2026-10-17,opus,1,1,30,93644,0.982,,0,0.0,1.202
+9e634cb6,b9507c70,Second avis story 9,2026-10-17,haiku,1,1,9,39952,0.009,,0,0.0,0.011
+9e634cb6,acd4bb30,Story V1 Validation vrai moteur,2026-10-17,opus,1,1,52,101042,1.505,,0,0.0,1.747
+9e634cb6,d60dd72e,Story 5 Notes et démo,2026-10-17,sonnet,1,1,36,128106,0.928,,0,0.0,1.12
+9e634cb6,d2a5c60c,Story V2 Banc des modèles,2026-10-17,opus,1,1,41,118314,1.557,,0,0.0,1.851
+9e634cb6,fceed962,Revue story V2,2026-10-18,sonnet,1,1,48,98582,0.771,,0,0.0,0.918
+9e634cb6,94f5c1bb,Second avis story 11,2026-10-17,haiku,1,1,12,46885,0.011,,0,0.0,0.014
+9e634cb6,d06c7284,Revue story 15,2026-10-17,opus,1,1,23,76034,0.787,,0,0.0,0.951
+9e634cb6,5d4f2187,Story D2 CI GitHub Actions,2026-10-17,sonnet,1,1,23,52192,0.284,,0,0.0,0.362
+9e634cb6,ab56a216,Story C6b CLI incident,2026-10-17,sonnet,1,1,58,110406,0.94,,0,0.0,1.105
+9e634cb6,cc967f89,Second avis story C5,2026-10-17,haiku,1,1,13,73818,0.018,,0,0.0,0.024
+9e634cb6,f58dc10b,Revue story 11,2026-10-17,opus,1,1,28,80877,0.915,,0,0.0,1.093
+9e634cb6,8e131f89,Revue story C1,2026-10-17,opus,1,1,20,77569,0.78,,0,0.0,1.012
+9e634cb6,0d9767b1,Story 3 CVSS et garde-fous,2026-10-17,sonnet,1,1,28,93903,0.604,,0,0.0,0.744
+9e634cb6,04b193ee,Second avis story D2,2026-10-17,haiku,1,1,9,53200,0.011,,0,0.0,0.015
+9e634cb6,3488d3e7,Story 12 Composition et lot,2026-10-17,opus,1,1,44,135886,2.052,,0,0.0,2.399
+9e634cb6,c3a97e7f,Story 2 Recherche BM25,2026-10-17,sonnet,1,1,34,69023,0.477,,0,0.0,0.581
+9e634cb6,9f99b3ff,Revue story 6,2026-10-17,opus,1,1,14,59250,0.558,,0,0.0,0.736
+9e634cb6,a952dda9,Story C3 Règles et détection,2026-10-17,sonnet,1,1,59,148808,1.416,,0,0.0,1.639
+9e634cb6,01edf25b,Revue story 8,2026-10-17,opus,1,1,18,62131,0.643,,0,0.0,0.829
+9e634cb6,a686a3c1,Revue story 5,2026-10-17,opus,1,1,42,93938,1.175,,0,0.0,1.391
+9e634cb6,4d66a1fd,Revue story 13,2026-10-17,opus,1,1,24,75487,0.75,,0,0.0,0.912
