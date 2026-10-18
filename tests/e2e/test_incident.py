@@ -5,6 +5,7 @@ la sortie du service, jamais l'inverse (formats-incident.md « Jeu de démonstra
 """
 
 import json
+import os
 import time
 from datetime import datetime
 from pathlib import Path
@@ -237,8 +238,12 @@ def test_id_lot_fourni_et_sans_fichier_provisoire(config_test, tmp_path):
     assert sorted(p.name for p in resultat.dossier_sortie.iterdir()) == [
         "incident.json",
         "journal.jsonl",
+        "lot.json",
         "rapport-incident.docx",
     ]
+    fiche_lot = json.loads((resultat.dossier_sortie / "lot.json").read_text(encoding="utf-8"))
+    assert fiche_lot["workflow"] == "incident" and fiche_lot["langue"] is None
+    assert fiche_lot["id_lot"] == "lot-revue-1" and fiche_lot["pid"] == os.getpid()
     assert [p.name for p in tmp_path.iterdir() if p.name.startswith(".")] == []
     assert copie.read_bytes() == resultat.chemin_rapport.read_bytes()
 

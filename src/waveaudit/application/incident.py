@@ -17,6 +17,7 @@ from waveaudit.application.lot import (
     Abonne,
     Emetteur,
     dossier_sorties,
+    ecrire_fiche_lot,
     nouvel_id_lot,
     sans_chemin,
     verifier_id_lot,
@@ -65,6 +66,14 @@ def executer_incident(
     with JournalLot(dossier_sortie / JOURNAL) as journal:
         emetteur = Emetteur(journal, abonne)
         try:
+            # §30 : lot.json dès que le dossier existe (sans effet si l'UI l'a déjà écrit).
+            ecrire_fiche_lot(
+                dossier_sortie,
+                id_lot=id_lot,
+                workflow=WORKFLOW,
+                langue=None,
+                modele_demande=requete.modele,
+            )
             ports = composition.creer_ports_incident(config)
             lecture = ports.source_journaux.lire(requete.dossier, annee=requete.annee)
             regles = ports.regles.regles()
