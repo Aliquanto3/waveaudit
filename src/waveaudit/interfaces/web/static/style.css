@@ -110,3 +110,64 @@ textarea:focus-visible,
     animation: none !important;
   }
 }
+
+/* Page incident (W4) : filtre par sévérité (groupe de boutons bascule) et tableau des
+   détections (DESIGN.md « Page incident »). */
+#resume {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+#resume button[aria-pressed="true"] {
+  background: var(--couleur-primaire-fonce);
+}
+
+#detections {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--taille-corps);
+}
+
+#detections th,
+#detections td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--couleur-trait);
+}
+
+/* Accueil (W4) : choix du workflow fiches / incident (prototype .choix-workflow). `[hidden]`
+   explicite : `form { display: flex }` l'emporterait sinon sur la règle du navigateur. */
+[hidden] {
+  display: none !important;
+}
+
+.choix-workflow {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.carte-workflow {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--couleur-trait);
+  background: var(--couleur-blanc);
+  color: var(--couleur-encre);
+}
+
+.carte-workflow span {
+  font-size: var(--taille-petit);
+  color: var(--couleur-encre-douce);
+}
+
+.carte-workflow[aria-pressed="true"] {
+  border-color: var(--couleur-primaire);
+  background: var(--couleur-primaire-doux);
+}

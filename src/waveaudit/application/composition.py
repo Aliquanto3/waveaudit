@@ -231,3 +231,12 @@ def processus_actif(pid: int, cree_le: datetime) -> bool:
 def creer_exporteur(config: Configuration) -> ExportDocx:
     """[v2] Seul point d'instanciation de l'exporteur hors `ouvrir` (contrats §27, CAP-13)."""
     return ExportDocx(config.chemins.theme_prive)
+
+
+def journal_reconnu(nom: str) -> bool:
+    """[v2] `True` si `nom` est routé vers une lecture de journal (§30), nom public de
+    `adaptateurs.journaux.router_journal` : l'UI refuse un dépôt incident sans fichier routé
+    avant de créer le lot."""
+    from waveaudit.adaptateurs.journaux import router_journal  # import local (W4, voir note)
+
+    return router_journal(nom) is not None

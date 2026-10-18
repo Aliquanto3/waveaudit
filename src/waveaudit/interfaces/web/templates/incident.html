@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block contenu %}
+  <h1>Incident {{ id_lot }}</h1>
+  <p id="etat-texte" role="status">Analyse en cours…</p>
+  <ul id="evenements"></ul>
+  <section id="resultat" hidden>
+    <div id="resume" role="group" aria-label="Filtrer par sévérité">
+      <button type="button" data-severite="critique" aria-pressed="false">Critique (0)</button>
+      <button type="button" data-severite="elevee" aria-pressed="false">Élevée (0)</button>
+      <button type="button" data-severite="moyenne" aria-pressed="false">Moyenne (0)</button>
+      <button type="button" data-severite="faible" aria-pressed="false">Faible (0)</button>
+    </div>
+    <p id="aucune-detection" hidden>Aucune détection sur ce dépôt.</p>
+    <table id="detections">
+      <caption>Détections</caption>
+      <thead>
+        <tr>
+          <th scope="col">Règle</th>
+          <th scope="col">Sévérité</th>
+          <th scope="col">Début</th>
+          <th scope="col">Fin</th>
+          <th scope="col">Hôtes</th>
+        </tr>
+      </thead>
+      <tbody id="detections-corps"></tbody>
+    </table>
+    <p id="telechargement"></p>
+  </section>
+  <script src="/static/incident.js" data-id-lot="{{ id_lot }}"></script>
+{% endblock %}
