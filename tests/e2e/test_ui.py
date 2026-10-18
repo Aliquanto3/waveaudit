@@ -1,5 +1,6 @@
 """Interface web locale de bout en bout (contrats §18, §26, AD-2, AD-9, AD-14, AD-22)."""
 
+import json
 import re
 import time
 from pathlib import Path
@@ -49,9 +50,17 @@ def test_bandeau_sur_chaque_page(config_test):
     assert accueil.status_code == 200
     assert "Démonstration — données fictives" in accueil.text
 
-    lot = client.get("/lots/un-identifiant")
+    # [v2] L'état d'un lot est lu sur le disque (§30) : un identifiant inconnu donne 404.
+    inconnu = client.get("/lots/un-identifiant")
+    assert inconnu.status_code == 404
+    assert inconnu.json()["code"] == "lot_inconnu"
+
+    reponse = client.post("/lots", files=[_notes_demo()[0]], follow_redirects=False)
+    id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+    lot = client.get(f"/lots/{id_lot}")
     assert lot.status_code == 200
     assert "Démonstration — données fictives" in lot.text
+    _attendre_fin(client, id_lot)
 
 
 def test_aucune_url_externe_dans_templates_et_static():
@@ -105,7 +114,12 @@ def test_second_envoi_pendant_un_lot_refuse_sans_ecriture(config_test, faux_mote
     entrees_avant = list((lent.chemins.var / "entrees").iterdir())
     second = client.post("/lots", files=_notes_demo()[:1], follow_redirects=False)
     assert second.status_code == 409
-    assert second.json()["code"] == "lot_en_cours"
+    corps = second.json()
+    assert corps["code"] == "lot_en_cours"
+    # [v2] §26 [revue A27] : le 409 porte l'occupation courante (nature, id_lot, début).
+    assert corps["occupation"]["nature"] == "fiches"
+    assert corps["occupation"]["id_lot"] == id_lot
+    assert corps["occupation"]["debut"]
     assert list((lent.chemins.var / "entrees").iterdir()) == entrees_avant
     _attendre_fin(client, id_lot)
 
@@ -355,7 +369,9 @@ def test_api_jeton(config_test):
 def test_pages_portent_le_jeton_sans_script_ni_style_en_ligne(config_test):
     app = creer_app(config_test, hotes_test=("testserver",))
     client = client_web(app)
-    for chemin in ("/", "/lots/un-identifiant"):
+    reponse = client.post("/lots", files=[_notes_demo()[0]], follow_redirects=False)
+    id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+    for chemin in ("/", f"/lots/{id_lot}"):
         texte = client.get(chemin).text
         assert f'<meta name="csrf" content="{app.state.jeton_csrf}">' in texte, chemin
         assert '<html lang="fr">' in texte
@@ -367,6 +383,7 @@ def test_pages_portent_le_jeton_sans_script_ni_style_en_ligne(config_test):
         source = chemin.read_text(encoding="utf-8")
         assert _SCRIPT_EN_LIGNE.search(source) is None, chemin
         assert re.search(r"<style", source, re.IGNORECASE) is None, chemin
+    _attendre_fin(client, id_lot)
 
 
 def test_csp_et_nosniff_sur_chaque_reponse(config_test):
@@ -537,3 +554,158 @@ def test_logo_sous_csp_et_nosniff(config_test, tmp_path):
     for nom, reponse in reponses.items():
         for en_tete, valeur in _EN_TETES_SECURITE.items():
             assert reponse.headers.get(en_tete) == valeur, (nom, en_tete)
+
+
+# --- W2 : accueil v2, lots récents, suivi lu sur le disque (contrats §26, §30) ---------------
+
+
+def test_lots_inconnu_ne_cree_aucun_dossier(config_test):
+    client = client_web(config_test)
+    reponse = client.get("/lots/jamais-vu")
+    assert reponse.status_code == 404
+    assert reponse.json()["code"] == "lot_inconnu"
+    sorties = config_test.chemins.var / "sorties"
+    assert not sorties.is_dir() or not list(sorties.iterdir())
+
+
+def test_lot_page_suivi_juste_apres_303(config_test, faux_moteur):
+    lent = _vers(config_test, faux_moteur("lent"))
+    client = client_web(lent)
+    reponse = client.post("/lots", files=_notes_demo()[:1], follow_redirects=False)
+    id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+    suivi = client.get(f"/lots/{id_lot}")
+    assert suivi.status_code == 200
+    assert id_lot in suivi.text
+    _attendre_fin(client, id_lot)
+
+
+def test_accessibilite_lots_et_suivi(config_test):
+    client = client_web(config_test)
+    reponse = client.post("/lots", files=[_notes_demo()[0]], follow_redirects=False)
+    id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+    _attendre_fin(client, id_lot)
+    verifier_accessibilite(client.get("/lots").text)
+    verifier_accessibilite(client.get(f"/lots/{id_lot}").text)
+
+
+def test_api_modeles_defaut_preselectionne(config_test):
+    client = client_web(config_test)
+    reponse = client.get("/api/modeles")
+    assert reponse.status_code == 200
+    corps = reponse.json()
+    assert corps["langues"] == ["fr", "en"]
+    assert corps["langue_defaut"] == "fr"
+    assert len(corps["modeles"]) == 1
+    assert corps["modeles"][0]["defaut"] is True
+    assert '<option value="' + corps["modeles"][0]["nom"] in client.get("/").text
+
+
+def test_modele_et_langue_recus_par_le_lot(config_test, faux_moteur):
+    """[revue E11] Le modèle « externe » affiché n'est jamais repassé tel quel au lot."""
+    fm = faux_moteur("nominal")
+    config = config_test.model_copy(
+        update={
+            "moteur": config_test.moteur.model_copy(
+                update={"base_url": fm.base_url, "modele_api": "mon-modele"}
+            )
+        }
+    )
+    client = client_web(config)
+    reponse = client.post(
+        "/lots",
+        data={"modele": "mon-modele", "langue": "en"},
+        files=[_notes_demo()[0]],
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+    id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+    _attendre_fin(client, id_lot)
+    assert fm.requetes
+    assert fm.requetes[0]["model"] == "mon-modele"
+    systeme = next(m["content"] for m in fm.requetes[0]["messages"] if m["role"] == "system")
+    assert "security audit writing assistant" in systeme  # consigne anglaise (§8, §23)
+
+
+def test_modele_indisponible_422(config_test):
+    client = client_web(config_test)
+    reponse = client.post(
+        "/lots", data={"modele": "inexistant"}, files=[_notes_demo()[0]], follow_redirects=False
+    )
+    _erreur_codee(reponse, 422, "modele_indisponible")
+    assert _aucune_entree(config_test)
+
+
+def test_langue_invalide_422(config_test):
+    client = client_web(config_test)
+    reponse = client.post(
+        "/lots", data={"langue": "de"}, files=[_notes_demo()[0]], follow_redirects=False
+    )
+    _erreur_codee(reponse, 422, "langue_invalide")
+    assert _aucune_entree(config_test)
+
+
+def test_api_lots_fiches_et_incident_avec_interrompu(config_test):
+    client = client_web(config_test)
+    reponse = client.post("/lots", files=[_notes_demo()[0]], follow_redirects=False)
+    id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+    _attendre_fin(client, id_lot)
+
+    # Lot incident interrompu, fabriqué sur le disque : pid mort, aucun événement de fin.
+    dossier = config_test.chemins.var / "sorties" / "incident-interrompu"
+    dossier.mkdir(parents=True)
+    (dossier / "lot.json").write_text(
+        json.dumps(
+            {
+                "id_lot": "incident-interrompu",
+                "workflow": "incident",
+                "langue": None,
+                "modele_demande": None,
+                "cree_le": "2020-01-01T00:00:00+00:00",
+                "pid": 999999999,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (dossier / "journal.jsonl").write_text(
+        json.dumps(
+            {
+                "type": "lot_demarre",
+                "horodatage": "2020-01-01T00:00:00+00:00",
+                "index": None,
+                "total": 1,
+                "note": None,
+                "statut": None,
+                "duree_s": None,
+                "details": {},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    corps = client.get("/api/lots").json()
+    par_id = {lot["id_lot"]: lot for lot in corps["lots"]}
+    assert par_id[id_lot]["workflow"] == "fiches"
+    assert par_id[id_lot]["etat"] == "termine"
+    assert par_id["incident-interrompu"]["workflow"] == "incident"
+    assert par_id["incident-interrompu"]["etat"] == "interrompu"
+
+
+def test_relance_cree_un_nouveau_lot(config_test):
+    client = client_web(config_test)
+    premier = client.post("/lots", files=[_notes_demo()[0]], follow_redirects=False)
+    id1 = premier.headers["location"].rsplit("/", 1)[-1]
+    _attendre_fin(client, id1)
+    second = client.post("/lots", files=[_notes_demo()[0]], follow_redirects=False)
+    id2 = second.headers["location"].rsplit("/", 1)[-1]
+    assert id2 != id1
+    _attendre_fin(client, id2)
+
+
+def test_lien_lots_recents_absent_sans_lot(config_test):
+    client = client_web(config_test)
+    assert '<a href="/lots">' not in client.get("/").text
+    reponse = client.post("/lots", files=[_notes_demo()[0]], follow_redirects=False)
+    id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+    _attendre_fin(client, id_lot)
+    assert '<a href="/lots">' in client.get("/").text

@@ -1,13 +1,37 @@
 {% extends "base.html" %}
 {% block contenu %}
   <h1>WaveAudit — notes vers fiches de vulnérabilité</h1>
+  {% if occupation %}
+    <p id="occupation-message" role="alert">
+      Un lot est déjà en cours (lancé à {{ occupation.debut.strftime("%H:%M") }}).
+      Attendez sa fin ou
+      <a href="{{ '/lots/' + occupation.id_lot if occupation.id_lot else '/lots' }}">reprenez-le</a>.
+    </p>
+  {% endif %}
   <p>Déposez des notes brutes (<code>.md</code> ou <code>.txt</code>, 1 Mo maximum chacune) pour
   lancer un lot d'analyse.</p>
   <form id="depot" action="/lots" method="post" enctype="multipart/form-data">
     <label for="notes">Notes à analyser</label>
-    <input type="file" id="notes" name="notes" accept=".md,.txt" multiple required>
-    <button type="submit">Lancer le lot</button>
+    <input type="file" id="notes" name="notes" accept=".md,.txt" multiple required
+      {{ "disabled" if occupation else "" }}>
+    <label for="modele">Modèle</label>
+    <select id="modele" name="modele" {{ "disabled" if occupation else "" }}>
+      {% for modele in modeles %}
+        <option value="{{ modele.nom }}" {{ "selected" if modele.defaut else "" }}>
+          {{ modele.nom }}
+        </option>
+      {% endfor %}
+    </select>
+    <label for="langue">Langue</label>
+    <select id="langue" name="langue" {{ "disabled" if occupation else "" }}>
+      <option value="fr" {{ "selected" if langue_defaut == "fr" else "" }}>Français</option>
+      <option value="en" {{ "selected" if langue_defaut == "en" else "" }}>English</option>
+    </select>
+    <button type="submit" {{ "disabled" if occupation else "" }}>Lancer le lot</button>
   </form>
   <p id="depot-message" role="alert"></p>
+  {% if a_des_lots %}
+    <p><a href="/lots">Lots récents</a></p>
+  {% endif %}
   <script src="/static/accueil.js"></script>
 {% endblock %}

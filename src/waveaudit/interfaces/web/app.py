@@ -11,8 +11,12 @@ Les stories web suivantes remplissent leur module de routeur sans retoucher ce f
 (AD-22 [revue A28]).
 """
 
+import asyncio
 import logging
 import secrets
+import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -20,11 +24,16 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from waveaudit.application.moteur_demande import MoteurALaDemande, VerrouUnique
 from waveaudit.domaine.configuration import Configuration
 from waveaudit.interfaces.web.commun import BANDEAU, RACINE, en_mo, erreur
 from waveaudit.interfaces.web.routeurs import incidents, lots, pages, relecture, theme
 
 __all__ = ["BANDEAU", "creer_app"]
+
+# [v2] §24 [revue E3] : à l'arrêt, le lifespan attend la fin de l'usage en cours (verrou) avant
+# de fermer le moteur, 10 s au plus.
+ATTENTE_ARRET_MOTEUR_S = 10.0
 
 MIO = 1024 * 1024
 # Limites totales de corps par route d'écriture (§26) ; les autres écritures : 256 Kio.
@@ -79,15 +88,30 @@ def _refus_taille(chemin: str, taille: int, limite: int) -> Response:
     return erreur(413, "trop_volumineux", detail, limite="total")
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    # [revue E3] Attente bornée de la fin de l'usage en cours (régénération, ou lot/incident qui
+    # tourne encore), puis fermeture du moteur ; une entrée restée en_cours est ensuite lue comme
+    # interrompue (§25, §30).
+    limite = time.monotonic() + ATTENTE_ARRET_MOTEUR_S
+    while app.state.verrou.occupation() is not None and time.monotonic() < limite:
+        await asyncio.sleep(0.05)
+    app.state.moteur.fermer()
+
+
 def creer_app(config: Configuration, *, hotes_test: tuple[str, ...] = ()) -> FastAPI:
     """Construit l'application web (contrats §26). N'active pas le garde réseau.
 
     `hotes_test` n'est renseigné que par `tests/web_outils.py` (`("testserver",)`) ; la
     commande `ui` appelle `creer_app(config)` [revue A7/E27].
     """
-    app = FastAPI(title="WaveAudit")
+    app = FastAPI(title="WaveAudit", lifespan=_lifespan)
     app.state.jeton_csrf = secrets.token_urlsafe(32)
-    app.state.lots = lots.EtatLots(config)
+    app.state.config = config
+    # [v2] §24 : un seul `VerrouUnique` et un seul `MoteurALaDemande` par processus UI.
+    app.state.verrou = VerrouUnique()
+    app.state.moteur = MoteurALaDemande(config)
     hotes_autorises = _hotes_autorises(config.ui.port, hotes_test)
     origines_autorisees = frozenset(f"http://{hote}" for hote in hotes_autorises)
 
