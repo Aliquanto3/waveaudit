@@ -7,6 +7,7 @@ from pathlib import Path
 from docx import Document
 from fastapi.testclient import TestClient
 
+from tests.accessibilite import verifier_accessibilite, verifier_focus_css
 from tests.web_outils import client as client_web
 from waveaudit.application.config import racine_projet
 from waveaudit.interfaces.web.app import creer_app
@@ -467,3 +468,72 @@ def test_aucun_get_n_ecrit_sur_le_disque(config_test):
         client.get(chemin)
     apres = sorted(var.rglob("*")) if var.exists() else []
     assert apres == avant
+
+
+def _avec_theme_prive(config, theme_prive: Path):
+    return config.model_copy(
+        update={"chemins": config.chemins.model_copy(update={"theme_prive": theme_prive})}
+    )
+
+
+def test_logo_200_ou_404_selon_theme_prive(config_test, tmp_path):
+    """§28 : `GET /theme/logo.svg` sert le logo privé s'il existe, sinon 404 `logo_absent`."""
+    sans_logo = tmp_path / "theme-prive-sans-logo"
+    absent = client_web(_avec_theme_prive(config_test, sans_logo))
+    reponse = absent.get("/theme/logo.svg")
+    assert reponse.status_code == 404
+    assert reponse.json()["code"] == "logo_absent"
+
+    avec_logo = tmp_path / "theme-prive-avec-logo"
+    (avec_logo / "web").mkdir(parents=True)
+    (avec_logo / "web" / "logo.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg"></svg>', encoding="utf-8"
+    )
+    present = client_web(_avec_theme_prive(config_test, avec_logo))
+    reponse = present.get("/theme/logo.svg")
+    assert reponse.status_code == 200
+    assert reponse.headers["content-type"] == "image/svg+xml"
+
+
+def test_logo_present_dans_le_html(config_test, tmp_path):
+    """§28 : les gabarits n'affichent `<img src="/theme/logo.svg">` que si le fichier existe."""
+    sans_logo = client_web(_avec_theme_prive(config_test, tmp_path / "theme-prive-vide"))
+    assert "/theme/logo.svg" not in sans_logo.get("/").text
+
+    dossier = tmp_path / "theme-prive-plein"
+    (dossier / "web").mkdir(parents=True)
+    (dossier / "web" / "logo.svg").write_text("<svg></svg>", encoding="utf-8")
+    avec_logo = client_web(_avec_theme_prive(config_test, dossier))
+    assert '<img class="en-tete-logo" src="/theme/logo.svg" alt="">' in avec_logo.get("/").text
+
+
+def test_accessibilite_accueil(config_test):
+    """§28 [revue V2] : noms accessibles, tabindex, dialogues et focus visible, sur l'accueil."""
+    client = client_web(config_test)
+    verifier_accessibilite(client.get("/").text)
+    verifier_accessibilite(client.get("/lots/un-identifiant").text)
+    verifier_focus_css((_RACINE_WEB / "static" / "style.css").read_text(encoding="utf-8"))
+
+
+def test_logo_sous_csp_et_nosniff(config_test, tmp_path):
+    """§26 et §28 : le logo SVG (seul fichier actif servi depuis theme-prive) porte la CSP et
+    nosniff, présent comme absent ; tokens.css aussi."""
+    dossier = tmp_path / "theme-prive-csp"
+    (dossier / "web").mkdir(parents=True)
+    (dossier / "web" / "logo.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+        encoding="utf-8",
+    )
+    present = client_web(_avec_theme_prive(config_test, dossier))
+    absent = client_web(_avec_theme_prive(config_test, tmp_path / "vide"))
+    reponses = {
+        "logo present": present.get("/theme/logo.svg"),
+        "logo absent": absent.get("/theme/logo.svg"),
+        "tokens": absent.get("/static/tokens.css"),
+    }
+    assert reponses["logo present"].status_code == 200
+    assert reponses["logo absent"].status_code == 404
+    assert reponses["tokens"].status_code == 200
+    for nom, reponse in reponses.items():
+        for en_tete, valeur in _EN_TETES_SECURITE.items():
+            assert reponse.headers.get(en_tete) == valeur, (nom, en_tete)
