@@ -399,3 +399,42 @@ def test_aucun_partiel_restant(tmp_path: Path):
     exporteur.exporter(_rapport(avec_ecartees=False), chemin, OptionsExport(mode="brouillon"))
 
     assert [p.name for p in tmp_path.iterdir()] == ["rapport.docx"]
+
+
+def test_en_mots_inline_cvss_et_tracabilite(tmp_path: Path):
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(tmp_path / "absent").exporter(
+        _rapport(avec_ecartees=False), chemin, OptionsExport(langue="en")
+    )
+
+    textes = _textes(Document(str(chemin)))
+    assert (
+        "Vector : CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H — Score : 9.8 — Severity : Critical"
+        in textes
+    )
+    assert "Note : 01-injection-sql.md — Finding template : WEB-INJECTION-SQL" in textes
+    assert not any("Vecteur :" in t or "Constat type :" in t or "Sévérité :" in t for t in textes)
+
+
+def test_fr_mots_inline_inchanges(tmp_path: Path):
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin)
+
+    textes = _textes(Document(str(chemin)))
+    assert (
+        "Vecteur : CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H — Score : 9.8 — Sévérité : Critique"
+        in textes
+    )
+    assert "Note : 01-injection-sql.md — Constat type : WEB-INJECTION-SQL" in textes
+
+
+def test_aucun_partiel_si_le_remplacement_echoue(tmp_path: Path, monkeypatch):
+    def refus(*_args, **_kwargs):
+        raise PermissionError("document ouvert dans Word")
+
+    monkeypatch.setattr("waveaudit.adaptateurs.export_docx.os.replace", refus)
+    chemin = tmp_path / "rapport.docx"
+    with pytest.raises(PermissionError):
+        ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin)
+
+    assert list(tmp_path.iterdir()) == []

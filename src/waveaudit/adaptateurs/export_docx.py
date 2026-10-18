@@ -54,6 +54,12 @@ LIBELLES: dict[Langue, dict[str, object]] = {
         "marque": "Non validée",
         "validee": "Validée",
         "motif_non_validee": "fiche non validée, exclue du rapport final",
+        # Mots inline des rubriques CVSS et Traçabilité (contrats §17), hors table §27.
+        "vecteur": "Vecteur",
+        "score": "Score",
+        "severite": "Sévérité",
+        "note": "Note",
+        "constat_type": "Constat type",
     },
     "en": {
         "titre": "Findings report",
@@ -79,6 +85,11 @@ LIBELLES: dict[Langue, dict[str, object]] = {
         "marque": "Not validated",
         "validee": "Validated",
         "motif_non_validee": "not validated, excluded from the final report",
+        "vecteur": "Vector",
+        "score": "Score",
+        "severite": "Severity",
+        "note": "Note",
+        "constat_type": "Finding template",
     },
 }
 
@@ -255,8 +266,9 @@ def _section_fiche(
     severites = libelles["severites"]
     _paragraphe(
         document,
-        f"Vecteur : {fiche.cvss.vecteur} — Score : {fiche.cvss.score:.1f} — "
-        f"Sévérité : {severites[fiche.cvss.severite]}",
+        f"{libelles['vecteur']} : {fiche.cvss.vecteur} — "
+        f"{libelles['score']} : {fiche.cvss.score:.1f} — "
+        f"{libelles['severite']} : {severites[fiche.cvss.severite]}",
     )
 
     document.add_heading(str(libelles["references"]), level=3)
@@ -275,7 +287,9 @@ def _section_fiche(
 
     document.add_heading(str(libelles["tracabilite"]), level=3)
     _paragraphe(
-        document, f"Note : {fiche.tracabilite.note} — Constat type : {fiche.tracabilite.constat_id}"
+        document,
+        f"{libelles['note']} : {fiche.tracabilite.note} — "
+        f"{libelles['constat_type']} : {fiche.tracabilite.constat_id}",
     )
 
 

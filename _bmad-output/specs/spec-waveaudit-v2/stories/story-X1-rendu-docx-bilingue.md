@@ -42,9 +42,10 @@ sources:
   - `[revue E19]` écriture atomique : le provisoire devient
     `.<nom>.<uuid4().hex>.partiel`, retiré dans un `finally` ; pas de changement du
     comportement de `os.replace`.
-  - Les titres des références (`Reference.titre`) et les mots-clés inline français (« Vecteur
-    :», « Score :», « Sévérité :», « Note :», « Constat type :») ne sont pas traduits : ils
-    ne figurent pas dans la table `LIBELLES` du contrat §27 ni dans `formats.md`.
+  - Les titres des références (`Reference.titre`) ne sont pas traduits (contrats §27). Revue :
+    les mots inline des rubriques CVSS et Traçabilité (« Vecteur », « Score », « Sévérité »,
+    « Note », « Constat type ») passent dans `LIBELLES` (`Vector`, `Score`, `Severity`, `Note`,
+    `Finding template`), valeurs françaises inchangées (CAP-8 : « un Word aux libellés anglais »).
 - Tests (`u/test_export_docx.py`) : les 8 tests v0.1.0 restent verts sans changer leurs cas
   (mode `lot` français identique). Nouveaux : `test_en_bandeau_intitules_severites_statuts_annexe`,
   `test_brouillon_marque_sur_les_seules_fiches_non_validees`,
@@ -56,10 +57,6 @@ fichiers n'existe ou n'est touché par cette story.
 
 ## Choix d'interprétation
 
-- Les mots français inline de `_section_fiche` qui ne figurent pas dans la table `LIBELLES`
-  du contrat (`Vecteur :`, `Score :`, `Sévérité :`, `Note :`, `Constat type :`) restent en
-  français dans les deux langues, par cohérence avec « titres des références non traduits » :
-  seules les chaînes explicitement listées par `formats.md`/contrats §27 sont traduites.
 - Le statut brut d'une `EntreeEcartee` (`non_traitee`, `non_rattachee`) dans la colonne
   Statut de l'annexe n'est pas traduit : ni `formats.md` ni contrats §27 ne lui donnent de
   libellé par langue (contrairement à la marque « Non validée » des fiches non validées,
@@ -73,3 +70,9 @@ fichiers n'existe ou n'est touché par cette story.
 Aucun. `OptionsExport` et la signature `Exporteur.exporter(..., options=OptionsExport())`
 existaient déjà (S0) ; seul l'adaptateur restait à aligner, comme annoncé par la consigne de
 la story.
+
+## Revue
+
+Détail : `_bmad-output/implementation-artifacts/revues/story-X1.md`. Mots inline traduits
+(corrigé) ; textes `detail` des motifs et codes bruts (`non_traitee`, `vecteur_invalide`)
+restent en français dans un Word `en` : écart à arbitrer (domaine, hors périmètre adaptateur).
