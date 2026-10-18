@@ -5,6 +5,7 @@ un lanceur qui crée lui-même un processus enfant, ce qui fausserait le pid et 
 """
 
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -13,6 +14,7 @@ import httpx
 import psutil
 import pytest
 
+from waveaudit.adaptateurs import llama_server
 from waveaudit.adaptateurs.llama_server import LlamaServer
 from waveaudit.domaine.erreurs import MoteurInjoignable
 
@@ -115,6 +117,24 @@ def test_job_object_tue_l_enfant_a_la_fermeture(faux_binaire):
         serveur._job.fermer()  # fermeture du dernier handle du job : KILL_ON_JOB_CLOSE
         serveur._job = None
         assert _attendre_fin(pid, 5.0)
+
+
+def test_terminer_tous_filet_de_securite_ne_touche_pas_les_autres(faux_binaire):
+    """[ARR] Filet de sécurité (lifespan, `atexit`) : termine le llama-server suivi par ce
+    processus, même sans passer par `__exit__` (fil mort sans `finally`) ; un autre processus,
+    non lancé par `LlamaServer`, n'est pas touché."""
+    serveur = faux_binaire()
+    serveur._demarrer()  # comme __enter__ sans passer par le `with` : jamais fermé normalement
+    pid = serveur.pid
+    assert psutil.pid_exists(pid)
+    autre = subprocess.Popen([str(PYTHON), "-c", "import time; time.sleep(10)"])
+    try:
+        llama_server.terminer_tous()
+        assert _attendre_fin(pid)
+        assert autre.poll() is None, "un processus non suivi par ce module a été touché"
+    finally:
+        autre.terminate()
+        autre.wait(5)
 
 
 def _lignes_args(tmp_path: Path) -> list[str]:

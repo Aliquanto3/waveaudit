@@ -112,10 +112,15 @@ class MoteurALaDemande:
         self._pile, self._cle, self._ouvert = pile, cle, (ports, info)
         return ports, info
 
-    def _armer(self) -> None:
-        """Sous `self._verrou` : annule la minuterie précédente et en arme une nouvelle."""
+    def _annuler_minuterie(self) -> None:
+        """Sous `self._verrou`."""
         if self._minuterie is not None:
             self._minuterie.cancel()
+            self._minuterie = None
+
+    def _armer(self) -> None:
+        """Sous `self._verrou` : annule la minuterie précédente et en arme une nouvelle."""
+        self._annuler_minuterie()
 
         def echeance() -> None:
             self._echeance(minuterie)
@@ -157,10 +162,29 @@ class MoteurALaDemande:
                 if self._usages == 0 and self._ouvert is not None:
                     self._armer()
 
-    def fermer(self) -> None:
-        """Idempotent : annule la minuterie et ferme le moteur s'il est ouvert."""
-        with self._verrou:
-            if self._minuterie is not None:
-                self._minuterie.cancel()
-                self._minuterie = None
-            self._fermer_moteur()
+    def fermer(self, timeout: float | None = None) -> None:
+        """Idempotent : annule la minuterie et ferme le moteur s'il est ouvert.
+
+        [v2, ARR] Sans `timeout` (défaut) : attend le verrou interne comme avant. Avec un
+        `timeout`, ne l'attend pas au-delà : `utiliser()` peut le tenir jusqu'à
+        `delai_demarrage_s` (contrats §24) pendant une ouverture de llama-server. Au-delà du
+        délai, le llama-server déjà lancé est terminé directement via le filet de
+        `composition` ; le fil qui ouvrait le détecte à son prochain sondage `/health` et
+        libère le verrou de lui-même en levant `MoteurInjoignable`.
+        """
+        if timeout is None:
+            with self._verrou:
+                self._annuler_minuterie()
+                self._fermer_moteur()
+            return
+        if self._verrou.acquire(timeout=timeout):
+            try:
+                self._annuler_minuterie()
+                self._fermer_moteur()
+            finally:
+                self._verrou.release()
+            return
+        _log.warning(
+            "fermeture du moteur : ouverture en cours au-delà du délai, arrêt forcé du llama-server"
+        )
+        composition.terminer_llama_server_en_cours()

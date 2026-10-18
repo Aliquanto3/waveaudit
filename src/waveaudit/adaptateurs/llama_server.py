@@ -4,10 +4,12 @@
 Object `KILL_ON_JOB_CLOSE` sous Windows et écrit sa sortie dans un fichier, jamais dans un tube.
 """
 
+import atexit
 import logging
 import socket
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from types import TracebackType
@@ -22,6 +24,29 @@ _log = logging.getLogger(__name__)
 HOTE = "127.0.0.1"
 PAS_ATTENTE_S = 0.1
 DELAI_ARRET_S = 5.0
+
+# [v2, ARR] Filet de sécurité : chaque `LlamaServer` lancé s'y enregistre tant qu'il peut avoir
+# un processus en vie, pour être terminé à l'arrêt du processus même si le fil qui l'a ouvert
+# (lot ou incident, fil `daemon`) meurt sans exécuter son `finally` (contrats §10, §24).
+_registre_verrou = threading.Lock()
+_registre: set["LlamaServer"] = set()
+
+
+def terminer_tous() -> None:
+    """Termine tout `LlamaServer` encore suivi par ce processus (lifespan, `atexit`).
+
+    Ne touche aucun processus qui ne serait pas un enfant lancé par ce module.
+    """
+    with _registre_verrou:
+        serveurs = list(_registre)
+    for serveur in serveurs:
+        try:
+            serveur._arreter()
+        except Exception:  # noqa: BLE001 - filet de sécurité : ne doit jamais lever
+            _log.warning("arrêt forcé d'un llama-server en échec", exc_info=True)
+
+
+atexit.register(terminer_tous)
 
 
 def port_libre() -> int:
@@ -141,6 +166,7 @@ class LlamaServer:
         self._processus: subprocess.Popen[bytes] | None = None
         self._job: _JobWindows | None = None
         self._port = 0
+        self._arret_verrou = threading.Lock()
 
     @property
     def base_url(self) -> str:
@@ -224,6 +250,8 @@ class LlamaServer:
             )
         except OSError as erreur:
             raise MoteurInjoignable(f"llama-server non lancé ({erreur})") from erreur
+        with _registre_verrou:
+            _registre.add(self)
         if self._job is not None:
             self._job.rattacher(self._processus.pid)
 
@@ -246,19 +274,27 @@ class LlamaServer:
         return False
 
     def _arreter(self) -> None:
-        """`terminate()`, `wait(5)`, `kill()`, puis fermeture des handles."""
-        processus, self._processus = self._processus, None
-        if processus is not None:
-            if processus.poll() is None:
-                processus.terminate()
-                try:
-                    processus.wait(DELAI_ARRET_S)
-                except subprocess.TimeoutExpired:
-                    processus.kill()
-                    processus.wait(DELAI_ARRET_S)
-        if self._job is not None:
-            self._job.fermer()
-            self._job = None
-        if self._journal is not None:
-            self._journal.close()
-            self._journal = None
+        """`terminate()`, `wait(5)`, `kill()`, puis fermeture des handles.
+
+        [v2, ARR] Protégé par un verrou d'instance : peut être appelé à la fois par le fil qui a
+        ouvert ce serveur (son `finally`) et par le filet de sécurité (`terminer_tous`, lifespan
+        ou `atexit`), sans double-arrêt concurrent.
+        """
+        with self._arret_verrou:
+            with _registre_verrou:
+                _registre.discard(self)
+            processus, self._processus = self._processus, None
+            if processus is not None:
+                if processus.poll() is None:
+                    processus.terminate()
+                    try:
+                        processus.wait(DELAI_ARRET_S)
+                    except subprocess.TimeoutExpired:
+                        processus.kill()
+                        processus.wait(DELAI_ARRET_S)
+            if self._job is not None:
+                self._job.fermer()
+                self._job = None
+            if self._journal is not None:
+                self._journal.close()
+                self._journal = None

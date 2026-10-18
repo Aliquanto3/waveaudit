@@ -290,6 +290,60 @@ def test_echeance_perimee_ne_ferme_pas(local):
         moteur.fermer()
 
 
+def test_fermer_timeout_ouverture_en_cours_termine_le_serveur(local, monkeypatch):
+    """[ARR] Ouverture bloquée au-delà du délai : `fermer(timeout)` rend la main vite et force
+    l'arrêt du llama-server en cours via le filet de `composition`, sans attendre le verrou."""
+    fabrique, serveurs, _ = local
+    moteur = MoteurALaDemande(fabrique())
+    abandon = threading.Event()
+    appels: list[None] = []
+
+    def terminer() -> None:
+        appels.append(None)
+        abandon.set()
+
+    monkeypatch.setattr(composition, "terminer_llama_server_en_cours", terminer)
+
+    def _enter(self):
+        if not abandon.wait(timeout=5):
+            pytest.fail("terminer_llama_server_en_cours pas appelé dans le délai")
+        raise MoteurInjoignable("arrêt forcé pendant l'ouverture")
+
+    monkeypatch.setattr(composition.LlamaServer, "__enter__", _enter)
+
+    resultats: list[BaseException] = []
+
+    def ouvrir() -> None:
+        try:
+            with moteur.utiliser(MODELE_A):
+                pytest.fail("l'ouverture ne doit pas réussir")
+        except BaseException as exc:  # noqa: BLE001 - remonté par l'assertion
+            resultats.append(exc)
+
+    fil = threading.Thread(target=ouvrir, daemon=True)
+    fil.start()
+    assert _attendre(lambda: moteur._verrou.locked())
+    debut = time.monotonic()
+    moteur.fermer(timeout=0.2)
+    duree = time.monotonic() - debut
+    assert duree < 1.0, f"fermer(timeout) a trop attendu : {duree} s"
+    assert appels, "le filet n'a pas été déclenché"
+    fil.join(timeout=5)
+    assert not fil.is_alive()
+    assert resultats and isinstance(resultats[0], MoteurInjoignable)
+    moteur.fermer()
+
+
+def test_fermer_sans_timeout_attend_comme_avant(local):
+    """[ARR] Sans `timeout` (par défaut), comportement inchangé : attend et ferme."""
+    fabrique, serveurs, _ = local
+    moteur = MoteurALaDemande(fabrique())
+    with moteur.utiliser(MODELE_A):
+        pass
+    moteur.fermer()
+    assert not serveurs[0].ouvert
+
+
 # --- Mode externe ---
 
 

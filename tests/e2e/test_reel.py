@@ -9,11 +9,18 @@ inventée, ≥ 70 % utilisables) se juge hors nuit, avec `slm-quality-bench` (SP
 
 import json
 import shutil
+import signal
+import subprocess
+import sys
+import time
 
+import httpx
+import psutil
 import pytest
 from docx import Document
 
 from waveaudit.adaptateurs.export_docx import BANDEAU
+from waveaudit.adaptateurs.llama_server import port_libre
 from waveaudit.adaptateurs.moteur_openai import MoteurOpenAI
 from waveaudit.application.banc import executer_banc
 from waveaudit.application.config import charger_configuration, racine_projet
@@ -127,3 +134,81 @@ def test_banc_reel_deux_notes_plafond_recopie(tmp_path):
         # Seul le lot de ce banc est retiré : `var/sorties` peut contenir d'autres lots.
         (var / "journaux" / f"llama-server-{chemin.parent.name}.log").unlink(missing_ok=True)
         shutil.rmtree(chemin.parent, ignore_errors=True)
+
+
+def _llama_server_descendants(pid: int) -> list[psutil.Process]:
+    try:
+        processus = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        return []
+    return [
+        p
+        for p in processus.children(recursive=True)
+        if "llama-server" in (p.name() or "").casefold()
+    ]
+
+
+def test_ui_reel_arret_pendant_un_lot_ne_laisse_pas_de_llama_server(tmp_path):
+    """Story ARR : `waveaudit ui` réel, un lot d'une note démarré, puis arrêt du processus
+    (CTRL_BREAK, Windows) pendant que le lot tourne encore ; aucun llama-server ne doit rester
+    (filet `atexit`/lifespan, contrats §24)."""
+    config, _ = _config_reelle()
+    waveaudit = shutil.which("waveaudit")
+    if waveaudit is None:
+        pytest.skip("script `waveaudit` introuvable sur le PATH de l'environnement de test")
+    port = port_libre()
+    processus = subprocess.Popen(
+        [waveaudit, "ui", "--port", str(port)],
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
+    )
+    base_url = f"http://127.0.0.1:{port}"
+    try:
+        # Attente bornée du démarrage du serveur (jeton CSRF disponible).
+        limite = time.monotonic() + 15.0
+        jeton = None
+        while jeton is None and time.monotonic() < limite:
+            try:
+                reponse = httpx.get(f"{base_url}/api/jeton", timeout=1.0)
+                if reponse.status_code == 200:
+                    jeton = reponse.json()["jeton"]
+            except httpx.HTTPError:
+                time.sleep(0.2)
+        assert jeton is not None, "l'UI n'a pas démarré dans le délai"
+
+        note = (DEMO / "01-xss-reflechi.md").read_bytes()
+        reponse = httpx.post(
+            f"{base_url}/lots",
+            files={"notes": ("01-xss-reflechi.md", note)},
+            data={"modele": "", "langue": "fr"},
+            headers={"X-CSRF-Token": jeton},
+            timeout=10.0,
+            follow_redirects=False,
+        )
+        assert reponse.status_code == 303, reponse.text
+
+        # Laisse le temps à llama-server de démarrer (le lot tourne encore) avant l'arrêt.
+        descendants: list[psutil.Process] = []
+        limite = time.monotonic() + 30.0
+        while not descendants and time.monotonic() < limite:
+            descendants = _llama_server_descendants(processus.pid)
+            if not descendants:
+                time.sleep(0.2)
+        assert descendants, "llama-server n'a jamais démarré : rien à prouver"
+
+        if sys.platform == "win32":
+            processus.send_signal(signal.CTRL_BREAK_EVENT)
+        else:
+            processus.terminate()
+        processus.wait(timeout=20.0)
+
+        limite = time.monotonic() + 10.0
+        restants = descendants
+        while restants and time.monotonic() < limite:
+            restants = [p for p in restants if p.is_running()]
+            if restants:
+                time.sleep(0.2)
+        assert restants == [], "llama-server orphelin après l'arrêt de l'UI"
+    finally:
+        if processus.poll() is None:
+            processus.kill()
+            processus.wait(10.0)

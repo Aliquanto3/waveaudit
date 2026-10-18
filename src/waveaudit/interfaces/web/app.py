@@ -24,6 +24,7 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from waveaudit.application import composition
 from waveaudit.application.moteur_demande import MoteurALaDemande, VerrouUnique
 from waveaudit.domaine.configuration import Configuration
 from waveaudit.interfaces.web.commun import BANDEAU, RACINE, en_mo, erreur
@@ -97,9 +98,16 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     limite = time.monotonic() + ATTENTE_ARRET_MOTEUR_S
     while app.state.verrou.occupation() is not None and time.monotonic() < limite:
         await asyncio.sleep(0.05)
-    # [revue W2] Hors de la boucle : `fermer` attend le verrou interne du moteur, tenu pendant
-    # un démarrage de llama-server (jusqu'à `delai_demarrage_s`) ; la boucle reste libre.
-    await asyncio.to_thread(app.state.moteur.fermer)
+    # [ARR] `fermer(timeout=...)` reste dans la borne de 10 s : au-delà du délai restant, le
+    # llama-server en cours d'ouverture est terminé directement plutôt qu'attendu. Hors de la
+    # boucle : l'appel peut bloquer jusqu'à ce délai.
+    restant = max(0.0, limite - time.monotonic())
+    await asyncio.to_thread(app.state.moteur.fermer, restant)
+    # [ARR] Filet de sécurité général : un lot ou un incident en cours (fil `daemon` distinct du
+    # moteur à la demande, AD-20) peut avoir démarré son propre llama-server ; ce fil peut mourir
+    # sans exécuter son `finally` si le processus s'arrête avant qu'il ait fini. On le termine
+    # directement, sans attendre ce fil.
+    await asyncio.to_thread(composition.terminer_llama_server_en_cours)
 
 
 def creer_app(config: Configuration, *, hotes_test: tuple[str, ...] = ()) -> FastAPI:
