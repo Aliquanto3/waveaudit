@@ -1,5 +1,6 @@
 """Échappement des balises `note`/`constat` dans le prompt des fiches (contrats §8, CAP-2)."""
 
+import json
 from pathlib import Path
 
 from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
@@ -56,3 +57,42 @@ def test_caracteres_invisibles_intercales_neutralises():
     assert "<" not in echappe and echappe.count("‹") == 3
     assert len(echappe) == len(texte)
     assert prompt.echapper("a < b <notes> <noter") == "a < b <notes> <noter"
+
+
+def test_langue_en_consigne_et_constat_anglais_asset():
+    """[v2] CAP-8 (contrats §8, §23) : consigne anglaise, textes du constat en anglais."""
+    constat = _constat()
+    note = Note(
+        fichier="n.md",
+        titre=None,
+        actif="app.exemple.test",
+        severite_pressentie=None,
+        constat_attendu=None,
+        corps="corps",
+    )
+    messages = prompt.construire(note, constat, "", 6000, langue="en")
+
+    assert messages[0]["content"] == prompt.CONSIGNES["en"]
+    assert "Rédige" not in messages[0]["content"]
+    contenu = messages[1]["content"]
+    assert contenu.startswith("<constat>")
+    assert "Asset: app.exemple.test" in contenu
+    debut, fin = contenu.index("<constat>"), contenu.index("</constat>")
+    donnees = json.loads(contenu[debut + len("<constat>") : fin])
+    assert donnees["titre"] == constat.en.titre
+    assert donnees["description"] == constat.en.description
+
+
+def test_langue_fr_defaut_consigne_francaise():
+    """Sans `langue`, la consigne et les textes restent ceux de la v0.1.0 (français)."""
+    constat = _constat()
+    note = Note(
+        fichier="n.md",
+        titre=None,
+        actif=None,
+        severite_pressentie=None,
+        constat_attendu=None,
+        corps="corps",
+    )
+    messages = prompt.construire(note, constat, "", 6000)
+    assert messages[0]["content"] == prompt.CONSIGNE == prompt.CONSIGNES["fr"]

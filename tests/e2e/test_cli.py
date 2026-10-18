@@ -10,8 +10,10 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from docx import Document
 from typer.testing import CliRunner
 
+from waveaudit.adaptateurs.export_docx import LIBELLES
 from waveaudit.application.config import racine_projet
 from waveaudit.interfaces.cli import app
 from waveaudit.securite import garde_reseau
@@ -76,6 +78,32 @@ def test_fiches_nominal_30_notes_bandeau_et_garde(tmp_path, faux_moteur):
     assert len(lignes_fiche) == 30
     assert any("rapport :" in ligne for ligne in lignes)
     assert not garde_reseau._actif  # désactivé en sortie de commande
+
+
+def test_fiches_langue_en_rapport_anglais(tmp_path, faux_moteur):
+    """[v2] CAP-8 (contrats §19, §23) : `--langue en` -> rapport Word aux libellés anglais."""
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    dossier = tmp_path / "notes"
+    dossier.mkdir()
+    (dossier / "01-xss-reflechi.md").write_bytes((DEMO / "01-xss-reflechi.md").read_bytes())
+
+    resultat = runner.invoke(
+        app, ["fiches", str(dossier), "--config", str(config), "--langue", "en"]
+    )
+
+    assert resultat.exit_code == 0, resultat.output
+    ligne_rapport = next(ligne for ligne in resultat.output.splitlines() if "rapport :" in ligne)
+    chemin_rapport = Path(ligne_rapport.rsplit("rapport :", 1)[1].strip())
+    document = Document(str(chemin_rapport))
+    titres = [p.text for p in document.paragraphs if p.style.name == "Title"]
+    assert LIBELLES["en"]["titre"] in titres
+
+
+def test_fiches_langue_invalide_code_2(tmp_path, faux_moteur):
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    resultat = runner.invoke(app, ["fiches", str(DEMO), "--config", str(config), "--langue", "de"])
+
+    assert resultat.exit_code == 2
 
 
 def test_fiches_dossier_absent_code_2(tmp_path, faux_moteur):

@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from docx import Document
 
+from waveaudit.adaptateurs.export_docx import LIBELLES
 from waveaudit.application import lot
 from waveaudit.application.config import racine_projet
 from waveaudit.application.lot import executer_lot, nouvel_id_lot
@@ -57,6 +58,8 @@ def test_lot_nominal_30_notes(config_test, tmp_path):
         "id_lot": resultat.id_lot,
         "modele": "externe",
         "pid_moteur": None,
+        "workflow": "fiches",
+        "langue": "fr",
     }
     fiches = evenements[1:-1]
     assert len(fiches) == 60
@@ -70,6 +73,37 @@ def test_lot_nominal_30_notes(config_test, tmp_path):
     notes = [e["note"] for e in fiches[::2]]
     assert notes == sorted(notes, key=str.casefold)
     assert str(tmp_path) not in (sortie / "journal.jsonl").read_text(encoding="utf-8")
+
+
+def test_lot_anglais_details_langue_et_word_anglais(config_test, tmp_path):
+    """[v2] CAP-8 (contrats §9, §23) : `--langue en` -> `details.langue`, Word aux libellés en."""
+    dossier = tmp_path / "notes"
+    dossier.mkdir()
+    shutil.copy(DEMO / "01-xss-reflechi.md", dossier / "01-xss-reflechi.md")
+
+    resultat = executer_lot(RequeteLot(dossier=dossier, langue="en"), config_test)
+
+    demarre = _journal(resultat)[0]
+    assert demarre["details"]["langue"] == "en"
+    document = Document(str(resultat.chemin_rapport))
+    titres = [p.text for p in document.paragraphs if p.style.name == "Title"]
+    assert LIBELLES["en"]["titre"] in titres
+    assert LIBELLES["fr"]["titre"] not in titres
+
+
+def test_lot_sans_langue_reste_francais(config_test, tmp_path):
+    """Un lot sans `--langue` se comporte comme en v0.1.0 (français)."""
+    dossier = tmp_path / "notes"
+    dossier.mkdir()
+    shutil.copy(DEMO / "01-xss-reflechi.md", dossier / "01-xss-reflechi.md")
+
+    resultat = executer_lot(RequeteLot(dossier=dossier), config_test)
+
+    demarre = _journal(resultat)[0]
+    assert demarre["details"]["langue"] == "fr"
+    document = Document(str(resultat.chemin_rapport))
+    titres = [p.text for p in document.paragraphs if p.style.name == "Title"]
+    assert LIBELLES["fr"]["titre"] in titres
 
 
 def test_id_lot_unique_dans_la_meme_seconde(config_test, monkeypatch):

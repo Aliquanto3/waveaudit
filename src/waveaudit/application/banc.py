@@ -20,6 +20,7 @@ from waveaudit.domaine.modeles import (
     Candidat,
     EvenementLot,
     Fiche,
+    Langue,
     Rapport,
     RequeteLot,
     TypeEvenement,
@@ -107,7 +108,9 @@ def _top(rapport: Rapport) -> tuple[int, int, int]:
     return top1, top3, etiquetees
 
 
-def executer_banc(dossier: Path, config: Configuration, modele: str | None = None) -> Path:
+def executer_banc(
+    dossier: Path, config: Configuration, modele: str | None = None, langue: Langue | None = None
+) -> Path:
     """Exécute un lot instrumenté ; écrit et affiche `banc.json` ; renvoie son chemin."""
     mesure = composition.creer_mesure_memoire()
     echantillonneur = _Echantillonneur(mesure, os.getpid())
@@ -130,7 +133,9 @@ def executer_banc(dossier: Path, config: Configuration, modele: str | None = Non
             echantillonneur.arreter()
 
     try:
-        resultat = executer_lot(RequeteLot(dossier=dossier, modele=modele), config, abonne)
+        resultat = executer_lot(
+            RequeteLot(dossier=dossier, modele=modele, langue=langue), config, abonne
+        )
     finally:
         # Filet si `lot_termine`/`lot_echoue` n'a pas atteint l'abonné (écriture du journal en
         # échec avant l'appel de l'abonné) : le fil d'échantillonnage ne survit pas au lot.
