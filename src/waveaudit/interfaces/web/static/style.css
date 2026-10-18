@@ -171,3 +171,160 @@ textarea:focus-visible,
   border-color: var(--couleur-primaire);
   background: var(--couleur-primaire-doux);
 }
+
+/* Relecture (W3b, DESIGN.md « Layout & Spacing », « Components ») : tiroir repliable (classe,
+   pas [hidden] : il se réduit, il ne disparaît pas), note en lecture et fiche éditable. */
+.relecture-mise-en-page {
+  display: grid;
+  grid-template-columns: 260px minmax(220px, 320px) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+#tiroir-conteneur.tiroir-repli #tiroir-liste {
+  width: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+#tiroir-liste {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  border: 1px solid var(--couleur-trait);
+  border-radius: 12px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+#tiroir-liste li[role="option"] {
+  padding: 0.5rem 0.75rem;
+  font-size: var(--taille-petit);
+  border-bottom: 1px solid var(--couleur-trait);
+  cursor: pointer;
+}
+
+#tiroir-liste li[aria-selected="true"] {
+  background: var(--couleur-primaire-doux);
+}
+
+#panneau-note {
+  background: var(--couleur-fond-creme);
+  border-radius: 12px;
+  padding: 0.75rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+#note-corps {
+  font-family: var(--police-chasse-fixe);
+  font-size: var(--taille-chasse-fixe);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+#candidats-barre {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+#candidats-barre [role="tab"] {
+  background: var(--couleur-blanc);
+  color: var(--couleur-encre);
+}
+
+#candidats-barre [role="tab"][aria-selected="true"] {
+  border-color: var(--couleur-primaire);
+  color: var(--couleur-primaire);
+}
+
+#panneau-fiche[aria-busy="true"] {
+  position: relative;
+  opacity: 0.6;
+}
+
+#motifs {
+  background: var(--couleur-attention-doux);
+  border: 1px solid var(--couleur-attention);
+  color: var(--couleur-attention-texte);
+  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+#cvss-pastille {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: var(--taille-petit);
+  margin-left: 0.5rem;
+}
+
+#cvss-pastille.severite-faible {
+  background: var(--couleur-accent-doux);
+  color: var(--couleur-accent-texte);
+}
+
+#cvss-pastille.severite-moyenne {
+  background: var(--couleur-attention-doux);
+  color: var(--couleur-attention-texte);
+}
+
+#cvss-pastille.severite-elevee {
+  background: var(--couleur-danger-doux);
+  color: var(--couleur-danger-texte);
+}
+
+#cvss-pastille.severite-critique {
+  background: var(--couleur-danger);
+  color: var(--couleur-texte-sur-vif);
+}
+
+#champ-cvss[aria-invalid="true"] {
+  border-color: var(--couleur-danger);
+}
+
+#barre-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--couleur-trait);
+}
+
+#indicateur-enregistrement {
+  font-size: var(--taille-petit);
+  color: var(--couleur-encre-douce);
+}
+
+/* [revue V2, test_contraste.py] Aucune couleur littérale (rgba comprise) hors tokens.css :
+   superposition et élévation en couleur pleine (`--couleur-encre`) plutôt qu'en transparence,
+   bordure `--couleur-trait` en place de l'ombre diffuse de DESIGN.md. */
+.dialogue-superposition {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--couleur-encre);
+}
+
+.dialogue-boite {
+  background: var(--couleur-blanc);
+  border: 1px solid var(--couleur-trait);
+  border-radius: 16px;
+  padding: 1.25rem;
+  max-width: 28rem;
+}
+
+.dialogue-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
