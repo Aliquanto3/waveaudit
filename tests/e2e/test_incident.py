@@ -144,6 +144,22 @@ def test_erreur_500_repli_a_revoir(config_test, faux_moteur):
     assert [e["statut"] for e in fins] == [Statut.A_REVOIR] * 16
 
 
+def test_langue_anglaise_a_revoir(config_test, faux_moteur):
+    """Contrats §21 v2 (CAP-4) : le récit incident reste en français (`langue="fr"` par défaut)."""
+    fm = faux_moteur("langue_anglaise")
+    resultat = _executer(_vers(config_test, fm))
+    recits = resultat.rapport.recits
+    assert len(recits) == 16
+    for r in recits:
+        assert r.statut == Statut.A_REVOIR
+        assert all(m.code == CodeMotif.LANGUE for m in r.motifs)
+        assert {m.detail.split(" : ", 1)[0] for m in r.motifs} == {
+            "recit",
+            "impact",
+            "recommandation",
+        }
+
+
 def test_references_inventees_retirees(config_test, faux_moteur):
     fm = faux_moteur("references_inventees")
     resultat = _executer(_vers(config_test, fm))
