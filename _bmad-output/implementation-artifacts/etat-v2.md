@@ -22,9 +22,9 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 | 6 | X2 | Service d'export et `waveaudit exporter` | Sonnet | intégrée 029561e |
 | 6 | W4 | Incident dans l'UI | Sonnet | intégrée 61f0141 |
 | 7 | W3a | API de relecture, régénération et export | Opus | intégrée a2273ad |
-| 8 | W3b | Écran de relecture | Sonnet | en cours |
+| 8 | W3b | Écran de relecture | Sonnet | en revue |
 | 7 | LIB | Libellés par langue des statuts et motifs dans le Word (annexe des écartées, tous modes) | Sonnet | intégrée 1b72836 |
-| 8 | ARR | Arrêt propre de l'UI (llama-server enfant, fermer(timeout)) | Sonnet | en revue |
+| 8 | ARR | Arrêt propre de l'UI (llama-server enfant, fermer(timeout)) | Sonnet | intégrée 659a6cb |
 | 8 | DOC | README et guide des testeurs | Sonnet | à faire |
 | 8 | REC | Recette finale sur l'EliteBook ★ | avec Anaël | à faire |
 
@@ -61,8 +61,9 @@ Constats tirés par Q3 (textes `en` dans `donnees/catalogue/*.yaml`) : AD-KERBER
 - W4 : sélecteur fiches/incident ajouté à l'accueil (`index.html`, `accueil.js`, hors liste de fichiers de W4, sur décision de l'orchestrateur : sans lui l'incident n'était pas atteignable depuis l'UI, CAP-14). `[hidden]{display:none !important}` global dans `style.css`. REC : vérifier dans un vrai navigateur la bascule, un envoi de journaux et `aucun_journal_reconnu` (aucun test n'exécute le JS). Le rapport incident (`export_incident_docx.py`) écrit toujours `code : detail` (français, conforme §17).
 - LIB : le Word `fr` reste strictement identique à la v0.1.0 (§27, §17, prouvé par comparaison au rendu de 8ec9079) ; seuls les Word `en` reçoivent des libellés. Les tables `MOTIFS_EN`, `STATUTS_ECARTES_EN`, `RUBRIQUES_EN` dépassent la table normative de §27 et `formats.md` : à reporter au contrat. En `en`, la valeur variable est omise pour `note_invalide`, `aucun_constat` et les replis.
 - W3a : `relecture_illisible` (409) hors table §26, à y ajouter ; `index` ajouté à `occupation` (null hors régénération) ; correction et validation permises pendant un lot de ce processus (§26 ne prévoit que `lot_en_cours_externe` ; le domaine refuse une entrée non `fiche`) ; `generation_en_cours` inatteignable sur `candidat`. Le verrou de R2 est un verrou de processus (`threading.Lock`), pas un verrou de fichier.
+- ARR : `fermer(timeout)` à écrire dans contrats.md §24 (la borne de 10 s peut être dépassée de 5 à 10 s au pire hors Windows). Écarts M1 et W2 (llama-server orphelin, borne non tenue) clos. Le test slow d'ARR suppose `waveaudit` sur le PATH et `var/` installé à la racine du dépôt. Test unitaire `test_terminer_tous_pendant_l_attente_de_health_leve_moteur_injoignable` corrigé à l'intégration (sommeil fixe de 0,3 s remplacé par un sondage borné : il échouait à chaque fois sur l'EliteBook).
 - Test instable : `tests/e2e/test_ui.py::test_lot_nominal_20_notes_puis_telechargement` a échoué une fois dans la suite complète après Q3 (machine chargée, suite à 173 s), puis passé seul, avec `tests/e2e/` et dans une seconde suite complète (908). À surveiller ; dev-story de correction s'il récidive.
-Suite complète après la vague 5 (W2 + Q5) : 994 verts. Après la vague 6 (X2 + W4) : 1027 verts.
+Suite complète après la vague 5 (W2 + Q5) : 994 verts. Après la vague 6 (X2 + W4) : 1027 verts. Après W3a, LIB, ARR : 1071 verts.
 
 ## Arbitrages d'Anaël (2026-10-18)
 

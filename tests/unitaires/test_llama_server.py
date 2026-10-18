@@ -168,7 +168,15 @@ def test_terminer_tous_pendant_l_attente_de_health_leve_moteur_injoignable(faux_
     while serveur._processus is None and time.monotonic() < limite:
         time.sleep(0.05)
     pid = serveur.pid
-    time.sleep(0.3)  # le fil est dans la boucle de sondage de `_attendre`
+    # Le faux serveur a écrit sa ligne ARGS : le fil est dans la boucle de sondage de `_attendre`.
+    racine = serveur._journal_chemin.parents[1]
+    while time.monotonic() < limite:
+        try:
+            if _lignes_args(racine):
+                break
+        except OSError:
+            pass
+        time.sleep(0.05)
     debut = time.monotonic()
     llama_server.terminer_tous()
     fil.join(10)
