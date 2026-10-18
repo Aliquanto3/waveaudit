@@ -26,7 +26,7 @@ Abréviations : `u/` = `tests/unitaires/`, `e2e/` = `tests/e2e/`, `src` = `src/w
 | 14 | §11 `modeles_installes` | `src/application/composition.py` | — | `u/test_composition.py` : local-gere (fichiers présents ou absents sous `tmp_path`, défaut, repli si RAM basse), externe (une entrée) | non |
 | 15 | §7 index BM25 bilingue | `src/domaine/recherche.py` (`_document`) | `u/test_recherche.py` (fixtures sans `en` : verts) ; `u/test_rattachement_demo.py` (rangs changent avec l'index bilingue) | `u/test_recherche.py` : un mot présent seulement dans `en.titre` rattache le constat ; `N` inchangé | non |
 | 16 | §15 catalogue bilingue (schéma YAML, chargement strict, `verifier`) + traduction des 50 entrées | `src/adaptateurs/catalogue_yaml.py`, `donnees/catalogue/*.yaml` (50 entrées) | `u/test_catalogue.py` : fixtures de catalogue minimal (`::test_catalogue_minimal_complet_est_valide`, `::test_verifier_detecte_*`, `::test_charger_leve_*`, `::test_constats_leve_configuration_invalide_si_id_duplique`) à compléter d'un bloc `en` ; `::test_contenu_du_catalogue_du_depot_suit_le_cahier_des_charges` | `u/test_catalogue.py` : `en` absent ou incomplet refusé par `verifier` et par `CatalogueYaml` ; `en.titre != titre` ; aucun mot-outil fr dans `en.description` | non (données) |
-| 17 | §29 rattachement CAP-5 (mots-clés, pondérations) | `donnees/catalogue/*.yaml` (`mots_cles`), `src/domaine/recherche.py` (constantes de pondération), `config/waveaudit.toml` (`k1`, `b`, si réglés : socle) | `u/test_rattachement_demo.py` : seuils 15/18 → 17/20 et 20/20, notes 21-30 non bloquantes → bloquantes (8/10, 10/10), notes 01 et 29 au rang 1 | idem (le test réaligné est la mesure) | non (sauf `k1`/`b`) |
+| 17 | §29 rattachement CAP-5 (mots-clés, pondérations) | `donnees/catalogue/*.yaml` (`mots_cles`), `src/domaine/recherche.py` (constantes de pondération), `config/waveaudit.toml` (`k1`, `b`, si réglés : socle) | `u/test_rattachement_demo.py` : seuils 15/18 → 17/20 et 20/20, notes 21-30 non bloquantes → notes 21-28 et 30 bloquantes (8/9, 9/9, revue A30), notes 01 et 29 au rang 1 | idem (le test réaligné est la mesure) | non (sauf `k1`/`b`) |
 | 18 | §8 et §23 consigne par langue, constat dans la langue du lot ; consigne révisée CAP-6 | `src/workflows/fiches/prompt.py` (`CONSIGNES`), `src/workflows/fiches/pipeline.py` (langue, `rediger`, repli depuis `textes(langue)`) | `u/test_pipeline.py::test_prefixe_systeme_vient_des_ports` (`prompt.CONSIGNE`, l. 300 ; vert si `CONSIGNE = CONSIGNES["fr"]`), `::test_prompt_*` ; `u/test_faux_moteur.py::test_nominal_routes_et_requetes` (lit `<constat>`) | `u/test_prompt.py` : consigne et constat anglais en `en`, `Asset:` ; `u/test_pipeline.py` : lot en avec faux moteur → textes anglais, repli anglais | non |
 | 19 | §9 et §23 langue du lot dans `executer_lot`, `lot_demarre.details` (+`workflow`, `langue`) | `src/application/lot.py` | `e2e/test_lot.py::test_lot_nominal_30_notes` (égalité exacte de `details`, l. 56-60) | `e2e/test_lot.py` : lot `en` → `details.langue == "en"`, Word anglais | non (lot.py hors AD-0) |
 | 20 | §19 CLI `fiches --langue`, `banc --langue` | `src/interfaces/cli.py` | `e2e/test_cli.py::test_fiches_nominal_30_notes_bandeau_et_garde` (vert) | `e2e/test_cli.py` : `--langue en` → Word aux libellés anglais ; `--langue de` → code 2 | non |
@@ -44,7 +44,29 @@ Abréviations : `u/` = `tests/unitaires/`, `e2e/` = `tests/e2e/`, `src` = `src/w
 | 32 | §12, §17, §20, §21, §22, CLI : écarts entérinés | aucun (déjà dans le code v0.1.0) | aucun | aucun | — |
 | 33 | AD-9 hors ligne, v2 | — | `e2e/test_hors_ligne.py::test_ui_lot_sous_garde_sans_tentative` (CSRF, voir 26) | `e2e/test_hors_ligne.py` : relecture (changement de candidat) et incident UI sous `garde(...)`, `tentatives() == []` | non |
 
-**Total : 33 lignes.**
+**Total : 33 lignes**, plus les lignes 34 à 37 ci-dessous.
+
+## Amendements de la relecture adversariale (2026-10-18)
+
+Source : `spec-waveaudit-v2/revue-adversariale.md`, section Intégration. Les lignes ci-dessus restent valables ; ces ajouts les complètent (contrats marqués **[revue …]**).
+
+| # | Ajout | Fichiers | Tests nouveaux ou réalignés | Story |
+|---|---|---|---|---|
+| 6 | `dossier_lot_existant` (sans `mkdir`), `MOTIF_ID_LOT` borné à 64 | `src/application/lot.py` | `u/test_lot_noms.py` (nouveau) : `dossier_lot_existant` ne crée rien, 65 caractères refusés, `NUL` refusé | S0 |
+| 9 | URL de la note comparées en jetons entiers | `src/domaine/garde_fous.py` | `u/test_garde_fous.py` : préfixe d'une URL de la note retiré | Q2 |
+| 10 | Répétition et langue : charges citées, `3DES`, sigles, citations, `Lm`, ordinaux, non latin cité | `src/domaine/qualite_texte.py` | `u/test_qualite_texte.py` : un cas par faux positif (contrats §6) | Q2 |
+| 17 | Notes non vues = 21-28 et 30 (≥ 8/9, 9/9), `xfail` pendant le réglage | `tests/unitaires/test_rattachement_demo.py` | idem | Q4 |
+| 21 | `lot.ecrire_fiche_lot` (+`pid`), réessais 10 × 100 ms, échec d'écriture → `lot_echoue`, `modele_generation`, génération interrompue calculée à la lecture, `source_absente`, `candidat_courant`, catalogue pour `non_rattachee`, repli moteur sans remplacement | `src/application/relecture.py`, `src/application/lot.py`, `src/domaine/relecture.py` (R1 : `reference_dupliquee`, confirmation si validée, annexe des non validées) | `u/test_relecture.py` : fichier tenu ouvert, aucune écriture en lecture, `source_absente`, `candidat_courant`, `non_rattachee` sur un id hors candidats, repli moteur → `echec` et fiche gardée ; `u/test_relecture_regles.py` : `reference_dupliquee`, ordre des références, final → ensemble des non validées | R1, R2 |
+| 25 | Verrou interne, compteur d'usages, clé = nom résolu, `definir` | `src/application/moteur_demande.py` | `u/test_moteur_demande.py::test_minuterie_concurrente_sans_fermeture_pendant_usage`, `::test_definir_remplace_occupation_provisoire`, `::test_cle_nom_resolu` | M1 |
+| 26 | `hotes_test`, Host en minuscules, `Cache-Control` sur HTML, `GET /api/jeton`, limites `fichier`/`total`, `trop_de_fichiers`, noms `[. ]$` | `src/interfaces/web/app.py`, `tests/web_outils.py` | `e2e/test_ui.py` : `testserver` refusé sans `hotes_test`, Host en capitales accepté, `/api/jeton`, 413 `limite`, `trop_de_fichiers`, nom `a.md.` et doublon `A.md`/`a.md ` refusés | W1 |
+| 27 | `pid` et `processus_actif`, tri par `cree_le`, `lot.json` avant le 303, occupation provisoire | `src/application/lots.py`, `src/application/composition.py` (`processus_actif`), routeur lots | `u/test_lots.py` : pid vivant d'un autre processus → `en_cours`, pid mort → `interrompu`, tri ; `e2e/test_ui.py` : `GET /incidents/{id}` juste après le 303 ne redirige pas | W2 |
+| 28 | Export en `POST`, `GET /lots/{id}/catalogue`, `non_validees`, 409 `lot_en_cours_externe`, 503 `ecriture_impossible`, index hors bornes | routeur relecture | `e2e/test_relecture_ui.py` : export GET → 405, `X-Non-Validees`, catalogue, lot externe en cours (faux pid vivant) → 409, 503 simulé, index n+1 → 404 | W3a |
+| 31 | `replis` exclus de la recopie, `seed`, `banc --seed` | `src/application/banc.py`, `src/interfaces/cli.py` | `e2e/test_banc.py` : repli → `replis == 1` et recopie `null` ; `--seed 142` dans `banc.json` | B1 |
+| 34 | **[V1]** banc réel sur 2 notes, plafond de recopie | `tests/e2e/test_reel.py` (`slow`) | `::test_banc_reel_deux_notes_plafond_recopie` | Q5 |
+| 35 | **[V2]** contrastes recalculés | `tests/unitaires/test_contraste.py` (nouveau) | ratios de `tokens.css` contre `DESIGN.md` | W5 |
+| 36 | **[V2]** focus et ARIA | `tests/accessibilite.py` (nouveau, aide), appelée par `e2e/test_ui.py`, `e2e/test_relecture_ui.py`, `e2e/test_incident_ui.py` | noms accessibles, `tabindex`, dialogues, `:focus-visible` | W5 (aide + pages existantes), W3b, W4 |
+| 37 | CAP-4 : fiche française dans un lot `en` | `tests/unitaires/test_pipeline_langue.py` (nouveau) | faux moteur `langue_francaise` en lot `en` → `a_revoir` + `langue` | L1 |
+
 
 ## Collisions de fichiers à ordonner
 
@@ -54,7 +76,8 @@ Abréviations : `u/` = `tests/unitaires/`, `e2e/` = `tests/e2e/`, `src` = `src/w
 - `src/application/lot.py` : lignes 6 (S0), 19 et 21.
 - `src/interfaces/web/app.py` : lignes 26 à 30. Poser d'abord la ligne 26 (socle web : middleware, `web_outils`), puis les pages. Ne jamais faire deux stories web en parallèle sur `app.py` sans découper `app.py` en routeurs (`APIRouter` par surface : `pages`, `lots`, `relecture`, `incidents`, `theme`), ce que la story de la ligne 26 doit faire.
 - `src/interfaces/cli.py` : lignes 6, 20, 24 et 31 (ajouts de commandes ou d'options seulement).
-- `src/application/composition.py` : lignes 12, 14, 23, 29 et 31 (ajouts de fonctions seulement).
+- `src/application/composition.py` : lignes 12, 14, 23, 27, 29 et 31 (ajouts de fonctions seulement).
+- **[revue A28]** `tests/unitaires/test_composition.py` : Q5 (si le défaut change) et W2 se croisaient. W2 met ses tests de `modeles_installes` dans `u/test_modeles_installes.py` (nouveau, manifeste fabriqué sous `tmp_path`, indépendant du défaut réel) : plus de collision. `app.py` : W1 inclut les cinq routeurs ; W3a et W4 ne touchent que leur module de routeur.
 
 ## Ordre recommandé (dépendances, pas un découpage)
 

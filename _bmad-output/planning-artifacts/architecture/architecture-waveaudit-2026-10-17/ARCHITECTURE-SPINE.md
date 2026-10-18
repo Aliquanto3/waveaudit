@@ -286,7 +286,8 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
     - §13 v2 (scénarios du faux moteur) ;
     - §25 (formes de `domaine/relecture.py`) ;
     - les noms publics de `lot.py` (§9 v2) et la règle d'architecture associée.
-  - S0 ne change aucun comportement : tous les nouveaux arguments ont un défaut qui reproduit la v0.1.0. La suite complète reste verte, réalignée selon `impacts-v2.md` (lignes 1 à 6 et 13).
+  - S0 ne change aucun comportement, **sauf un, nommé [revue A22]** : la permutation des rôles de CAP-7 (`qwen3.5-0.8b-q4km` devient `modele_repli`, `minicpm5-1b-q4km` `candidat`), qui change le modèle choisi quand la RAM disponible est sous `ram_min_defaut_go`. Tous les nouveaux arguments ont un défaut qui reproduit la v0.1.0. La suite complète reste verte, réalignée selon `impacts-v2.md` (lignes 1 à 6 et 13).
+  - S0 pose aussi `lot.dossier_lot_existant` (§9, sans effet de bord) et `MOTIF_ID_LOT` borné à 64 caractères **[revue A3/A21]**. `tests/conftest.py` ne change pas : `config_test` relit `config/waveaudit.toml` **[revue A23]**.
   - Les stories v2 suivantes appliquent AD-0 à ces fichiers.
   - **Deux exceptions nommées, sur des valeurs seulement (aucune clé, aucun champ) :**
     - la story de rattachement (CAP-5) peut changer `[recherche] k1` et `b` dans `config/waveaudit.toml` ;
@@ -315,6 +316,8 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
   - **Moteur à la demande :** `MoteurALaDemande` sert seulement à la régénération. Il passe par `composition.ouvrir`, reste ouvert pour le modèle du lot, et se ferme après `ui.inactivite_moteur_s` (300 s) sans usage, ou à l'arrêt de l'application.
   - Un lot ou un incident, verrou pris, ferme d'abord le moteur à la demande, puis garde son propre cycle de vie (AD-11).
   - La CLI n'utilise ni verrou ni moteur à la demande : un lot CLI concurrent d'un lot UI reste possible, comme en v0.1.0.
+  - **[revue A13]** `lot.json` porte le `pid` du processus du lot. Un lot `en_cours` dans un autre processus (pid vivant, journal sans fin) est en lecture seule pour l'UI (409 `lot_en_cours_externe`) et refusé par `waveaudit exporter` (code 2). Le double llama-server reste accepté.
+  - **[revue A1/A10]** L'occupation est prise avant la création de l'id (provisoire, puis `definir`) ; verrou et moteur à la demande protègent leur état par un verrou interne et un compteur d'usages.
 - **Touche :** `application/moteur_demande.py`, `interfaces/web/app.py`, `config/waveaudit.toml` (`[ui] inactivite_moteur_s`) ; tests `test_moteur_demande.py`, `e2e/test_ui.py`, `e2e/test_relecture_ui.py`, `e2e/test_incident_ui.py`.
 
 ### AD-21 — Langue du lot
@@ -341,8 +344,9 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
     - `Content-Length` borné ;
     - CSP `default-src 'self'`, `nosniff`, `no-referrer`.
   - Ni script ni style en ligne. Erreurs JSON : `{"detail", "code"}`.
+  - **[revue A4/A7]** Aucun GET n'écrit (export en `POST` avec jeton, génération interrompue calculée à la lecture) ; `testserver` n'est accepté que par `creer_app(..., hotes_test=...)` depuis les tests.
   - **État :** l'état d'un lot vient de `journal.jsonl`, `lot.json` et `relecture.json` (`application/lots.py`, `application/relecture.py`), plus l'occupation du verrou. Aucun registre en mémoire.
-  - **Structure :** `app.py` assemble des `APIRouter` par surface (pages, lots, relecture, incidents, thème). La première story web pose le middleware, les routeurs vides et `tests/web_outils.py` ; les suivantes ajoutent chacune leur routeur.
+  - **Structure :** `app.py` assemble des `APIRouter` par surface (pages, lots, relecture, incidents, thème). La première story web pose le middleware, les cinq modules de routeur (vides s'il le faut) **et leur inclusion dans `app.py`**, plus `tests/web_outils.py` ; les suivantes remplissent chacune leur module de routeur sans toucher `app.py` **[revue A28]**.
 - **Touche :** `interfaces/web/` (app, routeurs, gabarits, static), `application/lots.py` ; tests `e2e/test_ui.py`, `e2e/test_hors_ligne.py`, `e2e/test_relecture_ui.py`, `e2e/test_incident_ui.py`, `tests/web_outils.py`.
 
 ### AD-23 — Qualité de sortie mesurée, pas supposée
@@ -351,7 +355,8 @@ Les formes exactes (modèles, ports, configuration, manifeste, signatures) sont 
 - **Prevents:** des seuils de garde-fou, une consigne ou des rôles de modèles changés sans chiffre ; une recopie mesurée différemment d'un banc à l'autre.
 - **Rule:**
   - **Rattachement :** mesuré sans modèle par `test_rattachement_demo.py`, bloquant aux seuils de CAP-5.
-  - **Recopie et taux `ok` :** mesurés par `waveaudit banc` (`banc.json` v2, contrats §29), sur le sous-ensemble de 6 notes, sur l'EliteBook, selon `mesures-qualite.md`.
+  - **Recopie et taux `ok` :** mesurés par `waveaudit banc` (`banc.json` v2, contrats §29), sur le sous-ensemble de 6 notes, sur l'EliteBook, selon `mesures-qualite.md`. **[revue A29-A31]** Une seule définition de la recopie (celle de la référence 0,93 : texte de `fiches.json`, `SequenceMatcher(None, a, b)`, `autojunk` par défaut, replis à part) ; 3 seeds par modèle ; notes « non vues » du rattachement = 21-28 et 30, en `xfail` pendant le réglage.
+  - **[revue V1]** Un test `slow` (`e2e/test_reel.py`) rejoue le banc sur 2 notes avec le modèle par défaut et vérifie un plafond de recopie : garde contre un retour vers 0,93, sans remplacer le rebanc.
   - **Changements soumis au rebanc :** consigne (CAP-6), `repeat_penalty` du manifeste et permutation des rôles (CAP-7). Chaque changement est consigné avec ses chiffres dans `bilan-modeles.md`.
   - Une baisse du taux `ok` due aux nouveaux garde-fous est consignée telle quelle.
 - **Touche :** `application/banc.py`, `application/composition.py` (`creer_catalogue`), `workflows/fiches/prompt.py`, `config/artefacts.toml`, `tests/unitaires/test_rattachement_demo.py` ; tests `e2e/test_banc.py`.
@@ -521,7 +526,7 @@ sequenceDiagram
 - Installateur Windows packagé (Inno Setup), variante archive hors ligne des poids : après les retours des testeurs.
 - Authentification vers un LLM interne Wavestone : à définir quand l'endpoint existera ; `Configuration.moteur.cle_api` est seulement prévue.
 - Contenu de la charte Word Wavestone (`modele.docx`) et logo : hors dépôt (AD-14). La palette web est publique depuis la v2.
-- CI GitHub : non requise pour le POC ; la suite locale fait foi.
+- (Levé, story D2) CI GitHub Actions : `.github/workflows/ci.yml` (windows-latest, `uv sync --locked`, `ruff check`, `ruff format --check`, suite hors `slow`) existe et doit rester verte ; la suite locale reste la référence avant intégration. **[revue A25]**
 - (Levé en V1) Mode JSON : `json_schema` fonctionne sur les 4 modèles ; `reflexion = false` est requis pour MiniCPM5 et Qwen3.5 (contrats §22).
 - Pas d'authentification sur l'UI locale au-delà des contrôles Host/Origin et du jeton CSRF par instance (contrats §26) : suffisant pour des données fictives sur un poste mono-utilisateur, à revoir au pilote.
 - Passage du moteur du lot au moteur à la demande, sans rechargement : la première régénération après un lot paie le chargement du modèle. À revoir si la mesure sur l'EliteBook le rend gênant.

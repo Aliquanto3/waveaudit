@@ -464,10 +464,17 @@ function noteEcartee(){
   return {
     id:"n33", nomFichier:"33-fuite-identifiants-git.md", ecartee:true,
     texte:"## Observation 33 — Dépôt interne\n\nUn historique git de l'outillage interne contient un fichier `.env`\nsupprimé en commit n+1 mais toujours présent dans l'historique :\nidentifiants de connexion à une base de préproduction.\n\nAucune règle du catalogue ne couvre ce cas précisément : entrée non rattachée,\nà qualifier manuellement.",
+    // Entrée non rattachée : choix dans tout le catalogue (liste filtrable), pas 3 candidats
     candidatsPossibles:[
-      {id:"g1", nom:"Secrets exposés dans l'historique Git"},
-      {id:"g2", nom:"Identifiants en clair dans un fichier de configuration"},
-      {id:"g3", nom:"Fuite d'informations — générique"}
+      {id:"CONFIG-SECRETS-EN-CLAIR", nom:"Secrets stockés en clair"},
+      {id:"CONFIG-MOT-DE-PASSE-DEFAUT", nom:"Mot de passe par défaut"},
+      {id:"CONFIG-LISTAGE-REPERTOIRE", nom:"Listage de répertoire activé"},
+      {id:"CONFIG-DEBUG-ACTIF", nom:"Mode débogage actif"},
+      {id:"WEB-DIVULGATION-ERREURS", nom:"Divulgation d'informations par les erreurs"},
+      {id:"WEB-IDOR", nom:"Référence directe à un objet non sécurisée (IDOR)"},
+      {id:"AD-GPP-MOT-DE-PASSE", nom:"Mot de passe dans les préférences de stratégie de groupe"},
+      {id:"CRYPTO-HACHAGE-FAIBLE", nom:"Hachage faible des mots de passe"},
+      {id:"AUTRE-JOURNALISATION-INSUFFISANTE", nom:"Journalisation insuffisante"}
     ],
     statut:"ecartee"
   };
@@ -961,7 +968,7 @@ function statutClasse(s){ return s; }
 function changerCandidat(idxCandidat){
   var n = noteActive();
   if(n.candidatActif === idxCandidat) return;
-  var modifiee = JSON.stringify(n.champs) !== JSON.stringify(n.candidats[n.candidatActif]);
+  var modifiee = n.statut === "validee" || JSON.stringify(n.champs) !== JSON.stringify(n.candidats[n.candidatActif]);
   function appliquer(){
     n.statut = "en-generation";
     render();
@@ -974,7 +981,7 @@ function changerCandidat(idxCandidat){
     }, 1400);
   }
   if(modifiee){
-    confirmer("La fiche porte des corrections non enregistrées dans la génération précédente. Changer de candidat régénère la fiche et perd ces corrections. Continuer ?", appliquer, "Régénérer");
+    confirmer("La fiche porte des corrections ou est validée. Changer de candidat régénère la fiche et perd ces corrections et la validation. Continuer ?", appliquer, "Régénérer");
   } else {
     appliquer();
   }
@@ -1209,13 +1216,24 @@ function rendreEntreeEcartee(){
   panneau.appendChild(el("div", {class:"panneau-note", text:ec.texte}));
   var droite = el("div", {class:"ecartee-choix"});
   droite.appendChild(el("h2", {text:"Entrée non rattachée"}));
-  droite.appendChild(el("p", {class:"petit", text:"Aucune règle du catalogue ne correspond automatiquement. Choisissez un candidat pour générer sa fiche."}));
-  var opts = el("div", {class:"options"});
-  ec.candidatsPossibles.forEach(function(c){
-    opts.appendChild(el("button", {class:"btn btn-secondaire", type:"button",
-      onclick:function(){ genererDepuisEcartee(c); }, text:c.nom}));
-  });
-  droite.appendChild(opts);
+  droite.appendChild(el("p", {class:"petit", text:"Aucun constat type ne correspond automatiquement. Choisissez un constat dans le catalogue pour générer sa fiche."}));
+  var filtre = el("input", {type:"text", id:"filtre-catalogue", "aria-controls":"liste-catalogue", autocomplete:"off"});
+  droite.appendChild(el("label", {for:"filtre-catalogue", text:"Filtrer le catalogue (identifiant ou titre)"}));
+  droite.appendChild(filtre);
+  var liste = el("ul", {class:"options", id:"liste-catalogue", "aria-label":"Constats du catalogue"});
+  function remplir(){
+    var q = filtre.value.toLowerCase();
+    liste.innerHTML = "";
+    ec.candidatsPossibles.filter(function(c){
+      return !q || c.id.toLowerCase().indexOf(q) >= 0 || c.nom.toLowerCase().indexOf(q) >= 0;
+    }).forEach(function(c){
+      liste.appendChild(el("li", {}, [el("button", {class:"btn btn-secondaire", type:"button",
+        onclick:function(){ genererDepuisEcartee(c); }, text:c.id + " — " + c.nom})]));
+    });
+  }
+  filtre.addEventListener("input", remplir);
+  remplir();
+  droite.appendChild(liste);
   panneau.appendChild(droite);
   return panneau;
 }
@@ -1255,7 +1273,11 @@ function installerRaccourcisRelecture(){
 /* ===================== Export ===================== */
 
 function exporterRapport(){
-  toast("Téléchargement simulé : rapport-mission-nord.docx (fiches validées uniquement).");
+  var reste = state.relecture.notes.filter(function(x){return x.statut!=="validee";}).length;
+  function lancer(){ toast("Téléchargement simulé : rapport-mission-nord.docx (fiches validées ; " + reste + " non validée(s) listée(s) en annexe)."); }
+  if(reste){
+    confirmer(reste + " fiche(s) ne sont pas validées. Elles seront exclues du rapport final et listées en annexe avec le statut « non validée ». Exporter quand même ?", lancer, "Exporter");
+  } else { lancer(); }
 }
 function exporterBrouillon(){
   toast("Téléchargement simulé : rapport-mission-nord-brouillon.docx (toutes les fiches, non validées marquées « non validée »).");

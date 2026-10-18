@@ -33,10 +33,10 @@ de détections CERT).
 | Surface | Atteinte depuis | Route indicative | Rôle |
 |---|---|---|---|
 | Accueil | Ouverture de l'app | `GET /` | Choisir le workflow (fiches / incident), déposer les fichiers, choisir modèle et langue (fiches) |
-| Lots récents | Lien depuis l'accueil | `GET /lots` *(nouveau, à confirmer)* | Reprendre un lot déjà lancé (`var/sorties/`) |
+| Lots récents | Lien depuis l'accueil | `GET /lots` (contrats §26) | Reprendre un lot déjà lancé (`var/sorties/`) |
 | Suivi d'un lot (fiches) | Redirection après dépôt, ou reprise | `GET /lots/{id}` | Barre de progression, journal d'événements, lien vers la relecture dès la première fiche prête |
 | Relecture | Depuis le suivi, ou directement si le lot est terminé | `GET /lots/{id}` (même page, état « terminé ») | Tiroir de liste + note + candidats + fiche + export |
-| Suivi d'un lot (incident) | Redirection après dépôt des journaux | `GET /incidents/{id}` *(nouveau, à confirmer)* | Barre de progression, journal d'événements |
+| Suivi d'un lot (incident) | Redirection après dépôt des journaux | `GET /incidents/{id}` (contrats §26) | Barre de progression, journal d'événements |
 | Résultat incident | Depuis le suivi incident, une fois terminé | `GET /incidents/{id}` (même page, état « terminé ») | Résumé des détections, liste, téléchargement du rapport |
 
 Chaque surface listée est atteinte par un parcours (voir Key Flows). L'export du rapport de
@@ -54,11 +54,17 @@ Jamais de chemin de fichier absolu affiché (contrats §18/C6b).
 | Situation | Message |
 |---|---|
 | Fichier trop gros | « Ce fichier dépasse 1 Mo (`rapport-pentest-v3.md`, 2,4 Mo). Réduisez-le ou retirez-le du dépôt. » |
+| Dépôt trop gros au total | « Le dépôt dépasse 20 Mo au total (23,4 Mo). Déposez les notes en plusieurs lots. » |
+| Trop de fichiers | « Le dépôt compte 120 fichiers ; 100 au plus par lot. » |
 | Nom de fichier invalide | « Le nom « ../config.md » n'est pas accepté. Utilisez des lettres, chiffres, espaces, points ou tirets, en `.md` ou `.txt`. » |
 | Lot déjà en cours | « Un lot est déjà en cours (lancé à 09:14). Attendez sa fin ou [reprenez-le](#). » |
 | Moteur injoignable | « Le moteur de génération ne répond pas. Vérifiez qu'il est démarré, puis réessayez. » |
 | Modèle absent | « Le modèle « qwen3-4b » n'est plus installé. Choisissez un autre modèle dans la liste. » |
-| Enregistrement en échec | « La correction n'a pas pu être enregistrée. Dernière version conservée à l'écran ; nouvelle tentative dans quelques secondes. » |
+| Enregistrement en échec | « La correction n'a pas pu être enregistrée. Dernière version conservée à l'écran ; nouvelle tentative dans quelques secondes. » (503 `ecriture_impossible` ou coupure : nouvel essai après 3 s) |
+| Fiche modifiée ailleurs (409 `conflit_version`) | « Cette fiche a été modifiée dans un autre onglet. Votre saisie est conservée à l'écran. » Boutons « Garder ma version » et « Recharger ». |
+| Lot en cours dans un autre programme | « Ce lot est en cours dans un autre programme (CLI). Attendez sa fin pour le modifier ou l'exporter. » |
+| Serveur redémarré | « Le serveur a redémarré. Rechargez la page ; vos corrections enregistrées sont conservées. » |
+| Export final avec fiches non validées | « 3 fiches ne sont pas validées. Elles seront exclues du rapport et listées en annexe comme « non validée ». Exporter quand même ? » |
 
 Pas d'emoji, pas de ton enjoué. Les deux protagonistes (consultante, analyste CERT) sont traités
 de la même façon.
@@ -77,12 +83,13 @@ Comportement ; les spécifications visuelles sont dans `DESIGN.md.Components`.
 | Journal d'événements | Ajoute une ligne par événement reçu (`fiche_demarree`, `fiche_terminee`, `fiche_non_rattachee`, …), le plus récent en bas, défilement automatique sauf si l'utilisateur a remonté manuellement. |
 | Tiroir de la liste des fiches | Un clic sur une ligne ouvre cette fiche dans la relecture sans recharger la page. Liste au rôle `listbox` (`aria-label="Fiches du lot"`), chaque ligne au rôle `option` (`aria-selected`), focusable et activable au clavier (flèches haut/bas pour déplacer la sélection, `Entrée`/`Espace` pour ouvrir), pas seulement au clic. Le tiroir se replie/déplie via un bouton persistant (préférence non enregistrée entre sessions, voie rapide) et se replie automatiquement sous 1440px de largeur ou à 200% de zoom (DESIGN.md.Layout & Spacing). |
 | Pastille de statut | Purement informative, jamais cliquable. Icône et libellé changent ensemble, jamais la couleur seule. |
-| Barre des candidats | Rôle APG Tabs complet : conteneur `role="tablist"`, chaque onglet `role="tab"` + `aria-selected` + `aria-controls` vers le panneau de fiche, panneau en `role="tabpanel"`. Navigation par flèches gauche/droite entre onglets, `Entrée`/`Espace` ou clic pour activer. Cliquer ou activer un onglet relance la génération de la fiche sur ce candidat (11 à 36 s, bilan-modeles). Si la fiche courante porte des corrections non enregistrées, une boîte de confirmation précède le changement. Pendant la régénération, `aria-busy="true"` est posé sur le panneau de fiche, qui affiche « Génération en cours » en surimpression légère mais reste lisible et non éditable jusqu'au remplacement ; une annonce ponctuelle (`aria-live="polite"`) signale la fin de la génération. |
+| Barre des candidats | Rôle APG Tabs complet : conteneur `role="tablist"`, chaque onglet `role="tab"` + `aria-selected` + `aria-controls` vers le panneau de fiche, panneau en `role="tabpanel"`. Navigation par flèches gauche/droite entre onglets, `Entrée`/`Espace` ou clic pour activer. Cliquer ou activer un onglet relance la génération de la fiche sur ce candidat (11 à 36 s, bilan-modeles). Avant le changement, les enregistrements en attente sont envoyés ; si la fiche porte des corrections ou est validée, une boîte de confirmation précède le changement (contrats §25-§26). Pendant la régénération, `aria-busy="true"` est posé sur le panneau de fiche, qui affiche « Génération en cours » en surimpression légère mais reste lisible et non éditable jusqu'au remplacement ; une annonce ponctuelle (`aria-live="polite"`) signale la fin de la génération. |
+| Choix pour une entrée non rattachée | Une entrée `non_rattachee` n'a pas de barre des candidats (ses 3 candidats ont un score nul) : à la place, un champ « Filtrer le catalogue (identifiant ou titre) » avec son libellé, et la liste de tout le catalogue (identifiant — titre, dans la langue du lot) filtrée à la frappe ; activer une ligne génère la fiche sur ce constat (contrats §26, `GET /lots/{id}/catalogue`). |
 | Panneau note | Lecture seule, défilement indépendant de la fiche ; sert de référence constante pendant toute la relecture de cette entrée. |
 | Formulaire de fiche | Chaque champ s'enregistre automatiquement après une pause de frappe (anti-rebond, voir Interaction Primitives). Modifier une fiche déjà validée la repasse au statut « à valider » et le signale par un bref changement visuel de la pastille. |
 | Champ CVSS | Le score et la sévérité se recalculent immédiatement à la frappe, sans attendre l'enregistrement ; un vecteur invalide pose `aria-invalid="true"` sur le champ et affiche l'erreur sous le champ, liée par `aria-describedby`, sans bloquer la saisie. |
 | Encart des motifs | Lecture seule, visible dès que la fiche est générée « à revoir », chaque motif marqué « signalé à la génération ». Reste affiché pendant la correction (y compris si les motifs ne s'appliquent plus) ; disparaît seulement à la validation de la fiche, jamais automatiquement avant. |
-| Barre d'actions | « Valider » exige un CVSS valide ; désactivé sinon, raison donnée par un texte visible lié au bouton via `aria-describedby` (pas une seule info-bulle `title`). « Suivante » passe à la fiche suivante du tiroir sans changer son statut. « Exporter » n'inclut que les fiches validées ; « Exporter un brouillon » inclut tout, fiches non validées marquées « non validée » (voir Flow 1, étape brouillon). |
+| Barre d'actions | « Valider » exige un CVSS valide ; désactivé sinon, raison donnée par un texte visible lié au bouton via `aria-describedby` (pas une seule info-bulle `title`). « Suivante » passe à la fiche suivante du tiroir sans changer son statut. « Exporter » n'inclut que les fiches validées : s'il reste des fiches non validées, une boîte de confirmation en donne le nombre, et le rapport les liste en annexe comme « non validée ». « Exporter un brouillon » inclut tout, fiches non validées marquées « non validée » (voir Flow 1, étape brouillon). |
 | Indicateur d'enregistrement | Passe de « Enregistrement… » à « Enregistré » environ une seconde après la dernière frappe ; reste discret, jamais en boîte de dialogue ; annoncé par `aria-live="polite"` (un seul message, pas une répétition par frappe). |
 | Boîte de confirmation | Toujours deux boutons, le bouton destructeur n'est jamais pré-focalisé : le focus initial va sur le bouton « annuler ». Fermable par `Échap`. À la fermeture (annulation, confirmation ou `Échap`), le focus revient à l'élément qui a ouvert la boîte. |
 | Page incident | Le résumé agrège par sévérité ; cliquer une carte de sévérité filtre la liste des détections en dessous. Le téléchargement démarre immédiatement au clic (pas d'étape intermédiaire), fichier `.docx`. |
@@ -111,7 +118,13 @@ Comportement ; les spécifications visuelles sont dans `DESIGN.md.Components`.
 
 - **Enregistrement automatique avec anti-rebond** : chaque champ de la fiche s'enregistre
   ~800 ms après la dernière frappe (pas à chaque caractère), sur disque dans `var/sorties/<id>/`,
-  pour permettre la reprise d'un lot interrompu.
+  pour permettre la reprise d'un lot interrompu. Le corps complet de la fiche part à chaque
+  enregistrement ; un seul enregistrement est en vol à la fois, la frappe suivante attend en file
+  (seule la dernière version est gardée) : l'enregistrement automatique ne se met jamais en
+  conflit avec lui-même. Un conflit (409) ne vient que d'un autre onglet (voir Voice and Tone).
+- **Lot en cours dans un autre programme** : un lot lancé en CLI et pas encore fini s'affiche « en
+  cours » dans Lots récents et en lecture seule dans la Relecture (formulaire et exports
+  désactivés, message de Voice and Tone).
 - **Raccourcis clavier** (relecture) : `Ctrl+Entrée` valide la fiche courante ; `Ctrl+Alt+↓` /
   `Ctrl+Alt+↑` (boutons « Suivante »/« Précédente » toujours visibles en parallèle) passent à la
   fiche suivante / précédente du tiroir ; `Échap` ferme toute boîte de confirmation ouverte.
@@ -171,14 +184,16 @@ accès réseau sortant à l'exécution. Navigateurs cibles : Edge et Chrome réc
 3. Elle suit la barre de progression et le journal pendant que les fiches se génèrent ; elle
    ouvre la relecture dès que la première fiche est prête, sans attendre la fin du lot.
 4. Pour chaque fiche, elle relit le texte généré à côté de sa note source (panneau de gauche).
-   Sur la note « 01 — XSS réfléchi », le candidat proposé par défaut ne correspond pas : elle
-   clique l'onglet du candidat « WEB-XSS-REFLECHI » dans la barre des candidats ; la fiche se
-   régénère sur ce constat (quelques secondes, mention « Génération en cours »).
+   Sur une note où le candidat retenu par défaut ne correspond pas (constat voisin classé
+   premier), elle clique l'onglet du bon candidat dans la barre des candidats ; la fiche se
+   régénère sur ce constat (quelques secondes, mention « Génération en cours »). Sur une note
+   non rattachée, elle filtre le catalogue et choisit le constat à la main.
 5. Elle corrige la description et le champ CVSS de la nouvelle fiche ; l'indicateur passe à
    « Enregistré » quelques instants après sa dernière frappe.
 6. Elle valide la fiche (`Ctrl+Entrée`), passe à la suivante (`Ctrl+Alt+↓` ou bouton
    « Suivante »), et répète jusqu'à la douzième note.
-7. **Climax** : une fois les 12 fiches validées, elle clique « Exporter ». Le téléchargement du
+7. **Climax** : une fois les 12 fiches validées, elle clique « Exporter » (s'il en restait une
+   non validée, une confirmation le lui dirait avant l'export). Le téléchargement du
    rapport Word démarre immédiatement ; elle l'ouvre pour vérifier la table de synthèse avant de
    l'envoyer au client, le lendemain matin comme prévu.
 
@@ -214,21 +229,18 @@ règles (Résultat incident, état vide).
 
 ## Questions ouvertes
 
-Ce que les décisions (memlog) ne tranchent pas ; à trancher par l'architecture ou en continuant
-le cadrage, pas par cette spine :
+Aucune. Les questions de cette spine sont closes par l'architecture (2026-10-18) :
 
-- **Contrat d'API du workflow incident** : routes exactes (`/incidents` ou extension de `/lots`
-  avec un `workflow` distinct), format de `GET /incidents/{id}/etat`. Cette spine suppose des
-  routes symétriques à `/lots` mais ne les verrouille pas.
-- **Enregistrement des corrections** : forme exacte de l'écriture incrémentale (un PATCH par
-  champ ? tout le corps de la fiche à chaque anti-rebond ?) — non spécifiée dans contrats.md
-  aujourd'hui.
-- **Relance d'une fiche sur un autre candidat** : endpoint dédié ou nouvel appel complet de
-  génération pour cette seule fiche ; impact sur la numérotation des événements du journal.
-- **Liste des modèles proposée à l'UI** : contrats.md ne décrit pas encore l'endpoint qui expose
-  le manifeste des modèles installés avec durée et mémoire indicatives.
-- **Persistance de l'état du tiroir** (ouvert/replié) entre deux ouvertures de la même page : pas
-  demandée explicitement, laissée en confort local (voie rapide) plutôt que verrouillée ici.
+- **Contrat d'API du workflow incident** : routes symétriques `/incidents`, `GET /incidents/{id}/etat`
+  de même forme que `/lots/{id}/etat` (contrats §26, §30).
+- **Enregistrement des corrections** : corps complet à chaque anti-rebond avec la dernière
+  version, un seul enregistrement en vol, conflit seulement entre onglets (contrats §25, §26).
+- **Relance d'une fiche sur un autre candidat** : `POST /lots/{id}/entrees/{index}/candidat`,
+  sans événement de journal ni renumérotation ; trace dans `relecture.json` (contrats §25, §26).
+- **Liste des modèles proposée à l'UI** : `GET /api/modeles` (modèles installés, rôle, taille,
+  durée indicative, défaut) (contrats §11, §26).
+- **Persistance de l'état du tiroir** : confort local, non contractuel (contrats §24-§26 n'en
+  parlent pas ; Deferred du spine).
 
 Tranché par cette relecture (plus une question ouverte) : l'encart des motifs reste affiché
 pendant toute la correction d'une fiche « à revoir », chaque motif marqué « signalé à la
