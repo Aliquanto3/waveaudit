@@ -7,6 +7,7 @@ connexion vers une adresse hors liste (192.0.2.1, TEST-NET-1 de la RFC 5737, jam
 avant qu'elle n'atteigne le réseau : depuis un abonné du vrai lot, et depuis la commande (code 4).
 """
 
+import time
 from typing import Any
 
 from tests.e2e.test_cli import DEMO, _ecrire_config, app, runner
@@ -58,6 +59,42 @@ def test_ui_lot_sous_garde_sans_tentative(monkeypatch, tmp_path, faux_moteur):
     assert resultat.exit_code == 0, resultat.output
     assert capture["garde_actif_au_demarrage"]
     assert capture["etat"]["etat"] == "termine"
+    assert garde_reseau.tentatives() == []
+    assert not garde_reseau._actif
+
+
+def test_ui_changement_de_candidat_sous_garde_sans_tentative(monkeypatch, tmp_path, faux_moteur):
+    """[v2] Relecture (W3a) : la régénération d'une fiche par changement de candidat tourne sous
+    le `garde(...)` de la commande `ui`, comme le lot, sans tentative hors boucle locale."""
+    config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
+    capture: dict[str, Any] = {}
+
+    def faux_run(application: Any, *, host: str, port: int) -> None:
+        client = client_web(application, base_url=f"http://127.0.0.1:{port}")
+        reponse = client.post("/lots", files=_notes_demo()[:1], follow_redirects=False)
+        id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+        _attendre_fin(client, id_lot)
+        entree = client.get(f"/lots/{id_lot}/entrees/1").json()["entree"]
+        autre = next(c["id"] for c in entree["candidats"] if c["id"] != entree["candidat_choisi"])
+        capture["statut"] = client.post(
+            f"/lots/{id_lot}/entrees/1/candidat",
+            json={"version": entree["version"], "constat_id": autre},
+        ).status_code
+        limite = time.monotonic() + 10
+        while application.state.verrou.occupation() is not None and time.monotonic() < limite:
+            time.sleep(0.05)
+        capture["entree"] = client.get(f"/lots/{id_lot}/entrees/1").json()["entree"]
+        capture["autre"] = autre
+        capture["garde_actif"] = garde_reseau._actif
+
+    monkeypatch.setattr("uvicorn.run", faux_run)
+    resultat = runner.invoke(app, ["ui", "--config", str(config)])
+
+    assert resultat.exit_code == 0, resultat.output
+    assert capture["garde_actif"]
+    assert capture["statut"] == 202
+    assert capture["entree"]["generation"] == "aucune"
+    assert capture["entree"]["candidat_choisi"] == capture["autre"]
     assert garde_reseau.tentatives() == []
     assert not garde_reseau._actif
 
