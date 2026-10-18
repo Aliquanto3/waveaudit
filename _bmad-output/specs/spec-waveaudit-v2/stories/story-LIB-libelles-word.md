@@ -73,5 +73,26 @@ français dans un Word `en` ».
 
 ## Revue
 
-Table de libellés ajoutée côté adaptateur (`export_docx.py`), socle AD-0 non touché. Suite
-unitaire complète verte (866 tests), `ruff check` et `ruff format --check` propres.
+Revue Opus (détail : `_bmad-output/implementation-artifacts/revues/story-LIB.md`). Le rendu
+décrit sous « Livré » a été révisé :
+
+- Word `fr` : strictement v0.1.0 (statut brut, `code : detail`, contrats §17 et §27), prouvé
+  par comparaison au module de 8ec9079 et par `test_fr_rendu_v010_code_et_detail_bruts`.
+  Les tables `LIBELLES[...]["motifs"]` et `["statuts_ecartes"]` sont retirées.
+- Word `en` : `MOTIFS_EN`, `STATUTS_ECARTES_EN`, `RUBRIQUES_EN`, et `DETAILS_EN` qui classe
+  chaque code (détail brut pour jeton, indicateur et vecteur ; rubrique traduite pour
+  `rubrique_completee`, `repetition`, `langue` avec suffixe traduit ; nombre de caractères
+  pour `note_tronquee` ; libellé seul pour les replis, `note_invalide`, `aucun_constat`,
+  `lot_interrompu`). Un format de détail inconnu est omis, jamais recopié.
+
+| Sévérité | Source | Constat | Décision |
+|---|---|---|---|
+| high | second avis 1 | Messages d'erreur français des replis recopiés en `en` | Corrigé |
+| medium | second avis 2 | Nom de rubrique français (`rubrique_completee`, `repetition`) | Corrigé, `RUBRIQUES_EN` |
+| medium | second avis 3 | Rubrique perdue pour `langue` en `en` | Corrigé, rubrique et suffixe traduits |
+| medium | second avis 4 | Nombre de caractères perdu pour `note_tronquee` | Corrigé, test lié à `pipeline.py` |
+| medium | second avis 5 | Word `fr` modifié, contraire à §27/§17 | Corrigé, rendu v0.1.0 |
+| low | second avis 6 | `export_incident_docx.py` en `code : detail` | Rejeté, hors périmètre (CERT français, §17) |
+| low | second avis 7 | Complétude non testée | Corrigé, ensembles comparés à `CodeMotif` et au `Literal` du statut |
+| medium | reviewer | Test anglais limité à 5 mots et à l'annexe | Corrigé, tous les codes, corps et annexe, 3 modes |
+| — | reviewer | Complexité : 0 constat | — |
