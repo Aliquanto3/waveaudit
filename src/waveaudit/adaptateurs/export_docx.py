@@ -7,6 +7,7 @@ Implémente `domaine.ports.Exporteur`. Le rapport d'incident (CERT, contrats §2
 import os
 import re
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 
 from docx import Document
@@ -22,7 +23,15 @@ from waveaudit.adaptateurs.theme_generique import (
     document_generique,
 )
 from waveaudit.domaine.erreurs import ConfigurationInvalide
-from waveaudit.domaine.modeles import EntreeEcartee, Fiche, Langue, Rapport
+from waveaudit.domaine.modeles import (
+    CodeMotif,
+    EntreeEcartee,
+    Fiche,
+    Langue,
+    Motif,
+    Rapport,
+    Statut,
+)
 from waveaudit.domaine.ports import OptionsExport
 
 BANDEAU = "Démonstration — données fictives"
@@ -91,6 +100,89 @@ LIBELLES: dict[Langue, dict[str, object]] = {
         "note": "Note",
         "constat_type": "Finding template",
     },
+}
+
+# [LIB] Word `en` : libellés des statuts d'entrée écartée et des codes de motif, pour qu'aucun
+# code brut ni texte français n'atteigne le lecteur. Le Word `fr` garde le rendu v0.1.0
+# (statut brut, `code : detail`, contrats §17 et §27) : ces tables ne servent qu'en `en`.
+STATUTS_ECARTES_EN: dict[Statut, str] = {
+    Statut.NON_TRAITEE: "Not processed",
+    Statut.NON_RATTACHEE: "Not matched",
+}
+MOTIFS_EN: dict[CodeMotif, str] = {
+    CodeMotif.REFERENCE_RETIREE: "Reference removed",
+    CodeMotif.VECTEUR_INVALIDE: "Invalid CVSS vector",
+    CodeMotif.RUBRIQUE_COMPLETEE: "Section completed",
+    CodeMotif.NOTE_TRONQUEE: "Note truncated",
+    CodeMotif.REPLI_SORTIE_INVALIDE: "Fallback — invalid output",
+    CodeMotif.REPLI_MOTEUR: "Engine fallback",
+    CodeMotif.NOTE_INVALIDE: "Invalid note",
+    CodeMotif.AUCUN_CONSTAT: "No matching finding",
+    CodeMotif.INDICATEUR_RETIRE: "Indicator removed",
+    CodeMotif.REPETITION: "Repetitive section",
+    CodeMotif.LANGUE: "Language mismatch",
+    CodeMotif.LOT_INTERROMPU: "Batch interrupted",
+}
+RUBRIQUES_EN: dict[str, str] = {
+    "titre": "Title",
+    "description": "Description",
+    "impact": "Impact",
+    "recommandation": "Recommendation",
+}
+# Suffixes de `qualite_texte.motif_langue` (contrats §6 étape 6), après « <rubrique> : ».
+_SUFFIXE_LANGUE_NON_LATIN = "écriture non latine"
+_SUFFIXE_LANGUE_MOTS_OUTILS = re.compile(r"mots-outils (fr|en)")
+# Détail émis par `workflows/fiches/pipeline.py` pour une note tronquée.
+_DETAIL_NOTE_TRONQUEE = re.compile(r"corps tronqué à (\d+) caractères")
+
+
+def _detail_brut(detail: str) -> str | None:
+    """Jeton, indicateur ou vecteur CVSS : une valeur, lisible dans toutes les langues."""
+    return detail
+
+
+def _detail_omis(detail: str) -> str | None:
+    """Phrase française (erreur moteur, raison d'invalidité, seuil) ou détail redondant."""
+    return None
+
+
+def _detail_rubrique(detail: str) -> str | None:
+    return RUBRIQUES_EN.get(detail)
+
+
+def _detail_langue(detail: str) -> str | None:
+    nom, _, suffixe = detail.partition(" : ")
+    rubrique = RUBRIQUES_EN.get(nom)
+    if rubrique is None:
+        return None
+    if suffixe == _SUFFIXE_LANGUE_NON_LATIN:
+        return f"{rubrique}, non-Latin script"
+    trouve = _SUFFIXE_LANGUE_MOTS_OUTILS.fullmatch(suffixe)
+    if trouve is not None:
+        return f"{rubrique}, {trouve.group(1)} function words"
+    return rubrique
+
+
+def _detail_note_tronquee(detail: str) -> str | None:
+    trouve = _DETAIL_NOTE_TRONQUEE.fullmatch(detail)
+    return f"cut at {trouve.group(1)} characters" if trouve is not None else None
+
+
+# Chaque code est classé ici explicitement (test de complétude) : rendu anglais du `detail`,
+# `None` pour l'omettre. Un format de `detail` non reconnu est omis, jamais recopié.
+DETAILS_EN: dict[CodeMotif, Callable[[str], str | None]] = {
+    CodeMotif.REFERENCE_RETIREE: _detail_brut,
+    CodeMotif.VECTEUR_INVALIDE: _detail_brut,
+    CodeMotif.INDICATEUR_RETIRE: _detail_brut,
+    CodeMotif.RUBRIQUE_COMPLETEE: _detail_rubrique,
+    CodeMotif.REPETITION: _detail_rubrique,
+    CodeMotif.LANGUE: _detail_langue,
+    CodeMotif.NOTE_TRONQUEE: _detail_note_tronquee,
+    CodeMotif.REPLI_SORTIE_INVALIDE: _detail_omis,
+    CodeMotif.REPLI_MOTEUR: _detail_omis,
+    CodeMotif.NOTE_INVALIDE: _detail_omis,
+    CodeMotif.AUCUN_CONSTAT: _detail_omis,
+    CodeMotif.LOT_INTERROMPU: _detail_omis,
 }
 
 # [v2] `BANDEAU` reste la constante publique française (contrats §17).
@@ -210,6 +302,21 @@ def _style_table(document: Document, style_prefere: str) -> str | None:
     return None
 
 
+def _motif_affiche(motif: Motif, langue: Langue) -> str:
+    """[LIB] `fr` : `code : detail` (v0.1.0, contrats §17). `en` : libellé, puis le détail
+    rendu en anglais quand son format est connu (`DETAILS_EN`), sinon le libellé seul."""
+    if langue == "fr":
+        return f"{motif.code} : {motif.detail}"
+    libelle = MOTIFS_EN[motif.code]
+    detail = DETAILS_EN[motif.code](motif.detail)
+    return libelle if detail is None else f"{libelle} : {detail}"
+
+
+def _statut_ecartee_affiche(statut: Statut, langue: Langue) -> str:
+    """[LIB] `fr` : statut brut (v0.1.0) ; `en` : libellé anglais."""
+    return str(statut) if langue == "fr" else STATUTS_ECARTES_EN[statut]
+
+
 def _statut_affiche(fiche: Fiche, libelles: dict, options: OptionsExport) -> str:
     """[v2] En mode final, « Validée », sans égard au statut de génération (contrats §27)."""
     if options.mode == "final":
@@ -283,7 +390,7 @@ def _section_fiche(
     else:
         document.add_paragraph(str(libelles["a_revoir"]))
         for motif in fiche.motifs:
-            _paragraphe(document, f"{motif.code} : {motif.detail}")
+            _paragraphe(document, _motif_affiche(motif, options.langue))
 
     document.add_heading(str(libelles["tracabilite"]), level=3)
     _paragraphe(
@@ -304,7 +411,11 @@ def _annexe(
         cellule.text = texte
     for entree in ecartees:
         cellules = table.add_row().cells
-        valeurs = (entree.note, entree.statut, f"{entree.motif.code} : {entree.motif.detail}")
+        valeurs = (
+            entree.note,
+            _statut_ecartee_affiche(entree.statut, options.langue),
+            _motif_affiche(entree.motif, options.langue),
+        )
         for cellule, texte in zip(cellules, valeurs, strict=True):
             cellule.text = _propre(texte)
     if options.mode == "final":

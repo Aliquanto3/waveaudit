@@ -1,13 +1,27 @@
 """Tests de l'export Word (CAP-6, contrats §17, AD-14)."""
 
+import inspect
+import re
+import typing
 from pathlib import Path
 
 import pytest
 from docx import Document
 
-from waveaudit.adaptateurs.export_docx import BANDEAU, BANDEAUX, LIBELLES, ExportDocx
+from waveaudit.adaptateurs.export_docx import (
+    BANDEAU,
+    BANDEAUX,
+    DETAILS_EN,
+    LIBELLES,
+    MOTIFS_EN,
+    RUBRIQUES_EN,
+    STATUTS_ECARTES_EN,
+    ExportDocx,
+    _motif_affiche,
+)
 from waveaudit.domaine.erreurs import ConfigurationInvalide
 from waveaudit.domaine.modeles import (
+    RUBRIQUES,
     Candidat,
     CodeMotif,
     Cvss,
@@ -20,6 +34,8 @@ from waveaudit.domaine.modeles import (
     Tracabilite,
 )
 from waveaudit.domaine.ports import OptionsExport
+from waveaudit.domaine.qualite_texte import motif_langue
+from waveaudit.workflows.fiches import pipeline
 
 _REFERENCE = Reference(
     id="CWE-79", titre="XSS", url="https://cwe.mitre.org/data/definitions/79.html"
@@ -58,7 +74,12 @@ def _fiche_a_revoir() -> Fiche:
         ),
         references=[_REFERENCE],
         statut=Statut.A_REVOIR,
-        motifs=[Motif(code=CodeMotif.VECTEUR_INVALIDE, detail="métrique AC inconnue : X")],
+        motifs=[
+            Motif(
+                code=CodeMotif.VECTEUR_INVALIDE,
+                detail="CVSS:3.1/AV:N/AC:X/PR:N/UI:N/S:U/C:N/I:N/A:N",
+            )
+        ],
         tracabilite=Tracabilite(
             note="02-notes.md",
             constat_id="WEB-XSS-REFLECHI",
@@ -132,7 +153,7 @@ def test_theme_generique_sans_dossier_produit_un_rapport_complet(tmp_path: Path)
 
     textes = _textes(document)
     assert "À revoir" in textes
-    assert any("vecteur_invalide : métrique AC inconnue : X" in t for t in textes)
+    assert "vecteur_invalide : CVSS:3.1/AV:N/AC:X/PR:N/UI:N/S:U/C:N/I:N/A:N" in textes
 
     tables = document.tables
     assert len(tables) == 2
@@ -145,7 +166,14 @@ def test_theme_generique_sans_dossier_produit_un_rapport_complet(tmp_path: Path)
 
     annexe = [cellule.text for cellule in tables[1].rows[0].cells]
     assert annexe == ["Note", "Statut", "Motif"]
-    assert tables[1].rows[1].cells[0].text == "03-hors-sujet.md"
+    ligne_1 = [c.text for c in tables[1].rows[1].cells]
+    assert ligne_1 == [
+        "03-hors-sujet.md",
+        "non_rattachee",
+        "aucun_constat : aucun candidat au-dessus du seuil",
+    ]
+    ligne_2 = [c.text for c in tables[1].rows[2].cells]
+    assert ligne_2 == ["04-invalide.md", "non_traitee", "note_invalide : corps vide"]
 
 
 def test_sans_ecartees_pas_dannexe(tmp_path: Path):
@@ -292,7 +320,10 @@ def test_en_bandeau_intitules_severites_statuts_annexe(tmp_path: Path):
 
     textes = _textes(document)
     assert "To review" in textes
-    assert any("vecteur_invalide : métrique AC inconnue : X" in t for t in textes)
+    assert any(
+        "Invalid CVSS vector : CVSS:3.1/AV:N/AC:X/PR:N/UI:N/S:U/C:N/I:N/A:N" in t for t in textes
+    )
+    assert not any("vecteur_invalide" in t for t in textes)
 
     tables = document.tables
     synthese_entetes = [cellule.text for cellule in tables[0].rows[0].cells]
@@ -305,6 +336,12 @@ def test_en_bandeau_intitules_severites_statuts_annexe(tmp_path: Path):
 
     annexe_entetes = [cellule.text for cellule in tables[1].rows[0].cells]
     assert annexe_entetes == list(libelles["annexe_entetes"])
+    ligne_1 = [c.text for c in tables[1].rows[1].cells]
+    assert ligne_1 == ["03-hors-sujet.md", "Not matched", "No matching finding"]
+    ligne_2 = [c.text for c in tables[1].rows[2].cells]
+    assert ligne_2 == ["04-invalide.md", "Not processed", "Invalid note"]
+    for code in ("aucun_constat", "note_invalide", "non_rattachee", "non_traitee"):
+        assert not any(code in t for t in [c.text for row in tables[1].rows for c in row.cells])
 
 
 def test_brouillon_marque_sur_les_seules_fiches_non_validees(tmp_path: Path):
@@ -319,7 +356,7 @@ def test_brouillon_marque_sur_les_seules_fiches_non_validees(tmp_path: Path):
 
     textes = _textes(document)
     assert "À revoir" in textes
-    assert any("vecteur_invalide : métrique AC inconnue : X" in t for t in textes)
+    assert "vecteur_invalide : CVSS:3.1/AV:N/AC:X/PR:N/UI:N/S:U/C:N/I:N/A:N" in textes
 
     ligne_a_revoir = [cellule.text for cellule in document.tables[0].rows[2].cells]
     assert ligne_a_revoir[-1] == "À revoir"
@@ -438,3 +475,171 @@ def test_aucun_partiel_si_le_remplacement_echoue(tmp_path: Path, monkeypatch):
         ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin)
 
     assert list(tmp_path.iterdir()) == []
+
+
+# [LIB, revue] Un motif de chaque code, avec le `detail` qu'émet réellement le code source
+# (garde_fous, qualite_texte.motif_langue, pipeline, moteur_openai, relecture).
+def _motifs_reels() -> list[Motif]:
+    return [
+        Motif(code=CodeMotif.REFERENCE_RETIREE, detail="CVE-2099-0001"),
+        Motif(
+            code=CodeMotif.VECTEUR_INVALIDE,
+            detail="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
+        ),
+        Motif(code=CodeMotif.RUBRIQUE_COMPLETEE, detail="recommandation"),
+        Motif(code=CodeMotif.NOTE_TRONQUEE, detail="corps tronqué à 500 caractères"),
+        Motif(
+            code=CodeMotif.REPLI_SORTIE_INVALIDE,
+            detail="réponse du moteur : contenu non JSON",
+        ),
+        Motif(
+            code=CodeMotif.REPLI_MOTEUR,
+            detail="moteur injoignable ([WinError 10061] connexion refusée)",
+        ),
+        Motif(code=CodeMotif.NOTE_INVALIDE, detail="corps vide"),
+        Motif(code=CodeMotif.AUCUN_CONSTAT, detail="score BM25 maximal nul"),
+        Motif(code=CodeMotif.INDICATEUR_RETIRE, detail="203.0.113.7"),
+        Motif(code=CodeMotif.REPETITION, detail="titre"),
+        Motif(
+            code=CodeMotif.LANGUE,
+            detail=f"description : {motif_langue(_TEXTE_FRANCAIS, 'en')}",
+        ),
+        Motif(code=CodeMotif.LOT_INTERROMPU, detail="lot interrompu avant cette note"),
+    ]
+
+
+_TEXTE_FRANCAIS = (
+    "Le paramètre de la page est renvoyé dans la réponse et il est exécuté par le navigateur."
+)
+
+
+def _rapport_tous_motifs() -> Rapport:
+    fiche = _fiche_a_revoir().model_copy(
+        update={
+            "titre": "Reflected XSS",
+            "description": "The parameter is echoed back.",
+            "impact": "Session theft.",
+            "recommandation": "Encode the output.",
+            "motifs": _motifs_reels(),
+        }
+    )
+    ecartees = [
+        EntreeEcartee(
+            note=f"{rang:02d}-note.md",
+            statut=Statut.NON_TRAITEE if rang % 2 else Statut.NON_RATTACHEE,
+            motif=motif,
+            candidats=[],
+            constat_attendu=None,
+        )
+        for rang, motif in enumerate(_motifs_reels(), start=10)
+    ]
+    return Rapport(fiches=[fiche], ecartees=ecartees)
+
+
+def _tous_les_textes(document: Document) -> list[str]:
+    cellules = [c.text for t in document.tables for row in t.rows for c in row.cells]
+    return _textes(document) + cellules
+
+
+# Mots français des `detail` réels ci-dessus et des statuts : aucun n'atteint un Word en.
+_MOTS_FRANCAIS = re.compile(
+    r"\b(corps|tronqué|caractères|réponse|moteur|contenu|injoignable|connexion|refusée|vide|"
+    r"maximal|nul|lot|interrompu|avant|cette|titre|recommandation|écriture|latine|mots-outils|"
+    r"traitée|rattachée|aucun|candidat|seuil)\b",
+    re.IGNORECASE,
+)
+_SNAKE_CASE = re.compile(r"\b[a-z0-9]+(?:_[a-z0-9]+)+\b")
+
+
+@pytest.mark.parametrize("mode", ["lot", "brouillon", "final"])
+def test_en_tous_les_codes_sans_francais_ni_code_brut(tmp_path: Path, mode: str):
+    chemin = tmp_path / "rapport.docx"
+    options = OptionsExport(langue="en", mode=mode)
+    ExportDocx(tmp_path / "absent").exporter(_rapport_tous_motifs(), chemin, options)
+
+    document = Document(str(chemin))
+    textes = _tous_les_textes(document)
+    for texte in textes:
+        assert _MOTS_FRANCAIS.search(texte) is None, texte
+        assert _SNAKE_CASE.search(texte) is None, texte
+    annexe = document.tables[1]
+    motifs = [row.cells[2].text for row in annexe.rows[1:13]]
+    assert motifs == [
+        "Reference removed : CVE-2099-0001",
+        "Invalid CVSS vector : CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
+        "Section completed : Recommendation",
+        "Note truncated : cut at 500 characters",
+        "Fallback — invalid output",
+        "Engine fallback",
+        "Invalid note",
+        "No matching finding",
+        "Indicator removed : 203.0.113.7",
+        "Repetitive section : Title",
+        "Language mismatch : Description, fr function words",
+        "Batch interrupted",
+    ]
+    assert [row.cells[1].text for row in annexe.rows[1:3]] == ["Not matched", "Not processed"]
+    if mode != "final":
+        # Corps de la fiche à revoir : mêmes rendus que dans l'annexe.
+        assert "Section completed : Recommendation" in textes
+        assert "Engine fallback" in textes
+
+
+@pytest.mark.parametrize("mode", ["lot", "brouillon", "final"])
+def test_fr_rendu_v010_code_et_detail_bruts(tmp_path: Path, mode: str):
+    """§17 et §27 : le Word fr reste celui de la v0.1.0 (statut brut, « code : detail »)."""
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(tmp_path / "absent").exporter(
+        _rapport_tous_motifs(), chemin, OptionsExport(mode=mode)
+    )
+
+    document = Document(str(chemin))
+    annexe = document.tables[1]
+    lignes = [[c.text for c in row.cells] for row in annexe.rows[1:13]]
+    assert lignes[0] == ["10-note.md", "non_rattachee", "reference_retiree : CVE-2099-0001"]
+    assert lignes[3] == [
+        "13-note.md",
+        "non_traitee",
+        "note_tronquee : corps tronqué à 500 caractères",
+    ]
+    assert lignes[5][2] == "repli_moteur : moteur injoignable ([WinError 10061] connexion refusée)"
+    assert lignes[10][2] == "langue : description : mots-outils fr"
+    assert lignes[11][2] == "lot_interrompu : lot interrompu avant cette note"
+    if mode != "final":
+        textes = _textes(document)
+        assert "repetition : titre" in textes
+        assert "aucun_constat : score BM25 maximal nul" in textes
+        assert len([t for t in textes if " : " in t and t.split(" : ")[0] in set(CodeMotif)]) == 12
+
+
+def test_note_tronquee_format_lie_au_pipeline():
+    """Le rendu anglais extrait le nombre du `detail` que construit réellement le pipeline."""
+    source = inspect.getsource(pipeline)
+    assert 'detail=f"corps tronqué à {moteur.taille_max_note} caractères"' in source
+    motif = Motif(code=CodeMotif.NOTE_TRONQUEE, detail="corps tronqué à 80 caractères")
+    assert _motif_affiche(motif, "en") == "Note truncated : cut at 80 characters"
+
+
+def test_langue_suffixes_lies_a_qualite_texte():
+    assert motif_langue("Внедрение SQL", "fr") == "écriture non latine"
+    assert motif_langue(_TEXTE_FRANCAIS, "en") == "mots-outils fr"
+    non_latin = Motif(code=CodeMotif.LANGUE, detail="impact : écriture non latine")
+    assert _motif_affiche(non_latin, "en") == "Language mismatch : Impact, non-Latin script"
+
+
+def test_en_format_de_detail_inconnu_jamais_recopie():
+    def rendu(code: CodeMotif, detail: str) -> str:
+        return _motif_affiche(Motif(code=code, detail=detail), "en")
+
+    assert rendu(CodeMotif.LANGUE, "impact : autre chose") == "Language mismatch : Impact"
+    assert rendu(CodeMotif.LANGUE, "xx : autre chose") == "Language mismatch"
+    assert rendu(CodeMotif.NOTE_TRONQUEE, "autre chose") == "Note truncated"
+    assert rendu(CodeMotif.REPETITION, "autre chose") == "Repetitive section"
+
+
+def test_completude_classement_des_codes_et_statuts():
+    assert set(MOTIFS_EN) == set(CodeMotif)
+    assert set(DETAILS_EN) == set(CodeMotif)
+    assert set(RUBRIQUES_EN) == set(RUBRIQUES)
+    statuts = typing.get_args(EntreeEcartee.model_fields["statut"].annotation)
+    assert set(STATUTS_ECARTES_EN) == set(statuts)
