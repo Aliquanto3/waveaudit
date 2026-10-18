@@ -20,8 +20,8 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 | 5 | Q5 | Rebanc EliteBook, consigne et rôles ★ | Opus | intégrée 751ccab (granite défaut, arbitrage d'Anaël) |
 | 5 | W2 | Accueil, lots récents, suivi lu sur le disque | Sonnet | intégrée 996ce74 |
 | 6 | X2 | Service d'export et `waveaudit exporter` | Sonnet | intégrée 029561e |
-| 6 | W4 | Incident dans l'UI | Sonnet | en cours |
-| 7 | W3a | API de relecture, régénération et export | Opus | à faire |
+| 6 | W4 | Incident dans l'UI | Sonnet | intégrée 61f0141 |
+| 7 | W3a | API de relecture, régénération et export | Opus | en cours |
 | 8 | W3b | Écran de relecture | Sonnet | à faire |
 | 7 | LIB | Libellés par langue des statuts et motifs dans le Word (annexe des écartées, tous modes) | Sonnet | à faire |
 | 8 | ARR | Arrêt propre de l'UI (llama-server enfant, fermer(timeout)) | Sonnet | à faire |
@@ -58,8 +58,10 @@ Constats tirés par Q3 (textes `en` dans `donnees/catalogue/*.yaml`) : AD-KERBER
 - W2 : `fermer()` de M1 reste bloquant pendant une ouverture du moteur : l'arrêt de l'UI pendant le démarrage d'une régénération dépasse la borne de 10 s (E3). Accepter pour le POC, ou story `fermer(timeout)` sur M1. Report antérieur (v0.1.0) : arrêter l'UI pendant un lot tue le fil daemon sans son `finally`, le llama-server du lot peut rester orphelin (à vérifier en REC : `tasklist | findstr llama-server`). `date_creation_processus` ajouté dans `adaptateurs/memoire_psutil.py` (psutil réservé aux adaptateurs). La redirection 303 `/lots/{id}` → `/incidents/{id}` est faite par W2 dans `pages.py` ; le sens inverse reste à W4.
 - Q5 (arbitré : granite défaut, voir « Arbitrages ») : la règle de CAP-7 donne qwen3-1.7b par défaut (médianes 6/6, recopie 0,45, 36,2 s ; granite 6/6, 0,56, 27,9 s), mais CAP-6 n'est pas tenu pour qwen3-1.7b : 5/6 à la seed 242 (note 11 en `repli_moteur`, délai de 180 s dépassé, charge du poste supposée, non démontrée ; rejeu non compté). Options : valider qwen3-1.7b, garder granite (tient CAP-6), ou rebancer la seed 242 poste au repos. Reports : README (DOC), `ram_min_defaut_go` à remesurer, repli qwen3.5 et MiniCPM5 non rebancés. Détail : `bilan-modeles.md` section v2, `revues/story-Q5.md`.
 - X2 : `exporter_lot` prend `occupation` (mot-clé, `None` en CLI) pour refuser un lot en génération dans le même processus (§27 étape 3) ; la signature du §27 ne le porte pas, à ajouter à la prochaine révision du contrat.
+- W4 : sélecteur fiches/incident ajouté à l'accueil (`index.html`, `accueil.js`, hors liste de fichiers de W4, sur décision de l'orchestrateur : sans lui l'incident n'était pas atteignable depuis l'UI, CAP-14). `[hidden]{display:none !important}` global dans `style.css`. REC : vérifier dans un vrai navigateur la bascule, un envoi de journaux et `aucun_journal_reconnu` (aucun test n'exécute le JS). Le rapport incident (`export_incident_docx.py`) écrit toujours `code : detail` (français, conforme §17).
+- LIB : le Word `fr` reste strictement identique à la v0.1.0 (§27, §17) ; seuls les Word `en` reçoivent des libellés.
 - Test instable : `tests/e2e/test_ui.py::test_lot_nominal_20_notes_puis_telechargement` a échoué une fois dans la suite complète après Q3 (machine chargée, suite à 173 s), puis passé seul, avec `tests/e2e/` et dans une seconde suite complète (908). À surveiller ; dev-story de correction s'il récidive.
-Suite complète après la vague 5 (W2 + Q5) : 994 verts.
+Suite complète après la vague 5 (W2 + Q5) : 994 verts. Après la vague 6 (X2 + W4) : 1027 verts.
 
 ## Arbitrages d'Anaël (2026-10-18)
 
@@ -76,6 +78,8 @@ Détail dans `revues/story-R2.md` : W3a prend `Occupation("regeneration", id, in
 W2 (détail dans `revues/story-W2.md`) : X2 lit l'état par `lots.etat_lot(config, id, None)`, refuse un lot `en_cours`, obtient le dossier par `dossier_lot_existant`. W4 reprend l'ordre de `routeurs/lots.creer_lot` (occupation provisoire incident, `definir`, `ecrire_fiche_lot(workflow="incident", langue=None)`, `await run_in_threadpool(moteur.fermer)`, fil daemon journalisé avec `liberer` en `finally`), redirige `GET /incidents/{id}` d'un lot de fiches en 303 vers `/lots/{id}`, passe `/incidents/{id}/etat` par `lots.etat_lot`, ne touche pas `pages.py`. W3a utilise `app.state.config`, `.verrou`, `.moteur` (`app.state.lots` n'existe plus) ; 409 `lot_en_cours_externe` si `etat_lot` donne `en_cours` sans que l'occupation locale porte le lot, `lot_en_cours` sinon ; `etat_lot` sur le lot visé.
 
 X2 (détail dans `revues/story-X2.md`) : W3a appelle `exporter_lot(config, id, mode, occupation=request.app.state.verrou.occupation())` via `run_in_threadpool` → `(chemin, non_validees)` ; refus : `lot_inconnu`, `lot_incident` → 404 ; `lot_en_cours` → 409 `lot_en_cours` si l'occupation locale porte le lot, sinon `lot_en_cours_externe` ; `aucune_fiche_validee` → 409 ; `PermissionError` → 409 `export_verrouille` ; `type` invalide → 422 `type_invalide` avant l'appel ; succès : nom `chemin.name`, en final en-tête `X-Non-Validees`. `relecture.json` illisible → erreur codée `relecture_illisible` (arbitrage 6).
+
+W4 (détail dans `revues/story-W4.md`) : W3b ajoute à la fin de `style.css` sans réécrire les blocs W4 (« Page incident », « Accueil ») ; pour un tiroir ou un onglet, basculer une classe plutôt que l'attribut `hidden` ; un nouveau formulaire de dépôt porte la classe `depot`.
 
 ## Bilan
 
