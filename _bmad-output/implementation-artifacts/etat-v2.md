@@ -12,7 +12,7 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 | 1 | X1 | Rendu Word bilingue, modes final et brouillon | Sonnet | intégrée f976867 |
 | 1 | W1 | Socle web (routeurs, CSRF, en-têtes, erreurs codées) | Opus | intégrée 6bb935f |
 | 2 | Q3 | Catalogue bilingue et traduction des 50 constats ★ | Sonnet | en cours |
-| 2 | W5 | Thème public et logo privé | Sonnet | en cours |
+| 2 | W5 | Thème public et logo privé | Sonnet | intégrée 349dde3 |
 | 3 | Q4 | Index BM25 bilingue, rattachement des notes 01 et 29 | Sonnet | à faire |
 | 3 | L1 | Langue du lot, de la CLI au Word | Sonnet | à faire |
 | 4 | B1 | Banc v2 | Sonnet | à faire |
@@ -48,6 +48,8 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 - M1 : l'ouverture du moteur tient le verrou interne, donc `fermer()` attend une ouverture en cours ; à confronter à l'attente de 10 s du lifespan (E3) en W2. `utiliser("B")` pendant un usage sur « A » n'est pas gardé : la sérialisation repose sur VerrouUnique (W2).
 - W1 : cinq codes d'erreur hors table §26 (`introuvable`, `methode_refusee`, `requete_invalide`, `erreur_http`, `erreur_interne`) ; `Cache-Control: no-store` partout sauf `/static/` ; 409 `lot_en_cours` sans `occupation` jusqu'à W2.
 - Q2 : la comparaison de boucle à la source ignore la casse (contrat : « telle quelle ») ; côté incident, la source des étapes 5 et 6 inclut aussi les identifiants, IP et hachages reconnus légitimes ; `finditer` à la place de `re.search` pour ne pas masquer une boucle derrière une suite sans lettre.
+
+- W5 : nouveau token `--couleur-blanc` hors DESIGN.md (seule exception du test de parité) ; vérification du focus stricte (§28 à la lettre) : `:focus:not(:focus-visible) { outline: none }` serait refusé, à garder en tête pour W3b et W4 ; `lxml` importé directement par `tests/accessibilite.py` (transitif via python-docx).
 
 ## Bilan
 
