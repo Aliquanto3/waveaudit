@@ -12,6 +12,7 @@ from typing import Any
 from tests.e2e.test_cli import DEMO, _ecrire_config, app, runner
 from tests.e2e.test_cli_incident import DEMO as DEMO_INCIDENT
 from tests.e2e.test_ui import _attendre_fin, _notes_demo
+from tests.web_outils import client as client_web
 from waveaudit.domaine.erreurs import ConnexionInterdite
 from waveaudit.domaine.modeles import TypeEvenement
 from waveaudit.securite import garde_reseau
@@ -40,14 +41,13 @@ def test_cli_incident_sous_garde_sans_tentative(tmp_path, faux_moteur):
 def test_ui_lot_sous_garde_sans_tentative(monkeypatch, tmp_path, faux_moteur):
     """`uvicorn.run` est remplacé, mais appelé à l'intérieur du `with garde(...)` de la commande
     `ui` (contrats §12) : le lot posté pendant cet appel tourne donc réellement sous le garde."""
-    from fastapi.testclient import TestClient
-
     config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
     capture: dict[str, Any] = {}
 
     def faux_run(application: Any, *, host: str, port: int) -> None:
         capture["garde_actif_au_demarrage"] = garde_reseau._actif
-        client = TestClient(application)
+        # Application réelle de la commande `ui` : pas de `testserver`, Host de boucle locale.
+        client = client_web(application, base_url=f"http://127.0.0.1:{port}")
         reponse = client.post("/lots", files=_notes_demo(), follow_redirects=False)
         id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
         capture["etat"] = _attendre_fin(client, id_lot)

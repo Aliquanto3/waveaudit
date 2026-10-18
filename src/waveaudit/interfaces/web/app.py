@@ -1,241 +1,134 @@
-"""Interface web locale (contrats §18, AD-2, AD-14).
+"""Interface web locale (contrats §18, §26, AD-2, AD-14, AD-22).
 
-`creer_app(config)` construit l'application sans activer le garde réseau (contrats §12, AD-9) :
-c'est à l'appelant (la commande CLI `ui`, interfaces/cli.py) d'activer `securite.garde_reseau`
-puis de lancer uvicorn sur `config.ui.hote`/`config.ui.port` (`127.0.0.1` ou `::1` seulement),
-`uvicorn` et les adaptateurs étant réservés à `interfaces/cli.py` et `application/composition.py`
-(contrats §12, `tests/unitaires/test_architecture.py`).
+`creer_app(config)` assemble les routeurs par surface (`routeurs/`) sous une enveloppe de
+sécurité commune, sans activer le garde réseau (contrats §12, AD-9) : c'est à l'appelant (la
+commande CLI `ui`, interfaces/cli.py) d'activer `securite.garde_reseau` puis de lancer uvicorn
+sur `config.ui.hote`/`config.ui.port` (`127.0.0.1` ou `::1` seulement), `uvicorn` et les
+adaptateurs étant réservés à `interfaces/cli.py` et `application/composition.py` (contrats §12,
+`tests/unitaires/test_architecture.py`).
+
+Les stories web suivantes remplissent leur module de routeur sans retoucher ce fichier
+(AD-22 [revue A28]).
 """
 
-import re
-import threading
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Literal
+import secrets
 
-from fastapi import FastAPI, Query, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from starlette.datastructures import UploadFile as UploadFileBrut
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from waveaudit.application.lot import RAPPORT, executer_lot, nouvel_id_lot
 from waveaudit.domaine.configuration import Configuration
-from waveaudit.domaine.modeles import EvenementLot, RequeteLot
+from waveaudit.interfaces.web.commun import BANDEAU, RACINE, en_mo, erreur
+from waveaudit.interfaces.web.routeurs import incidents, lots, pages, relecture, theme
 
-# Copie du bandeau d'`adaptateurs.export_docx.BANDEAU` : interfaces/web/ ne peut importer aucun
-# adaptateur, même dans une fonction (contrats §12, test_architecture.py).
-BANDEAU = "Démonstration — données fictives"
+__all__ = ["BANDEAU", "creer_app"]
 
-_RACINE = Path(__file__).resolve().parent
-_TAILLE_MAX_OCTETS = 1024 * 1024  # 1 Mo (contrats §18)
-_MOTIF_NOM = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._-]{0,99}\.(md|txt)$", re.IGNORECASE)
-_RESERVES_WINDOWS = frozenset(
-    {"CON", "PRN", "AUX", "NUL"}
-    | {f"COM{i}" for i in range(1, 10)}
-    | {f"LPT{i}" for i in range(1, 10)}
-)
+MIO = 1024 * 1024
+# Limites totales de corps par route d'écriture (§26) ; les autres écritures : 256 Kio.
+_LIMITES = {"/lots": 20 * MIO, "/incidents": 50 * MIO}
+_LIMITE_PAR_DEFAUT = 256 * 1024
+_ECRITURES = frozenset({"POST", "PUT"})
 
-EtatStr = Literal["en_cours", "termine", "echoue"]
+_EN_TETES = {
+    "Content-Security-Policy": (
+        "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    ),
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+}
 
-
-class NomRefuse(Exception):
-    """Nom de fichier de note refusé (contrats §18) : donne HTTP 400 à l'appelant."""
-
-
-@dataclass
-class _EtatLot:
-    etat: EtatStr = "en_cours"
-    evenements: list[dict] = field(default_factory=list)
-    erreur: str | None = None
+_CODES_HTTP = {
+    404: ("introuvable", "Ressource introuvable."),
+    405: ("methode_refusee", "Méthode non permise sur cette adresse."),
+}
 
 
-class _RegistreLots:
-    """État de chaque lot lancé par l'UI, protégé par un verrou (contrats §18)."""
+def _hotes_autorises(port: int, hotes_test: tuple[str, ...]) -> frozenset[str]:
+    """Hôtes acceptés (§26) : boucle locale avec le port, sans port si le port vaut 80.
 
-    def __init__(self) -> None:
-        self._verrou = threading.Lock()
-        self._etats: dict[str, _EtatLot] = {}
-
-    def creer(self, id_lot: str) -> None:
-        with self._verrou:
-            self._etats[id_lot] = _EtatLot()
-
-    def abonne(self, id_lot: str):
-        def recevoir(evenement: EvenementLot) -> None:
-            with self._verrou:
-                etat = self._etats.get(id_lot)
-                if etat is not None:
-                    etat.evenements.append(evenement.model_dump(mode="json"))
-
-        return recevoir
-
-    def terminer(self, id_lot: str) -> None:
-        with self._verrou:
-            etat = self._etats.get(id_lot)
-            if etat is not None:
-                etat.etat = "termine"
-
-    def echouer(self, id_lot: str, message: str) -> None:
-        with self._verrou:
-            etat = self._etats.get(id_lot)
-            if etat is not None:
-                etat.etat = "echoue"
-                etat.erreur = message
-
-    def lire(self, id_lot: str, depuis: int = 0) -> _EtatLot | None:
-        """Copie de l'état ; `depuis` ne copie que les événements à partir de cet indice."""
-        with self._verrou:
-            etat = self._etats.get(id_lot)
-            if etat is None:
-                return None
-            return _EtatLot(etat=etat.etat, evenements=etat.evenements[depuis:], erreur=etat.erreur)
-
-
-def _valider_nom(nom_brut: str, deja_vus: set[str]) -> str:
-    """Vérifie un nom de note (contrats §18) ; lève `NomRefuse` sinon renvoie le nom normalisé.
-
-    `base != nom_brut` refuse un nom qui contient un composant de chemin (`../x.md`), puisque
-    `Path(nom_brut).name` en retire alors une partie.
+    `[::1]:<port>` : en-tête Host envoyé par le navigateur quand `ui.hote` vaut `::1`.
     """
-    base = Path(nom_brut).name
-    if base != nom_brut or not _MOTIF_NOM.fullmatch(base):
-        raise NomRefuse(f"nom de fichier refusé : {nom_brut!r}")
-    # Windows résout le périphérique sur la partie avant le premier point, espaces finaux
-    # retirés : `CON.x.md` et `NUL .md` sont réservés comme `CON.md`.
-    if base.split(".", 1)[0].rstrip(" ").upper() in _RESERVES_WINDOWS:
-        raise NomRefuse(f"nom de fichier réservé (Windows) : {nom_brut!r}")
-    cle = base.casefold()
-    if cle in deja_vus:
-        raise NomRefuse(f"nom de fichier en double : {nom_brut!r}")
-    deja_vus.add(cle)
-    return base
+    noms = ("127.0.0.1", "localhost", "[::1]")
+    hotes = {f"{nom}:{port}" for nom in noms}
+    if port == 80:
+        hotes |= set(noms)
+    return frozenset(hotes | {hote.lower() for hote in hotes_test})
 
 
-async def _valider_notes(fichiers: list[UploadFile]) -> list[tuple[str, bytes]]:
-    """Valide et lit chaque note envoyée (contrats §18) ; lève `NomRefuse` au premier refus."""
-    if not fichiers:
-        raise NomRefuse("aucune note envoyée")
-    deja_vus: set[str] = set()
-    resultat: list[tuple[str, bytes]] = []
-    for fichier in fichiers:
-        nom = _valider_nom(fichier.filename or "", deja_vus)
-        contenu = await fichier.read(_TAILLE_MAX_OCTETS + 1)
-        if len(contenu) > _TAILLE_MAX_OCTETS:
-            raise NomRefuse(f"note trop volumineuse (> 1 Mo) : {nom!r}")
-        resultat.append((nom, contenu))
-    return resultat
+def _refus_taille(chemin: str, taille: int, limite: int) -> Response:
+    if chemin == "/lots":
+        detail = (
+            f"Le dépôt dépasse 20 Mo au total ({en_mo(taille)}). "
+            "Déposez les notes en plusieurs lots."
+        )
+    elif chemin == "/incidents":
+        detail = (
+            f"Le dépôt dépasse 50 Mo au total ({en_mo(taille)}). "
+            "Déposez les journaux en plusieurs lots."
+        )
+    else:
+        detail = f"La requête dépasse {limite // 1024} Ko ({taille // 1024} Ko)."
+    return erreur(413, "trop_volumineux", detail, limite="total")
 
 
-def creer_app(config: Configuration) -> FastAPI:
-    """Construit l'application web (contrats §18). N'active pas le garde réseau."""
+def creer_app(config: Configuration, *, hotes_test: tuple[str, ...] = ()) -> FastAPI:
+    """Construit l'application web (contrats §26). N'active pas le garde réseau.
+
+    `hotes_test` n'est renseigné que par `tests/web_outils.py` (`("testserver",)`) ; la
+    commande `ui` appelle `creer_app(config)` [revue A7/E27].
+    """
     app = FastAPI(title="WaveAudit")
-    app.mount("/static", StaticFiles(directory=_RACINE / "static"), name="static")
-    gabarits = Jinja2Templates(directory=_RACINE / "templates")
-    registre = _RegistreLots()
-    verrou_post = threading.Lock()
-    port = config.ui.port
-    # `[::1]:<port>` : en-tête Host envoyé par le navigateur quand `ui.hote` vaut `::1`
-    # (permis par contrats §18, absent de sa liste d'hôtes ; écart consigné dans la spec).
-    hotes_autorises = {f"127.0.0.1:{port}", f"localhost:{port}", f"[::1]:{port}", "testserver"}
-    origines_autorisees = {f"http://{hote}" for hote in hotes_autorises}
+    app.state.jeton_csrf = secrets.token_urlsafe(32)
+    app.state.lots = lots.EtatLots(config)
+    hotes_autorises = _hotes_autorises(config.ui.port, hotes_test)
+    origines_autorisees = frozenset(f"http://{hote}" for hote in hotes_autorises)
+
+    def _controler(request: Request) -> Response | None:
+        """Règles communes, dans l'ordre du §26 ; renvoie la réponse de refus ou `None`."""
+        if request.headers.get("host", "").lower() not in hotes_autorises:
+            return erreur(400, "hote_refuse", "Hôte non autorisé.")
+        if request.method not in _ECRITURES:
+            return None
+        origine = request.headers.get("origin")
+        if origine is not None and origine.lower() not in origines_autorisees:
+            return erreur(403, "origine_refusee", "Origine non autorisée.")
+        jeton = request.headers.get("x-csrf-token", "")
+        if not secrets.compare_digest(jeton.encode("utf-8"), app.state.jeton_csrf.encode("utf-8")):
+            return erreur(
+                403,
+                "csrf_invalide",
+                "Jeton de sécurité absent ou périmé. Rechargez la page.",
+            )
+        longueur = request.headers.get("content-length", "")
+        if not longueur.isascii() or not longueur.isdigit():
+            return erreur(411, "longueur_requise", "Longueur de la requête requise.")
+        limite = _LIMITES.get(request.url.path, _LIMITE_PAR_DEFAUT)
+        if int(longueur) > limite:
+            return _refus_taille(request.url.path, int(longueur), limite)
+        return None
 
     @app.middleware("http")
-    async def _garde_hote_origine(request: Request, call_next):
-        hote = request.headers.get("host", "")
-        if hote not in hotes_autorises:
-            return JSONResponse({"detail": "hôte non autorisé"}, status_code=400)
-        if request.method == "POST":
-            origine = request.headers.get("origin")
-            if origine is not None and origine not in origines_autorisees:
-                return JSONResponse({"detail": "origine non autorisée"}, status_code=403)
-        return await call_next(request)
+    async def _enveloppe(request: Request, call_next) -> Response:
+        reponse = _controler(request) or await call_next(request)
+        for nom, valeur in _EN_TETES.items():
+            reponse.headers[nom] = valeur
+        if not request.url.path.startswith("/static/"):
+            # HTML compris [revue E25] : une page en cache garderait un jeton CSRF périmé.
+            reponse.headers["Cache-Control"] = "no-store"
+        return reponse
 
-    def _executer_en_fond(id_lot: str, dossier_entree: Path) -> None:
-        try:
-            try:
-                requete = RequeteLot(dossier=dossier_entree, id_lot=id_lot)
-                executer_lot(requete, config, registre.abonne(id_lot))
-                registre.terminer(id_lot)
-            except Exception as erreur:  # noqa: BLE001 - reporté à l'état du lot, pas relevé
-                registre.echouer(id_lot, str(erreur))
-        finally:
-            verrou_post.release()
+    @app.exception_handler(StarletteHTTPException)
+    async def _erreur_http(request: Request, exc: StarletteHTTPException) -> Response:
+        code, detail = _CODES_HTTP.get(exc.status_code, ("erreur_http", "Requête refusée."))
+        return erreur(exc.status_code, code, detail)
 
-    @app.get("/", response_class=HTMLResponse)
-    def accueil(request: Request) -> HTMLResponse:
-        return gabarits.TemplateResponse(request, "index.html", {"bandeau": BANDEAU})
+    @app.exception_handler(RequestValidationError)
+    async def _erreur_validation(request: Request, exc: RequestValidationError) -> Response:
+        return erreur(422, "requete_invalide", "Paramètres de requête invalides.")
 
-    @app.post("/lots")
-    async def creer_lot(request: Request) -> RedirectResponse:
-        if not verrou_post.acquire(blocking=False):
-            return JSONResponse({"detail": "un lot est déjà en cours"}, status_code=409)
-        # Toute sortie avant le démarrage du thread (multipart malformé, refus, erreur disque)
-        # relâche le verrou ; ensuite c'est le `finally` du thread qui le relâche.
-        lance = False
-        try:
-            formulaire = await request.form()
-            notes = [v for v in formulaire.getlist("notes") if isinstance(v, UploadFileBrut)]
-            try:
-                fichiers = await _valider_notes(notes)
-            except NomRefuse as erreur:
-                return JSONResponse({"detail": str(erreur)}, status_code=400)
-            id_lot = nouvel_id_lot(config.chemins.var)
-            dossier_entree = config.chemins.var / "entrees" / id_lot
-            dossier_entree.mkdir(parents=True, exist_ok=True)
-            for nom, contenu in fichiers:
-                (dossier_entree / nom).write_bytes(contenu)
-            registre.creer(id_lot)
-            fil = threading.Thread(
-                target=_executer_en_fond, args=(id_lot, dossier_entree), daemon=True
-            )
-            try:
-                fil.start()
-            except RuntimeError as erreur:
-                registre.echouer(id_lot, str(erreur))
-                raise
-            lance = True
-            return RedirectResponse(f"/lots/{id_lot}", status_code=303)
-        finally:
-            if not lance:
-                verrou_post.release()
-
-    @app.get("/lots/{id_lot}", response_class=HTMLResponse)
-    def page_lot(request: Request, id_lot: str) -> HTMLResponse:
-        return gabarits.TemplateResponse(
-            request, "lot.html", {"bandeau": BANDEAU, "id_lot": id_lot}
-        )
-
-    @app.get("/lots/{id_lot}/etat")
-    def etat_lot(id_lot: str, depuis: int = Query(0, ge=0)) -> JSONResponse:
-        # `depuis` (facultatif) : le JS ne redemande que les nouveaux événements à chaque
-        # interrogation, sans recopier tout le journal du lot ; 0 donne la réponse complète.
-        etat = registre.lire(id_lot, depuis)
-        if etat is None:
-            return JSONResponse({"detail": "lot inconnu"}, status_code=404)
-        return JSONResponse(
-            {
-                "id_lot": id_lot,
-                "etat": etat.etat,
-                "evenements": etat.evenements,
-                "erreur": etat.erreur,
-            }
-        )
-
-    @app.get("/lots/{id_lot}/rapport.docx")
-    def rapport_lot(id_lot: str) -> FileResponse:
-        etat = registre.lire(id_lot)
-        if etat is None:
-            return JSONResponse({"detail": "lot inconnu"}, status_code=404)
-        if etat.etat != "termine":
-            return JSONResponse({"detail": "lot non terminé"}, status_code=409)
-        chemin = config.chemins.var / "sorties" / id_lot / RAPPORT
-        if not chemin.is_file():
-            return JSONResponse({"detail": "rapport introuvable"}, status_code=404)
-        return FileResponse(
-            chemin,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            filename=RAPPORT,
-        )
-
+    app.mount("/static", StaticFiles(directory=RACINE / "static"), name="static")
+    for module in (pages, lots, relecture, incidents, theme):
+        app.include_router(module.routeur)
     return app
