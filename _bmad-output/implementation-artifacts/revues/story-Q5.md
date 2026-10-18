@@ -22,3 +22,11 @@ données consignées : aucun banc réel ni test `slow` relancé (autres stories 
   CAP-6 d'une fiche (délai de 180 s dépassé, seed 242), ou granite maintenu (CAP-6 tenu). Voie
   possible : rebanc de qwen3-1.7b seed 242 poste au repos, consigné comme reprise du protocole.
 - README (défaut qwen3-1.7b) : DOC.
+
+## Arbitrage d'Anaël (2026-10-18)
+
+Infirmé : granite reste `modele_defaut` (CAP-6 tenu), qwen3-1.7b redevient `candidat` (CAP-6 non
+tenu, 5/6 à la seed 242, délai dépassé). Manifeste rééchangé (`role` seul, mêmes
+`repeat_penalty` et `duree_indicative_s` mesurés), tests réalignés en conséquence
+(`test_config.py::test_manifeste_artefacts`, `test_composition.py::test_choix_par_ram`,
+`::test_choix_explicite_et_erreurs`). Détail : `bilan-modeles.md`, section Décision v2.

@@ -229,6 +229,15 @@ chargeaient le poste sont aussi ceux des postes de consultants : un délai de 18
 qwen3-1.7b (36 s de médiane, 1,3 fois granite) peut se reproduire en usage. Autre voie : rebanc
 de qwen3-1.7b seed 242 poste au repos, compté s'il est consigné comme reprise du protocole.
 
+### Arbitrage d'Anaël (2026-10-18)
+
+**Infirmé : granite-4.0-1b-q4km reste `modele_defaut`, qwen3-1.7b-q4km reste `candidat`.** La
+règle mécanique de CAP-7 désignait qwen3-1.7b (§ ci-dessus), mais CAP-6 n'est pas tenu pour lui
+sur le protocole (5/6 à la seed 242, délai dépassé) ; granite tient CAP-6 et reste le modèle par
+défaut. qwen3-1.7b reste candidat, choisissable à l'accueil. Manifeste rééchangé en
+conséquence (`role` seul remis à l'état d'avant Q5 ; `repeat_penalty = 1.1` et
+`duree_indicative_s` mesurés au rebanc restent sur les deux modèles).
+
 Réserves pour Anaël, qui peut infirmer ce choix :
 - la marge sur la durée est mince : une seed à 40,1 s, et le seul repli du rebanc est un délai
   dépassé de qwen3-1.7b sur un poste chargé ;

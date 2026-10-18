@@ -28,12 +28,12 @@ def _local(config, **moteur):
 
 @pytest.mark.parametrize(
     ("ram_go", "role", "nom"),
-    [(2.0, "modele_repli", "qwen3.5-0.8b-q4km"), (16.0, "modele_defaut", "qwen3-1.7b-q4km")],
+    [(2.0, "modele_repli", "qwen3.5-0.8b-q4km"), (16.0, "modele_defaut", "granite-4.0-1b-q4km")],
 )
 def test_choix_par_ram(config_test, artefacts, monkeypatch, ram_go, role, nom):
     monkeypatch.setattr(memoire_psutil, "ram_disponible_octets", lambda: int(ram_go * GO))
     choisi = composition.choisir_modele(_local(config_test), artefacts, None)
-    # Q5 (CAP-7) : qwen3-1.7b promu défaut au rebanc ; qwen3.5-0.8b reste le repli.
+    # Q5 : granite reste défaut (arbitrage du 2026-10-18) ; qwen3.5-0.8b reste le repli.
     assert (choisi.role, choisi.nom) == (role, nom)
 
 
@@ -41,9 +41,7 @@ def test_choix_explicite_et_erreurs(config_test, artefacts, monkeypatch):
     monkeypatch.setattr(memoire_psutil, "ram_disponible_octets", lambda: 0)
     config = _local(config_test, modele="granite-4.0-1b-q4km")
     assert composition.choisir_modele(config, artefacts, None).nom == "granite-4.0-1b-q4km"
-    assert composition.choisir_modele(config, artefacts, "qwen3-1.7b-q4km").role == (
-        "modele_defaut"
-    )
+    assert composition.choisir_modele(config, artefacts, "qwen3-1.7b-q4km").role == ("candidat")
     with pytest.raises(ConfigurationInvalide):
         composition.choisir_modele(config, artefacts, "inconnu")
     with pytest.raises(ConfigurationInvalide):

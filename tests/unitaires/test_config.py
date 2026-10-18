@@ -139,13 +139,14 @@ def test_manifeste_artefacts():
     with (RACINE / "config" / "artefacts.toml").open("rb") as fichier:
         artefacts = tomllib.load(fichier)["artefact"]
     # v2 (CAP-7) : ordre moteur, défaut, repli, candidats ; qwen3.5 repli, MiniCPM5 candidat.
-    # Q5 : qwen3-1.7b promu défaut au rebanc (bilan-modeles.md, section v2), granite candidat.
+    # Q5 : granite reste défaut (CAP-6 non tenu par qwen3-1.7b, arbitrage du 2026-10-18,
+    # bilan-modeles.md section v2) ; qwen3-1.7b redevient candidat.
     assert [a["nom"] for a in artefacts] == [
         "llama-server-b11714",
-        "qwen3-1.7b-q4km",
+        "granite-4.0-1b-q4km",
         "qwen3.5-0.8b-q4km",
         "minicpm5-1b-q4km",
-        "granite-4.0-1b-q4km",
+        "qwen3-1.7b-q4km",
     ]
     assert [a["role"] for a in artefacts] == [
         "moteur",

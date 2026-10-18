@@ -72,3 +72,13 @@ sources:
 - low, second avis 2 : diagnostic de charge présenté comme hypothèse — corrigé.
 - low, second avis 3, 4, 5 : README (DOC), `ram_min_defaut_go`, repli et MiniCPM5 non rebancés — reportés.
 - Détail : `implementation-artifacts/revues/story-Q5.md`.
+
+## Arbitrage d'Anaël (2026-10-18)
+
+Infirmé : la règle mécanique de CAP-7 désignait qwen3-1.7b par défaut, mais CAP-6 n'est pas tenu
+pour lui sur le protocole (5/6 à la seed 242, délai dépassé). **granite-4.0-1b-q4km reste
+`modele_defaut`** (CAP-6 tenu) ; **qwen3-1.7b-q4km reste `candidat`**, choisissable à l'accueil.
+`config/artefacts.toml` rééchangé (`role` seul ; `repeat_penalty = 1.1` et `duree_indicative_s`
+mesurés au rebanc inchangés sur les deux modèles) ; tests réalignés
+(`test_config.py::test_manifeste_artefacts`, `test_composition.py::test_choix_par_ram`,
+`::test_choix_explicite_et_erreurs`). Détail : `bilan-modeles.md`, section Décision v2.
