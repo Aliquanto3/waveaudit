@@ -117,6 +117,19 @@ réglages.
   `xfail` prévu par le contrat (§29, revue A30) a été retiré sans qu'aucun nouveau réglage
   n'ait été tenté après la mesure initiale.
 - Report précédent (ci-dessous, « Rattachement des notes 01 et 29 ») traité par cette story.
+- **Essais (reconstitués à la revue, le message du commit 1a02a6a ne les liste pas)** : mesure
+  sur les notes 01-20 et 29 seulement (`k1` = 1.5, `b` = 0.75 partout), sans nouvelle lecture
+  des notes 21-28 et 30.
+
+  | Essai | Index | `mots_cles` | top1 / top3 01-20 | Rang 01 | Rang 29 | Hors rang 1 (01-20) |
+  |---|---|---|---|---|---|---|
+  | A (base 4eb9592) | fr seul | v0.1 | 17/20 / 20/20 | 2 | 2 | 01, 07, 20 |
+  | B | bilingue | v0.1 | 17/20 / 20/20 | 2 | 2 | 01, 07, 20 |
+  | C (livré) | bilingue | Q4 | 18/20 / 20/20 | 1 | 1 | 07, 20 |
+
+  L'index bilingue seul ne change aucun rang sur 01-20 et 29 ; le gain vient des six
+  mots-clés ajoutés. Les essais intermédiaires du développeur (scripts hors dépôt) ne sont
+  pas connus.
 
 ## Reports (hors périmètre V2)
 

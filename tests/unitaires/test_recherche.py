@@ -134,6 +134,35 @@ def test_index_bilingue_mot_present_seulement_dans_en_titre_rattache() -> None:
     assert len(candidats) == 2
 
 
+def test_index_bilingue_ponderations_calculees_a_la_main() -> None:
+    """Contrats §7 v2 : en.titre ×3 et en.description ×1 ; bloc en sauté s'il vaut None.
+
+    c1 (avec en) : alpha x3, eta x3, beta x3, gamma, theta -> 11 jetons ; c2 (en=None) :
+    delta x3, epsilon x3, zeta x3 -> 9 jetons. avgdl = 10 ; N = 2, n = 1 -> idf = ln 2.
+    "eta" (tf 3) : 3 * 2.5 / (3 + 1.5 * (0.25 + 0.75 * 1.1)) = 7.5 / 4.6125.
+    "theta" (tf 1) : 1 * 2.5 / (1 + 1.6125) = 2.5 / 2.6125.
+    """
+    c1 = _constat("c1", "alpha", ["beta"], "gamma").model_copy(
+        update={
+            "en": TextesConstat(
+                titre="eta", description="theta", impact="impact", recommandation="reco"
+            )
+        }
+    )
+    catalogue = [c1, _constat("c2", "delta", ["epsilon"], "zeta zeta zeta")]
+
+    eta = classer(catalogue, "eta", k1=1.5, b=0.75)
+    assert [c.id for c in eta] == ["c1", "c2"]
+    assert eta[0].score == pytest.approx(log(2) * 7.5 / 4.6125)
+    assert eta[1].score == 0.0
+
+    theta = classer(catalogue, "theta", k1=1.5, b=0.75)
+    assert theta[0].score == pytest.approx(log(2) * 2.5 / 2.6125)
+
+    # en.impact et en.recommandation ne sont pas indexés.
+    assert all(c.score == 0.0 for c in classer(catalogue, "reco", k1=1.5, b=0.75))
+
+
 def test_score_bm25_valeur_calculee_a_la_main() -> None:
     # c1 : alpha x3, beta x3, gamma -> 7 jetons ; c2 : delta x3, epsilon x3, zeta x3 -> 9.
     # avgdl = 8 ; "alpha" : N=2, n=1 -> idf = ln(1 + 1.5/1.5) = ln 2 ; tf = 3.

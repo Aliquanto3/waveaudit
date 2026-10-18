@@ -6,9 +6,9 @@ Charge le vrai catalogue (`donnees/catalogue`, index bilingue) et les vraies not
 Notes 01 et 29 : chacune doit être rattachée au rang 1 (bloquant, Q4).
 Notes 01-20 : top1 >= 17/20 et top3 = 20/20 (bloquant).
 Notes non vues 21-28 et 30 (la note 29, cible du réglage, n'en fait plus partie) :
-top1 >= 8/9 et top3 = 9/9. Valeurs figées en fin de story (commit Q4) : non bloquant
-pendant le réglage (xfail retiré), puisque le seuil est déjà atteint sans réglage
-supplémentaire — voir le message du commit Q4 pour les essais tentés.
+top1 >= 8/9 et top3 = 9/9, bloquant depuis la levée du verrou en fin de story Q4
+(xfail retiré). Ne pas régler à nouveau en lisant ces notes (mesures-qualite.md).
+Essais et scores 01-20 : bilan-modeles.md, section v2.
 """
 
 from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
