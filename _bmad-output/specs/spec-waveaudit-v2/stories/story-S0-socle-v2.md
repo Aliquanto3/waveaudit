@@ -66,3 +66,7 @@ désormais un id de plus de 64 caractères (revue A3).
 - La transmission de `seed` et de `repeat_penalty` par `MoteurOpenAI` et
   `composition._moteur` reste à Q1 ; `ExportDocx.exporter` n'accepte pas encore `options`
   (story d'export, §27) : le protocole est en avance sur les adaptateurs, sans effet à l'exécution.
+
+## Revue
+
+Revue unique consignée dans `_bmad-output/implementation-artifacts/revues/story-S0.md` : 5 constats du second avis (low, 4 rejetés, 1 reporté à DOC), 2 du reviewer (low, 1 corrigé dans `test_architecture.py`, 1 laissé) ; complexité : 0 constat.

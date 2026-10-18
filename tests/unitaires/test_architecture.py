@@ -187,12 +187,14 @@ def _noms_prives_de_lot(source: str, nom_fichier: str, paquet: list[str]) -> lis
     for noeud in ast.walk(arbre):
         if (
             isinstance(noeud, ast.Attribute)
-            and isinstance(noeud.value, ast.Name)
-            and noeud.value.id in alias_module
             and noeud.attr.startswith("_")
             and not noeud.attr.startswith("__")
+            and (
+                (isinstance(noeud.value, ast.Name) and noeud.value.id in alias_module)
+                or ast.unparse(noeud.value) == MODULE_LOT  # import sans alias, nom qualifié
+            )
         ):
-            fautes.append(f"{nom_fichier}:{noeud.lineno} lit {noeud.value.id}.{noeud.attr}")
+            fautes.append(f"{nom_fichier}:{noeud.lineno} lit {ast.unparse(noeud)}")
     return fautes
 
 
@@ -220,6 +222,7 @@ def test_noms_prives_de_lot_non_importes_hors_de_lot():
         "from waveaudit.application import lot\nlot._sans_chemin('x')\n",
         "import waveaudit.application.lot as l\nl._Emetteur\n",
         "from waveaudit.application import lot as module_lot\nmodule_lot._sorties\n",
+        "import waveaudit.application.lot\nwaveaudit.application.lot._sans_chemin('x')\n",
     ],
 )
 def test_noms_prives_de_lot_detectes(source):
