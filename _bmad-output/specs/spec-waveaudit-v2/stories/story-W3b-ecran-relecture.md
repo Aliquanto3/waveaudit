@@ -83,3 +83,19 @@ plus opaque/plat que prévu par DESIGN.md. Signalé pour une éventuelle story d
   → « Enregistré »), confirmation de changement de candidat et d'export final, repli du tiroir
   sous 1440px : à dérouler en REC dans un vrai navigateur.
 - Superpositions de dialogue opaques (écart de design ci-dessus) : à confirmer visuellement.
+
+## Revue
+
+Détail et motifs : `_bmad-output/implementation-artifacts/revues/story-W3b.md`.
+
+- high, second avis 1 : PUT en vol écrasant l'entrée courante (PUT vers la mauvaise entrée) — corrigé (état par entrée, index et version figés).
+- high, second avis 2 : réessai infini sur tout refus, `detail` masqué — corrigé (503/réseau seulement, borné à 10).
+- medium, second avis 3 à 8 : saisie perdue au changement d'entrée ou de candidat, faux 409 en validation, compte d'export périmé, vecteur invalide remplacé, Échap sur conflit, réessai avec un corps périmé — corrigés.
+- medium, reviewer : `confirmation_requise` confirmée d'office, aperçu CVSS faux, réponses GET dans le désordre — corrigés.
+- low, second avis 9 à 13 et reviewer (onglets au clavier, Valider à la frappe, révocation du Blob) — corrigés ; lien du rapport W2 rétabli, `etat.js` supprimé.
+- low, reviewer : `lang` statique `fr` dans le gabarit (langue posée par le JS) — reporté : à vérifier en REC sur un lot anglais, ou langue passée par `pages.py` dans une story dédiée.
+- low, reviewer : aperçu CVSS limité aux 8 métriques de base — accepté.
+- Complexité : 1 constat (reconstruction O(n) du tiroir par écriture) — laissé, n ≤ 100.
+
+Tests ajoutés : `unitaires/test_relecture_js.py` (harnais Node `tests/js/harnais_relecture.js`,
+sauté sans `node` : jamais exigé en CI) et `e2e::test_lien_du_rapport_v010_sur_la_page_de_suivi`.

@@ -837,3 +837,19 @@ def test_aucun_attribut_on_ou_style_en_ligne_sur_la_page_de_relecture(config_tes
     assert re.search(r"\son\w+\s*=", texte, re.IGNORECASE) is None
     assert re.search(r"\sstyle\s*=", texte, re.IGNORECASE) is None
     assert "<style" not in texte.lower()
+
+
+def test_lien_du_rapport_v010_sur_la_page_de_suivi(config_test):
+    # [revue W3b] Le lien « Télécharger le rapport » de W2 reste sur la page (affiché par
+    # relecture.js quand le lot est terminé) et pointe sur la route GET du rapport du lot.
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    arbre = lxml_html.fromstring(client.get(f"/lots/{id_lot}").text)
+    (lien,) = arbre.xpath('//*[@id="telechargement"]//a[@id="lien-rapport"]')
+    assert lien.get("href") == f"/lots/{id_lot}/rapport.docx"
+    assert "rapport" in lien.text_content().lower()
+    rapport = client.get(lien.get("href"))
+    assert rapport.status_code == 200
+    Document(io.BytesIO(rapport.content))
+    script = (_RACINE_WEB / "static" / "relecture.js").read_text(encoding="utf-8")
+    assert 'getElementById("lien-rapport")' in script

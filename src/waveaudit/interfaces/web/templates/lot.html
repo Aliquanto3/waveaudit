@@ -5,7 +5,9 @@
   <section id="suivi" aria-label="Suivi du lot">
     <p id="etat-texte" role="status">Lot en cours…</p>
     <ul id="evenements"></ul>
-    <p id="telechargement"></p>
+    <p id="telechargement">
+      <a id="lien-rapport" href="/lots/{{ id_lot }}/rapport.docx" hidden>Télécharger le rapport (.docx)</a>
+    </p>
   </section>
 
   <section id="relecture" aria-label="Relecture des fiches" hidden>
