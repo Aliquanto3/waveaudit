@@ -110,3 +110,29 @@ textarea:focus-visible,
     animation: none !important;
   }
 }
+
+/* Page incident (W4) : filtre par sévérité (groupe de boutons bascule) et tableau des
+   détections (DESIGN.md « Page incident »). */
+#resume {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+#resume button[aria-pressed="true"] {
+  background: var(--couleur-primaire-fonce);
+}
+
+#detections {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--taille-corps);
+}
+
+#detections th,
+#detections td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--couleur-trait);
+}

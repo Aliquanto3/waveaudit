@@ -9,7 +9,7 @@ from waveaudit.domaine.incident import Evenement, LectureJournaux, LigneIgnoree
 _IGNORES = (".gz", ".zip", ".bz2", ".xz", ".yaml", ".yml", ".md", ".gitkeep")
 
 
-def _router(nom: str) -> str | None:
+def router_journal(nom: str) -> str | None:
     casefold = nom.casefold()
     if casefold.endswith(_IGNORES):
         return None
@@ -56,7 +56,7 @@ class SourceJournauxFichiers:
         examines: dict[str, int] = {}
         nb_routes = 0
         for chemin in fichiers:
-            nature = _router(chemin.name)
+            nature = router_journal(chemin.name)
             if nature is None:
                 continue
             nb_routes += 1

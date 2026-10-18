@@ -226,3 +226,12 @@ def processus_actif(pid: int, cree_le: datetime) -> bool:
     """[v2] `pid` existe encore et a été créé avant `cree_le` (écarte un pid réutilisé, §30)."""
     date_creation = memoire_psutil.date_creation_processus(pid)
     return date_creation is not None and date_creation <= cree_le.timestamp()
+
+
+def journal_reconnu(nom: str) -> bool:
+    """[v2] `True` si `nom` est routé vers une lecture de journal (§30), nom public de
+    `adaptateurs.journaux.router_journal` : l'UI refuse un dépôt incident sans fichier routé
+    avant de créer le lot."""
+    from waveaudit.adaptateurs.journaux import router_journal  # import local (W4, voir note)
+
+    return router_journal(nom) is not None
