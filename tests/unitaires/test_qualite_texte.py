@@ -92,6 +92,15 @@ def test_non_latin_cite_depuis_la_note():
     assert motif_langue(texte, "fr", "") == "écriture non latine"
 
 
+def test_non_latin_cite_avec_ponctuation_collee():
+    """Revue Q2 : la citation est reconnue par lettre, ponctuation collée comprise."""
+    source = "Le champ contient Жертва."
+    assert motif_langue("Le module accepte Жертва, puis la valeur.", "fr", source) is None
+    assert motif_langue("Le module accepte Жертва, puis 経.", "fr", source) == (
+        "écriture non latine"
+    )
+
+
 # --- motif_langue : mots-outils ------------------------------------------------------------
 
 

@@ -66,14 +66,17 @@ def _lettre_non_latine(caractere: str) -> bool:
 
 
 def _ecriture_non_latine(texte: str, source: str) -> bool:
-    source_cf = source.casefold()
-    for mot in re.findall(r"\S+", texte):
-        if not any(_lettre_non_latine(c) for c in mot):
-            continue
-        if source and mot.casefold() in source_cf:
-            continue  # lettre non latine citée depuis la note ou les preuves
-        return True
-    return False
+    """Contrats §6 étape 6 (revue E35/E36) : la comparaison à la source se fait par lettre.
+
+    Une lettre non latine présente dans la source (note ou preuves) est une citation ; la
+    comparer par jeton séparé par des espaces ferait d'une ponctuation collée (« Жертва, »)
+    un faux positif.
+    """
+    lettres_source = set(source) | set(source.casefold())
+    return any(
+        _lettre_non_latine(c) and c not in lettres_source and c.casefold() not in lettres_source
+        for c in texte
+    )
 
 
 _CITATIONS = re.compile(r'"[^"]*"|“[^”]*”|«[^»]*»|`[^`]*`')

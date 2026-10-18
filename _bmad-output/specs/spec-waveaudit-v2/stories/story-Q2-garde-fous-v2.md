@@ -101,4 +101,9 @@ sources:
 
 ## Revue
 
-En attente (second avis puis reviewer).
+- medium | second avis | écriture non latine : citation comparée par jeton (ponctuation collée → faux positif) | corrigé : comparaison par lettre (contrat E35/E36).
+- low | second avis | boucle de 40-41 caractères non retenue | rejeté : conforme au motif du contrat.
+- low | second avis | trigrammes sans source | rejeté : conforme au contrat.
+- low | reviewer | `finditer` au lieu de `re.search` | accepté : suit l'intention du contrat.
+- low | reviewer | `casefold` et source incident élargie | écarts déclarés, à arbitrer.
+- Complexité : 0 constat. Détail : `implementation-artifacts/revues/story-Q2.md`.
