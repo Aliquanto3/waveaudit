@@ -70,7 +70,7 @@ sources:
   (`relecture.json` cité par son nom seul).
 - Correction et validation restent permises pendant un lot de **ce** processus (table du §26 :
   seul `lot_en_cours_externe` y figure) ; l'écriture concurrente avec `enregistrer_resultat`
-  est sérialisée par le verrou de fichier de R2.
+  est sérialisée par le verrou de processus de R2 (`threading.Lock`).
 - `generable` = entrée `fiche` ou `ecartee` `non_rattachee`, source présente, pas de
   génération en cours, lot non tenu par un autre processus, modèle disponible. Il ne tient pas
   compte du verrou local (un lot qui tourne donne 409 `lot_en_cours` au POST).
@@ -91,3 +91,14 @@ sources:
 - §26 : `relecture_illisible` absent de la table (arbitrage d'Anaël, à y ajouter).
 - §26 : `generation_en_cours` listé pour `POST …/candidat` est inatteignable (verrou d'abord :
   409 `lot_en_cours`), comme arbitré sur R2.
+
+## Revue
+
+- faible, second avis 1 : `RecursionError` de `json.loads` → 500 ; corrigé (422 codé).
+- faible, second avis 2 : `OSError` à la lecture de `relecture.json` → 500 ; corrigé (409 `relecture_illisible`).
+- faible, second avis 3 : `read_bytes` du docx hors `try` → 500 ; corrigé (409 `export_verrouille`).
+- faible, second avis 4 : lot sans modèle consigné refusé en local-gere ; corrigé (modèle par défaut).
+- faible, second avis 5 : contrôle externe hors verrou inter-processus ; rejeté (la CLI ne reprend pas un lot existant).
+- écarts du dev (`relecture_illisible` 409, `index` dans `occupation`, écritures pendant un lot local) : acceptés.
+- Complexité : 1 constat (relecture et journal relus à chaque sondage) ; laissé, motif du §30.
+Détail : `implementation-artifacts/revues/story-W3a.md`.

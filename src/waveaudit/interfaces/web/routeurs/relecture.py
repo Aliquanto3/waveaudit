@@ -110,7 +110,8 @@ class CorpsCandidat(_Corps):
 async def _corps(request: Request, modele: type[_Corps]) -> Any:
     try:
         return modele.model_validate(json.loads(await request.body()))
-    except (ValueError, ValidationError):
+    except (ValueError, ValidationError, RecursionError):
+        # [revue W3a] RecursionError : JSON trop imbriqué (sous la limite de taille).
         raise _Refus(erreur(422, "corps_invalide", "Corps de requête invalide.")) from None
 
 
@@ -143,8 +144,9 @@ def _charger(dossier: Path, occupation: Occupation | None) -> EtatRelecture:
         return relecture.charger(dossier, occupation=occupation)
     except RefusRelecture as exc:
         raise _Refus(_refus_code(exc)) from None
-    except ValueError:
-        # [arbitrage R2] Fichier corrompu (ValidationError) : erreur codée, jamais un 500 brut.
+    except (OSError, ValueError):
+        # [arbitrage R2] Fichier corrompu (ValidationError) ou illisible (lecture refusée par
+        # Windows, revue W3a) : erreur codée, jamais un 500 brut ; rien n'a été écrit.
         _log.warning("relecture illisible pour %s", dossier.name, exc_info=True)
         raise _Refus(erreur(409, "relecture_illisible", MSG_ILLISIBLE)) from None
 
@@ -249,11 +251,16 @@ def _modele_regeneration(config: Configuration, etat: EtatRelecture) -> str | No
 
 
 def _modele_disponible(config: Configuration, etat: EtatRelecture) -> bool:
-    """§24 : en local-gere, le modèle du lot doit figurer dans `modeles_installes`."""
+    """§24 : en local-gere, le modèle du lot doit figurer dans `modeles_installes`.
+
+    [revue W3a] Lot sans modèle consigné (v0.1.0 sans `lot_demarre`) : `regenerer` passe
+    `None`, donc le modèle par défaut ; il suffit qu'un modèle soit installé.
+    """
     if config.moteur.mode == "externe":
         return True
     noms = {modele.nom for modele in composition.modeles_installes(config)}
-    return _modele_regeneration(config, etat) in noms
+    nom = _modele_regeneration(config, etat)
+    return bool(noms) if nom is None else nom in noms
 
 
 def _regenerable(e: EntreeRelecture) -> bool:
@@ -464,7 +471,7 @@ async def changer_candidat(request: Request, id_lot: str, index: int) -> Respons
         e = _entree(etat, index)
         if e.source is not None and not _modele_disponible(config, etat):
             # §24 : refus avant tout démarrage, rien n'est écrit.
-            nom = _modele_regeneration(config, etat) or etat.modele
+            nom = _modele_regeneration(config, etat) or "par défaut"
             return erreur(
                 422,
                 "modele_indisponible",
@@ -519,7 +526,7 @@ async def exporter(request: Request, id_lot: str) -> Response:
     """[revue A4/E26] Export en POST seulement : aucun GET n'écrit de fichier."""
     try:
         mode = json.loads(await request.body()).get("type")
-    except (ValueError, AttributeError):
+    except (ValueError, AttributeError, RecursionError):
         mode = None
     if mode not in ("final", "brouillon"):
         return erreur(422, "type_invalide", "Type d'export inconnu : « final » ou « brouillon ».")
@@ -543,6 +550,11 @@ async def exporter(request: Request, id_lot: str) -> Response:
         en_tetes = {"Content-Disposition": f'attachment; filename="{chemin.name}"'}
         if mode == "final":
             en_tetes["X-Non-Validees"] = str(non_validees)
-        return Response(chemin.read_bytes(), media_type=TYPE_DOCX, headers=en_tetes)
+        try:
+            contenu = chemin.read_bytes()
+        except PermissionError:
+            # [revue W3a] Ouvert entre l'écriture et la relecture (Word) : même refus codé.
+            return erreur(409, "export_verrouille", MSG_EXPORT_VERROUILLE)
+        return Response(contenu, media_type=TYPE_DOCX, headers=en_tetes)
 
     return await run_in_threadpool(_executer, traiter)

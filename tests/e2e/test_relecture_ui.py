@@ -678,3 +678,75 @@ def test_regeneration_occupee_par_ce_processus_409(config_test):
         )
     finally:
         verrou.liberer()
+
+
+# --- Revue W3a -------------------------------------------------------------------------------
+
+
+def test_json_trop_imbrique_refus_code(config_test):
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    imbrique = "[" * 50_000
+    entetes = {"Content-Type": "application/json"}
+    _code(
+        client.post(f"/lots/{id_lot}/entrees/1/validation", content=imbrique, headers=entetes),
+        422,
+        "corps_invalide",
+    )
+    _code(
+        client.post(f"/lots/{id_lot}/export", content=imbrique, headers=entetes),
+        422,
+        "type_invalide",
+    )
+
+
+def test_relecture_verrouillee_en_lecture_409(config_test, monkeypatch):
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    lire = type(config_test.chemins.var).read_text
+
+    def lire_verrouille(chemin, *args, **kwargs):
+        if chemin.name == "relecture.json":
+            raise PermissionError("verrouillé")
+        return lire(chemin, *args, **kwargs)
+
+    monkeypatch.setattr(type(config_test.chemins.var), "read_text", lire_verrouille)
+    _code(client.get(f"/lots/{id_lot}/relecture"), 409, "relecture_illisible")
+    _code(
+        client.post(f"/lots/{id_lot}/entrees/1/candidat", json={"version": 1, "constat_id": "x"}),
+        409,
+        "relecture_illisible",
+    )
+    assert client.app.state.verrou.occupation() is None
+
+
+def test_docx_verrouille_a_la_relecture_409(config_test, monkeypatch):
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    lire = type(config_test.chemins.var).read_bytes
+
+    def lire_verrouille(chemin):
+        if chemin.name.startswith("brouillon-"):
+            raise PermissionError("ouvert dans Word")
+        return lire(chemin)
+
+    monkeypatch.setattr(type(config_test.chemins.var), "read_bytes", lire_verrouille)
+    _code(
+        client.post(f"/lots/{id_lot}/export", json={"type": "brouillon"}), 409, "export_verrouille"
+    )
+
+
+def test_lot_sans_modele_consigne_regenerable_sur_le_modele_par_defaut(config_test, monkeypatch):
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    chemin = config_test.chemins.var / "sorties" / id_lot / "relecture.json"
+    etat = json.loads(chemin.read_text(encoding="utf-8"))
+    chemin.write_text(json.dumps(etat | {"modele": ""}), encoding="utf-8")
+    local = config_test.model_copy(
+        update={"moteur": config_test.moteur.model_copy(update={"mode": "local-gere"})}
+    )
+    installe = composition.ModeleInstalle("gemma", "modele_defaut", 1, None, True)
+    monkeypatch.setattr(composition, "modeles_installes", lambda config: [installe])
+    assert _entree(client_web(local), id_lot, 1)["generable"] is True
+    monkeypatch.setattr(composition, "modeles_installes", lambda config: [])
+    assert _entree(client_web(local), id_lot, 1)["generable"] is False
