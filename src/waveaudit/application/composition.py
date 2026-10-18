@@ -15,6 +15,7 @@ from waveaudit.adaptateurs.export_docx import ExportDocx
 from waveaudit.adaptateurs.export_incident_docx import ExporteurIncidentDocx
 from waveaudit.adaptateurs.journaux import SourceJournauxFichiers
 from waveaudit.adaptateurs.llama_server import LlamaServer
+from waveaudit.adaptateurs.llama_server import terminer_tous as _terminer_llama_server
 from waveaudit.adaptateurs.moteur_openai import MoteurOpenAI
 from waveaudit.adaptateurs.notes_fichiers import NotesFichiers
 from waveaudit.adaptateurs.regles_yaml import CatalogueReglesYaml
@@ -231,6 +232,14 @@ def processus_actif(pid: int, cree_le: datetime) -> bool:
 def creer_exporteur(config: Configuration) -> ExportDocx:
     """[v2] Seul point d'instanciation de l'exporteur hors `ouvrir` (contrats §27, CAP-13)."""
     return ExportDocx(config.chemins.theme_prive)
+
+
+def terminer_llama_server_en_cours() -> None:
+    """[v2, ARR] Filet de sécurité (lifespan, `MoteurALaDemande.fermer(timeout)`) : termine tout
+    llama-server encore suivi par ce processus (contrats §24), sans attendre le verrou interne
+    du moteur. Seul point d'accès de l'application à ce filet (`adaptateurs.llama_server` reste
+    réservé à `composition` au niveau module, AD-1)."""
+    _terminer_llama_server()
 
 
 def journal_reconnu(nom: str) -> bool:
