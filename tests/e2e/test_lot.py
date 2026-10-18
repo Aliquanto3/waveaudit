@@ -1,6 +1,7 @@
 """Service de lot de bout en bout (contrats §9, AD-2, AD-8), faux moteur en mode externe."""
 
 import json
+import os
 import shutil
 import sys
 from datetime import datetime
@@ -11,7 +12,7 @@ from docx import Document
 
 from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
 from waveaudit.adaptateurs.export_docx import LIBELLES
-from waveaudit.application import lot
+from waveaudit.application import lot, relecture
 from waveaudit.application.config import racine_projet
 from waveaudit.application.lot import executer_lot, nouvel_id_lot
 from waveaudit.domaine.erreurs import EntreeInvalide, MoteurInjoignable
@@ -75,6 +76,80 @@ def test_lot_nominal_30_notes(config_test, tmp_path):
     notes = [e["note"] for e in fiches[::2]]
     assert notes == sorted(notes, key=str.casefold)
     assert str(tmp_path) not in (sortie / "journal.jsonl").read_text(encoding="utf-8")
+
+    # [v2] Fichiers de sortie (§30) : lot.json et relecture.json, aucun provisoire restant.
+    assert sorted(p.name for p in sortie.iterdir()) == [
+        "fiches.json",
+        "journal.jsonl",
+        "lot.json",
+        "rapport.docx",
+        "relecture.json",
+    ]
+    fiche_lot = json.loads((sortie / "lot.json").read_text(encoding="utf-8"))
+    assert fiche_lot | {"cree_le": None} == {
+        "id_lot": resultat.id_lot,
+        "workflow": "fiches",
+        "langue": "fr",
+        "modele_demande": None,
+        "cree_le": None,
+        "pid": os.getpid(),
+    }
+    assert datetime.fromisoformat(fiche_lot["cree_le"]).tzinfo is not None
+    etat = relecture.charger(sortie)
+    assert [e.index for e in etat.entrees] == list(range(1, 31))
+    assert [e.note for e in etat.entrees] == notes
+    assert all(e.etat != "attente" and e.version == 2 for e in etat.entrees)
+    assert len([e for e in etat.entrees if e.etat == "fiche"]) == len(rapport.fiches)
+    assert (etat.langue, etat.modele, etat.modele_demande) == ("fr", "externe", None)
+
+
+def test_lot_echoue_au_milieu_entrees_attente(config_test, monkeypatch):
+    """Lot interrompu à la 3e note : fiches déjà produites relisibles, reste en `attente`."""
+    from waveaudit.workflows.fiches import pipeline
+
+    traiter = pipeline.WorkflowFiches.traiter
+    appels = []
+
+    def traiter_coupe(self, element):
+        appels.append(element.fichier)
+        if len(appels) == 3:
+            raise MoteurInjoignable("moteur coupé")
+        return traiter(self, element)
+
+    monkeypatch.setattr(pipeline.WorkflowFiches, "traiter", traiter_coupe)
+    with pytest.raises(MoteurInjoignable):
+        executer_lot(RequeteLot(dossier=DEMO, id_lot="lot-coupe"), config_test)
+    sortie = config_test.chemins.var / "sorties" / "lot-coupe"
+    assert _journal(sortie)[-1]["type"] == T.LOT_ECHOUE
+    etat = relecture.charger(sortie)
+    assert len(etat.entrees) == 30
+    assert all(e.etat != "attente" for e in etat.entrees[:2])
+    assert all(e.etat == "attente" and e.version == 1 for e in etat.entrees[2:])
+    assert not [p.name for p in sortie.iterdir() if p.name.endswith(".partiel")]
+
+
+def test_lot_echoue_si_relecture_verrouillee(config_test, monkeypatch):
+    """[revue A11/E14] os.replace en échec sur relecture.json : lot_echoue, PermissionError."""
+    monkeypatch.setattr(relecture, "PAUSE_REMPLACEMENT_S", 0.001)
+    remplacer = os.replace
+
+    def replace_refuse(source, cible):
+        if Path(cible).name == "relecture.json" and (Path(cible)).exists():
+            raise PermissionError(13, "accès refusé", str(cible))
+        return remplacer(source, cible)
+
+    monkeypatch.setattr(os, "replace", replace_refuse)
+    with pytest.raises(PermissionError):
+        executer_lot(RequeteLot(dossier=DEMO, id_lot="lot-verrou"), config_test)
+    sortie = config_test.chemins.var / "sorties" / "lot-verrou"
+    echec = _journal(sortie)[-1]
+    assert echec["type"] == T.LOT_ECHOUE
+    assert echec["details"] == {
+        "erreur": "PermissionError",
+        "message": lot.MESSAGE_ECRITURE_RELECTURE,
+    }
+    assert not [p.name for p in sortie.iterdir() if p.name.endswith(".partiel")]
+    assert all(e.etat == "attente" for e in relecture.charger(sortie).entrees)
 
 
 def test_lot_anglais_details_langue_et_word_anglais(config_test, faux_moteur, tmp_path):

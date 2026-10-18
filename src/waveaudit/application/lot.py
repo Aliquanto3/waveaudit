@@ -6,6 +6,7 @@
 
 import json
 import logging
+import os
 import re
 import shutil
 import time
@@ -13,7 +14,7 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from waveaudit.application import composition
+from waveaudit.application import composition, relecture
 from waveaudit.application.journal import JournalLot
 from waveaudit.domaine.configuration import Configuration
 from waveaudit.domaine.erreurs import EntreeInvalide
@@ -36,6 +37,10 @@ Abonne = Callable[[EvenementLot], None]
 FICHES = "fiches.json"
 JOURNAL = "journal.jsonl"
 RAPPORT = "rapport.docx"
+FICHE_LOT = relecture.FICHE_LOT
+MESSAGE_ECRITURE_RELECTURE = (
+    "Écriture impossible de relecture.json (fichier verrouillé par un autre programme ?)"
+)
 # Identifiant de lot fourni : 64 caractères au plus, comparé par `fullmatch` (§9 v2, revue A3).
 MOTIF_ID_LOT = re.compile(r"[0-9A-Za-z][0-9A-Za-z-]{0,63}")
 # Noms de périphérique réservés par Windows : `mkdir` y « réussit » sans créer de dossier.
@@ -155,6 +160,34 @@ class Emetteur:
                 _log.exception("abonné du lot en erreur sur %s (ignoré)", type_)
 
 
+def config_pour_langue(config: Configuration, langue: Langue) -> Configuration:
+    """Copie de `config` dont `fiches.langue` vaut `langue` (lot et régénération, §9, §25)."""
+    return config.model_copy(update={"fiches": config.fiches.model_copy(update={"langue": langue})})
+
+
+def ecrire_fiche_lot(
+    dossier: Path,
+    *,
+    id_lot: str,
+    workflow: str,
+    langue: Langue | None,
+    modele_demande: str | None,
+) -> None:
+    """Écrit `lot.json` (§30), de façon atomique ; sans effet si le fichier existe déjà."""
+    chemin = Path(dossier) / FICHE_LOT
+    if chemin.exists():
+        return
+    contenu = {
+        "id_lot": id_lot,
+        "workflow": workflow,
+        "langue": langue,
+        "modele_demande": modele_demande,
+        "cree_le": _maintenant().isoformat(),
+        "pid": os.getpid(),  # [revue A13]
+    }
+    relecture.ecrire_atomique(chemin, json.dumps(contenu, ensure_ascii=False, indent=2))
+
+
 def _type_fin(resultat: ResultatElement) -> TypeEvenement:
     if isinstance(resultat, Fiche):
         return TypeEvenement.FICHE_TERMINEE
@@ -180,13 +213,27 @@ def executer_lot(
     dossier_sortie = dossier_sorties(config) / id_lot
     # [v2] CAP-8 : langue fixée au lancement du lot (contrats §9, §23).
     langue: Langue = requete.langue or config.fiches.langue
-    config_workflow = config.model_copy(
-        update={"fiches": config.fiches.model_copy(update={"langue": langue})}
-    )
+    config_workflow = config_pour_langue(config, langue)
+    # [revue A11/E14] Échecs d'écriture de relecture.json : message dédié dans `lot_echoue`.
+    echecs_relecture: list[OSError] = []
+
+    def ecrire_relecture(fonction: Callable[..., object], *args: object, **kwargs: object) -> None:
+        try:
+            fonction(dossier_sortie, *args, **kwargs)
+        except OSError as erreur:
+            echecs_relecture.append(erreur)
+            raise
 
     with JournalLot(dossier_sortie / JOURNAL) as journal:
         emetteur = Emetteur(journal, abonne)
         try:
+            ecrire_fiche_lot(
+                dossier_sortie,
+                id_lot=id_lot,
+                workflow=requete.workflow,
+                langue=langue,
+                modele_demande=requete.modele,
+            )
             with composition.ouvrir(config, requete.modele, id_lot=id_lot) as (ports, info):
                 ports.moteur.sonder()
                 workflow = REGISTRE[requete.workflow](config_workflow, ports)
@@ -194,6 +241,14 @@ def executer_lot(
                     workflow.preparer(requete.dossier), key=lambda e: e.fichier.casefold()
                 )
                 emetteur.total = len(elements)
+                ecrire_relecture(
+                    relecture.initialiser,
+                    id_lot=id_lot,
+                    langue=langue,
+                    modele=info.nom_modele,
+                    modele_demande=requete.modele,
+                    elements=elements,
+                )
                 emetteur.emettre(
                     TypeEvenement.LOT_DEMARRE,
                     details={
@@ -213,6 +268,8 @@ def executer_lot(
                     resultat = workflow.traiter(element)
                     duree = round(time.perf_counter() - chrono, 3)
                     resultats.append(resultat)
+                    # CAP-10 : la fiche est relisible dès son événement de fin.
+                    ecrire_relecture(relecture.enregistrer_resultat, index, resultat)
                     emetteur.emettre(
                         _type_fin(resultat),
                         index=index,
@@ -230,9 +287,13 @@ def executer_lot(
                 if requete.copie_rapport is not None:
                     shutil.copyfile(chemin_rapport, requete.copie_rapport)
         except BaseException as erreur:
+            if any(erreur is e for e in echecs_relecture):
+                message = MESSAGE_ECRITURE_RELECTURE
+            else:
+                message = sans_chemin(str(erreur))
             emetteur.emettre(
                 TypeEvenement.LOT_ECHOUE,
-                details={"erreur": type(erreur).__name__, "message": sans_chemin(str(erreur))},
+                details={"erreur": type(erreur).__name__, "message": message},
             )
             raise
         duree_lot = round(time.perf_counter() - debut, 3)
