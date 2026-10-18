@@ -4,7 +4,7 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 
 | Vague | Story | Titre | dev-story | État |
 |---|---|---|---|---|
-| 0 | S0 | Socle v2 | Opus | à faire |
+| 0 | S0 | Socle v2 | Opus | intégrée e0fa92b |
 | 1 | Q1 | Nouvelle tentative seed + 1, balises neutralisées, repeat_penalty transmis | Sonnet | à faire |
 | 1 | Q2 | Garde-fous v2 (seuils, URL de la note, répétition, langue) | Sonnet | à faire |
 | 1 | R1 | Règles pures de relecture | Sonnet | à faire |
@@ -28,13 +28,20 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 
 ★ : point d'arrêt humain (voir `plan-v2.md`).
 
+## Mode d'exécution (décidé avec Anaël le 2026-10-18)
+
+- **Ordonnancement par dépendances** plutôt que par vagues : une story part dès que ses dépendances (en-tête de `stories.yaml`) sont intégrées. Q3 part dès Q2, W5 dès W1, L1 sans attendre Q4, B1 et R2 dès L1, DOC en parallèle de W3b. Intégration toujours une à une, dans l'ordre des collisions de fichiers partagés. Suite complète après S0, puis toutes les 3 ou 4 intégrations et en fin d'exécution.
+- **Push** de `main` autorisé après chaque story revue, intégrée et verte.
+- **Moins de sollicitations** : la relecture des 10 constats de Q3 est asynchrone (liste ci-dessous, corrections à tout moment avant Q5). Après le rebanc Q5, le modèle par défaut est choisi par la règle mécanique de CAP-7 et consigné avec ses chiffres ; Anaël peut l'infirmer. Les écarts au contrat et les stories bloquées sont consignés ici sans arrêter l'exécution. Restent avec Anaël : REC, puis le tag et la release 0.2.0.
+- **Coupure de session** (après la vague 4, puis avant REC) : l'orchestrateur s'arrête et propose `/clear` à Anaël ; sans réponse sous 30 min, il continue.
+
 ## Relecture de Q3 (10 constats tirés au hasard)
 
 À remplir à l'intégration de Q3.
 
 ## Écarts à arbitrer
 
-Aucun pour l'instant.
+- README : MiniCPM5 encore présenté comme repli (à réaligner par DOC). Repli qwen3.5-0.8b non essayé sur le vrai moteur (à vérifier en REC).
 
 ## Bilan
 
