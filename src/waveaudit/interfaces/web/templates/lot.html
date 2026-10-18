@@ -1,8 +1,132 @@
 {% extends "base.html" %}
 {% block contenu %}
   <h1>Lot {{ id_lot }}</h1>
-  <p id="etat-texte">Lot en cours…</p>
-  <ul id="evenements"></ul>
-  <p id="telechargement"></p>
-  <script src="/static/etat.js" data-id-lot="{{ id_lot }}"></script>
+
+  <section id="suivi" aria-label="Suivi du lot">
+    <p id="etat-texte" role="status">Lot en cours…</p>
+    <ul id="evenements"></ul>
+    <p id="telechargement"></p>
+  </section>
+
+  <section id="relecture" aria-label="Relecture des fiches" hidden>
+    <p id="relecture-erreur" role="alert" hidden></p>
+
+    <div class="relecture-mise-en-page">
+      <div id="tiroir-conteneur">
+        <button type="button" id="tiroir-bascule" aria-expanded="true" aria-controls="tiroir-liste">
+          Fiches
+        </button>
+        <ul id="tiroir-liste" role="listbox" aria-label="Fiches du lot">
+          <li role="option" aria-selected="false" id="tiroir-exemple" hidden>Chargement…</li>
+        </ul>
+      </div>
+
+      <aside id="panneau-note" lang="fr" aria-label="Note d'origine">
+        <pre id="note-corps"></pre>
+      </aside>
+
+      <div id="zone-fiche">
+        <div id="candidats-barre" role="tablist" aria-label="Candidats du constat" hidden>
+          <button type="button" role="tab" id="onglet-candidat-1" data-rang="1"
+                  aria-selected="false" aria-controls="panneau-fiche" aria-label="Candidat 1">—</button>
+          <button type="button" role="tab" id="onglet-candidat-2" data-rang="2"
+                  aria-selected="false" aria-controls="panneau-fiche" aria-label="Candidat 2">—</button>
+          <button type="button" role="tab" id="onglet-candidat-3" data-rang="3"
+                  aria-selected="false" aria-controls="panneau-fiche" aria-label="Candidat 3">—</button>
+        </div>
+
+        <div id="catalogue-zone" hidden>
+          <label for="catalogue-filtre">Filtrer le catalogue (identifiant ou titre)</label>
+          <input type="text" id="catalogue-filtre" autocomplete="off">
+          <ul id="catalogue-liste" role="listbox" aria-label="Constats du catalogue">
+            <li role="option" aria-selected="false" id="catalogue-exemple" hidden>Chargement…</li>
+          </ul>
+        </div>
+
+        <div id="panneau-fiche" role="tabpanel" aria-labelledby="onglet-candidat-1" lang="fr"
+             aria-busy="false">
+          <p id="generation-en-cours" aria-live="polite" hidden>Génération en cours…</p>
+          <div id="motifs" aria-live="polite" hidden>
+            <p id="motifs-titre">Signalé à la génération</p>
+            <ul id="motifs-liste"></ul>
+          </div>
+
+          <form id="formulaire-fiche">
+            <label for="champ-titre">Titre</label>
+            <input type="text" id="champ-titre" name="titre">
+
+            <label for="champ-description">Description</label>
+            <textarea id="champ-description" name="description"></textarea>
+
+            <label for="champ-impact">Impact</label>
+            <textarea id="champ-impact" name="impact"></textarea>
+
+            <label for="champ-recommandation">Recommandation</label>
+            <textarea id="champ-recommandation" name="recommandation"></textarea>
+
+            <label for="champ-cvss">Vecteur CVSS</label>
+            <input type="text" id="champ-cvss" name="cvss_vecteur"
+                   aria-describedby="cvss-pastille cvss-erreur">
+            <span id="cvss-pastille"></span>
+            <p id="cvss-erreur" hidden>Vecteur CVSS invalide.</p>
+
+            <p id="references-titre">Références</p>
+            <ul id="references-liste"></ul>
+          </form>
+          <p id="indicateur-enregistrement" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="barre-actions">
+      <span id="raison-validation" hidden>Le vecteur CVSS doit être valide.</span>
+      <button type="button" id="bouton-precedente">Précédente</button>
+      <button type="button" id="bouton-suivante">Suivante</button>
+      <button type="button" id="bouton-valider" aria-describedby="raison-validation">Valider</button>
+      <button type="button" id="bouton-exporter-final">Exporter</button>
+      <button type="button" id="bouton-exporter-brouillon">Exporter un brouillon</button>
+    </div>
+  </section>
+
+  <div id="dialog-candidat" class="dialogue-superposition" role="alertdialog" aria-modal="true"
+       aria-labelledby="dialog-candidat-titre" hidden>
+    <div class="dialogue-boite">
+      <h2 id="dialog-candidat-titre">Changer de constat</h2>
+      <p id="dialog-candidat-texte">
+        Cette fiche porte des corrections ou est validée. Changer de constat la remplacera.
+      </p>
+      <div class="dialogue-actions">
+        <button type="button" id="dialog-candidat-annuler">Annuler</button>
+        <button type="button" id="dialog-candidat-confirmer">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dialog-conflit" class="dialogue-superposition" role="alertdialog" aria-modal="true"
+       aria-labelledby="dialog-conflit-titre" hidden>
+    <div class="dialogue-boite">
+      <h2 id="dialog-conflit-titre">Fiche modifiée ailleurs</h2>
+      <p>
+        Cette fiche a été modifiée dans un autre onglet. Votre saisie est conservée à l'écran.
+      </p>
+      <div class="dialogue-actions">
+        <button type="button" id="dialog-conflit-garder">Garder ma version</button>
+        <button type="button" id="dialog-conflit-recharger">Recharger</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dialog-export" class="dialogue-superposition" role="alertdialog" aria-modal="true"
+       aria-labelledby="dialog-export-titre" hidden>
+    <div class="dialogue-boite">
+      <h2 id="dialog-export-titre">Fiches non validées</h2>
+      <p id="dialog-export-texte"></p>
+      <div class="dialogue-actions">
+        <button type="button" id="dialog-export-annuler">Annuler</button>
+        <button type="button" id="dialog-export-confirmer">Exporter quand même</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/relecture.js" data-id-lot="{{ id_lot }}"></script>
 {% endblock %}

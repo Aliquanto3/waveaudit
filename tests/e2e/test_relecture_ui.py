@@ -6,19 +6,25 @@ Faux moteur seulement ; minuteries courtes et attentes par sondage borné.
 import io
 import json
 import os
+import re
 import time
 from datetime import datetime
 
 import pytest
 from docx import Document
 from fastapi.testclient import TestClient
+from lxml import html as lxml_html
 
+from tests.accessibilite import verifier_accessibilite, verifier_focus_css
 from tests.e2e.test_ui import DEMO, _attendre_fin
 from tests.web_outils import client as client_web
 from waveaudit.application import composition
 from waveaudit.application import relecture as relecture_app
+from waveaudit.application.config import racine_projet
 from waveaudit.application.moteur_demande import Occupation
 from waveaudit.domaine.erreurs import MoteurInjoignable
+
+_RACINE_WEB = racine_projet() / "src" / "waveaudit" / "interfaces" / "web"
 
 NOTE_SQL = "03-injection-sql.md"
 NOTE_IDOR = "05-idor.md"
@@ -750,3 +756,84 @@ def test_lot_sans_modele_consigne_regenerable_sur_le_modele_par_defaut(config_te
     assert _entree(client_web(local), id_lot, 1)["generable"] is True
     monkeypatch.setattr(composition, "modeles_installes", lambda config: [])
     assert _entree(client_web(local), id_lot, 1)["generable"] is False
+
+
+# --- Écran de relecture (W3b, contrats §26, §28 [revue V2]) -----------------------------------
+
+
+def test_accessibilite_relecture(config_test):
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    page = client.get(f"/lots/{id_lot}")
+    assert page.status_code == 200
+    verifier_accessibilite(page.text)
+    verifier_focus_css((_RACINE_WEB / "static" / "style.css").read_text(encoding="utf-8"))
+
+
+def test_tiroir_listbox_et_barre_candidats_tablist(config_test):
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    arbre = lxml_html.fromstring(client.get(f"/lots/{id_lot}").text)
+
+    (tiroir,) = arbre.xpath('//*[@role="listbox"][@aria-label="Fiches du lot"]')
+    assert tiroir.xpath('.//*[@role="option"]')
+
+    (tablist,) = arbre.xpath('//*[@role="tablist"]')
+    onglets = tablist.xpath('.//*[@role="tab"]')
+    assert len(onglets) == 3
+    for onglet in onglets:
+        assert (onglet.get("aria-label") or onglet.text_content()).strip()
+        assert onglet.get("aria-controls")
+
+    (panneau,) = arbre.xpath('//*[@role="tabpanel"]')
+    assert panneau.get("id") in tablist.xpath('.//*[@role="tab"]/@aria-controls')
+
+
+def test_liste_du_catalogue_avec_libelle_et_filtre(config_test):
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    arbre = lxml_html.fromstring(client.get(f"/lots/{id_lot}").text)
+
+    (filtre,) = arbre.xpath('//input[@id="catalogue-filtre"]')
+    (label,) = arbre.xpath('//label[@for="catalogue-filtre"]')
+    assert label.text_content().strip()
+    (catalogue,) = arbre.xpath('//*[@role="listbox"][@aria-label="Constats du catalogue"]')
+    assert catalogue is not None
+
+
+def test_dialogues_de_confirmation_et_export_final(config_test):
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    arbre = lxml_html.fromstring(client.get(f"/lots/{id_lot}").text)
+
+    dialogues = arbre.xpath('//*[@role="dialog" or @role="alertdialog"]')
+    assert len(dialogues) >= 3
+    for dialogue in dialogues:
+        assert dialogue.get("aria-modal") == "true"
+        (titre,) = arbre.xpath("//*[@id=$i]", i=dialogue.get("aria-labelledby"))
+        assert titre.text_content().strip()
+
+    (export,) = arbre.xpath('//*[@id="dialog-export"]')
+    assert export.get("role") in ("dialog", "alertdialog")
+    assert export.get("aria-modal") == "true"
+
+
+def test_lang_sur_panneau_note_et_formulaire(config_test):
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    arbre = lxml_html.fromstring(client.get(f"/lots/{id_lot}").text)
+
+    (panneau_note,) = arbre.xpath('//*[@id="panneau-note"]')
+    (panneau_fiche,) = arbre.xpath('//*[@id="panneau-fiche"]')
+    assert (panneau_note.get("lang") or "").strip()
+    assert (panneau_fiche.get("lang") or "").strip()
+    assert panneau_fiche.xpath('.//form[@id="formulaire-fiche"]')
+
+
+def test_aucun_attribut_on_ou_style_en_ligne_sur_la_page_de_relecture(config_test):
+    client = client_web(config_test)
+    id_lot = _lot_termine(client, _fichiers(NOTE_SQL))
+    texte = client.get(f"/lots/{id_lot}").text
+    assert re.search(r"\son\w+\s*=", texte, re.IGNORECASE) is None
+    assert re.search(r"\sstyle\s*=", texte, re.IGNORECASE) is None
+    assert "<style" not in texte.lower()
