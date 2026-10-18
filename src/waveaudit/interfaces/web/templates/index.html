@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block contenu %}
-  <h1>WaveAudit — notes vers fiches de vulnérabilité</h1>
+  <h1>WaveAudit — audit cyber hors ligne</h1>
   {% if occupation %}
     <p id="occupation-message" role="alert">
       Un lot est déjà en cours (lancé à {{ occupation.debut.strftime("%H:%M") }}).
@@ -8,9 +8,24 @@
       <a href="{{ '/lots/' + occupation.id_lot if occupation.id_lot else '/lots' }}">reprenez-le</a>.
     </p>
   {% endif %}
-  <p>Déposez des notes brutes (<code>.md</code> ou <code>.txt</code>, 1 Mo maximum chacune) pour
-  lancer un lot d'analyse.</p>
-  <form id="depot" action="/lots" method="post" enctype="multipart/form-data">
+  {# [W4] Choix du workflow (EXPERIENCE « Accueil », prototype .choix-workflow) : deux boutons
+     bascule ; accueil.js montre le formulaire du workflow choisi. #}
+  <div id="choix-workflow" class="choix-workflow" role="group" aria-label="Choix du workflow">
+    <button type="button" class="carte-workflow" data-workflow="fiches" aria-pressed="true"
+      aria-controls="depot">
+      <strong>Fiches</strong>
+      <span>Notes de pentest → rapport de constats, relecture et correction.</span>
+    </button>
+    <button type="button" class="carte-workflow" data-workflow="incident" aria-pressed="false"
+      aria-controls="depot-incident">
+      <strong>Incident</strong>
+      <span>Journaux (bastion, postes) → rapport de détections CERT.</span>
+    </button>
+  </div>
+  <form id="depot" class="depot" data-workflow="fiches" action="/lots" method="post"
+    enctype="multipart/form-data">
+    <p>Déposez des notes brutes (<code>.md</code> ou <code>.txt</code>, 1 Mo maximum chacune)
+    pour lancer un lot d'analyse.</p>
     <label for="notes">Notes à analyser</label>
     <input type="file" id="notes" name="notes" accept=".md,.txt" multiple required
       {{ "disabled" if occupation else "" }}>
@@ -28,6 +43,27 @@
       <option value="en" {{ "selected" if langue_defaut == "en" else "" }}>English</option>
     </select>
     <button type="submit" {{ "disabled" if occupation else "" }}>Lancer le lot</button>
+  </form>
+  <form id="depot-incident" class="depot" data-workflow="incident" action="/incidents"
+    method="post" enctype="multipart/form-data" hidden>
+    <p>Déposez des journaux Windows (<code>.json</code>, <code>.csv</code>) ou Linux
+    (<code>auth.log</code>, <code>syslog</code>, <code>secure</code>, <code>.log</code>),
+    50 fichiers et 10 Mo maximum chacun. Le rapport d'incident est rédigé en français.</p>
+    <label for="journaux">Journaux à analyser</label>
+    <input type="file" id="journaux" name="journaux" multiple required
+      {{ "disabled" if occupation else "" }}>
+    <label for="modele-incident">Modèle</label>
+    <select id="modele-incident" name="modele" {{ "disabled" if occupation else "" }}>
+      {% for modele in modeles %}
+        <option value="{{ modele.nom }}" {{ "selected" if modele.defaut else "" }}>
+          {{ modele.nom }}
+        </option>
+      {% endfor %}
+    </select>
+    <label for="annee">Année des journaux (année courante si vide)</label>
+    <input type="number" id="annee" name="annee" min="1970" max="2100" step="1"
+      {{ "disabled" if occupation else "" }}>
+    <button type="submit" {{ "disabled" if occupation else "" }}>Lancer l'analyse</button>
   </form>
   <p id="depot-message" role="alert"></p>
   {% if a_des_lots %}

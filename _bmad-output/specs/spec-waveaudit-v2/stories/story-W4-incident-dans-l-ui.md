@@ -100,12 +100,17 @@ sources:
 
 ## Reports
 
-- **Écran de dépôt du workflow incident sur l'accueil** (EXPERIENCE.md « Accueil » : « Choisir
-  le workflow (fiches / incident), déposer les fichiers ») : non fait ici, car `index.html` et
-  `routeurs/pages.py` ne sont pas dans la liste de fichiers de W4 (`stories.yaml`). À planifier
-  explicitement dans une story qui touche ces fichiers (W3b les touche déjà pour la relecture :
-  à vérifier si elle doit aussi ajouter ce sélecteur, ou si une story dédiée est nécessaire).
+- ~~Écran de dépôt du workflow incident sur l'accueil~~ : fait en revue (décision de
+  l'orchestrateur), voir ci-dessous.
 
 ## Revue
 
-- Pas encore relu (second avis puis reviewer, à la charge de l'orchestrateur).
+Relue le 2026-10-18 (second avis Haiku puis reviewer Opus), détail dans
+`_bmad-output/implementation-artifacts/revues/story-W4.md`.
+
+- haute | second avis 1 | accueil sans choix fiches / incident ni formulaire vers `POST /incidents` (CAP-14 « Depuis l'accueil ») | corrigé : sélecteur `role="group"` à deux boutons `aria-pressed`, formulaire `#depot-incident` (journaux, modèle, année), `accueil.js` générique ; tests `e2e::test_accueil_formulaire_incident_aboutit_au_suivi`, `test_accueil_lot_en_cours_desactive_aussi_le_depot_incident`.
+- faible | second avis 2 | import local de `router_journal` dans `composition.py` | rejeté : choix motivé (ajout seulement, X2 croise le bloc d'imports), sans effet.
+- faible | second avis 3 | `afficherResultat` sans gestion d'erreur (409/404) | corrigé : message codé affiché, pas de section ni de lien vides.
+- faible | second avis 4 | `/incidents/{id}/etat` sans contrôle de workflow | rejeté : §26 « forme de `/lots/{id}/etat` », champ `workflow` dans la réponse, `/lots/{id}/etat` symétrique sans contrôle ; la page redirige déjà.
+- moyenne | reviewer | `annee="--5"` ou 5 000 chiffres : `int()` lève, réponse 500 au lieu de `422 annee_invalide` | corrigé : motif `-?[0-9]{1,6}` ; `test_annee_invalide` étendu.
+- — | reviewer | Complexité : 0 constat nouveau (`/etat` relu à chaque sondage, hérité de §30, laissé comme en W2).

@@ -88,9 +88,19 @@
   function afficherResultat() {
     fetch("/incidents/" + encodeURIComponent(idLot) + "/resultat")
       .then(function (reponse) {
+        if (!reponse.ok) {
+          // [revue W4] 404 / 409 : message codé du serveur, pas de section ni de lien vides.
+          return window.WaveAudit.messageErreur(reponse).then(function (message) {
+            texte.textContent = "Résultat indisponible : " + message;
+            return null;
+          });
+        }
         return reponse.json();
       })
       .then(function (donnees) {
+        if (donnees === null) {
+          return;
+        }
         recits = (donnees.rapport && donnees.rapport.recits) || [];
         rendreResume(donnees.par_severite || {});
         rendreDetections();
@@ -101,6 +111,9 @@
         lien.textContent = "Télécharger le rapport (.docx)";
         telechargement.innerHTML = "";
         telechargement.appendChild(lien);
+      })
+      .catch(function () {
+        texte.textContent = "Le serveur ne répond pas. Rechargez la page dans un instant.";
       });
   }
 

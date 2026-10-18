@@ -50,6 +50,7 @@ _RESERVES_WINDOWS = frozenset(
     | {f"LPT{i}" for i in range(1, 10)}
 )
 _LONGUEUR_NOM_AFFICHE = 120
+_MOTIF_ANNEE = re.compile(r"-?[0-9]{1,6}")
 
 
 class Refus(Exception):
@@ -200,7 +201,8 @@ def _resoudre_modele(
 def _resoudre_annee(annee_brute: str) -> tuple[int | None, JSONResponse | None]:
     if not annee_brute:
         return datetime.now().year, None
-    if not annee_brute.isascii() or not annee_brute.lstrip("-").isdigit():
+    # [revue W4] Motif borné : `"--5"` ou 5 000 chiffres feraient lever `int()` (erreur 500).
+    if _MOTIF_ANNEE.fullmatch(annee_brute) is None:
         return None, erreur(422, "annee_invalide", "Année non reconnue.")
     valeur = int(annee_brute)
     if not (ANNEE_MIN <= valeur <= ANNEE_MAX):

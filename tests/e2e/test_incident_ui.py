@@ -12,10 +12,12 @@ from typing import Any
 
 from docx import Document
 from fastapi.testclient import TestClient
+from lxml import html as lxml_html
 
 from tests.accessibilite import verifier_accessibilite, verifier_focus_css
 from tests.e2e.test_cli import _ecrire_config, runner
 from tests.e2e.test_cli import app as cli_app
+from tests.web_outils import application
 from tests.web_outils import client as client_web
 from waveaudit.application.config import racine_projet
 from waveaudit.securite import garde_reseau
@@ -252,7 +254,8 @@ def test_limites_de_depot(config_test):
 
 def test_annee_invalide(config_test):
     client = client_web(config_test)
-    for annee in ("1900", "2200", "pas-une-annee"):
+    # [revue W4] "--5" et 5 000 chiffres faisaient lever `int()` (erreur 500).
+    for annee in ("1900", "2200", "pas-une-annee", "--5", "9" * 5000, "٢٠٢٦"):
         reponse = client.post(
             "/incidents",
             files=_journaux_demo(),
@@ -320,3 +323,81 @@ def test_ui_incident_sous_garde_sans_tentative(monkeypatch, tmp_path, faux_moteu
     assert capture["etat"]["etat"] == "termine"
     assert garde_reseau.tentatives() == []
     assert not garde_reseau._actif
+
+
+def test_accueil_formulaire_incident_aboutit_au_suivi(config_test):
+    """[revue W4] CAP-14 « Depuis l'accueil » : le choix du workflow et le formulaire incident
+    sont dans `GET /`, le jeton CSRF est dans la page, et l'envoi des champs de ce formulaire
+    (noms et action lus dans le HTML, jeton lu dans la page) aboutit au suivi de l'incident."""
+    app = application(config_test)
+    # Client sans jeton par défaut : le jeton envoyé est celui que porte la page.
+    client = TestClient(app, base_url="http://testserver")
+    accueil = client.get("/")
+    assert accueil.status_code == 200
+    verifier_accessibilite(accueil.text)
+    arbre = lxml_html.fromstring(accueil.text)
+
+    (choix,) = arbre.xpath('//*[@role="group"][@aria-label="Choix du workflow"]')
+    cartes = {b.get("data-workflow"): b for b in choix.xpath(".//button")}
+    assert set(cartes) == {"fiches", "incident"}
+    assert cartes["fiches"].get("aria-pressed") == "true"
+    assert cartes["incident"].get("aria-pressed") == "false"
+    assert cartes["incident"].get("aria-controls") == "depot-incident"
+
+    (formulaire,) = arbre.xpath('//form[@action="/incidents"]')
+    assert formulaire.get("id") == "depot-incident"
+    assert formulaire.get("method") == "post"
+    assert formulaire.get("enctype") == "multipart/form-data"
+    (champ_fichiers,) = formulaire.xpath('.//input[@type="file"]')
+    (champ_modele,) = formulaire.xpath(".//select")
+    (champ_annee,) = formulaire.xpath('.//input[@type="number"]')
+    assert champ_fichiers.get("name") == "journaux"
+    assert champ_fichiers.get("multiple") is not None
+    assert (champ_annee.get("min"), champ_annee.get("max")) == ("1970", "2100")
+    assert not formulaire.xpath(".//*[@name='langue']")  # pas de langue pour l'incident
+    (option_defaut,) = champ_modele.xpath(".//option[@selected]")
+    (jeton,) = arbre.xpath('//meta[@name="csrf"]/@content')
+    assert jeton == app.state.jeton_csrf
+
+    sans_jeton = client.post(
+        formulaire.get("action"),
+        files=[(champ_fichiers.get("name"), nom_contenu) for _, nom_contenu in _journaux_demo()],
+        follow_redirects=False,
+    )
+    assert sans_jeton.status_code == 403
+    assert sans_jeton.json()["code"] == "csrf_invalide"
+
+    reponse = client.post(
+        formulaire.get("action"),
+        files=[(champ_fichiers.get("name"), nom_contenu) for _, nom_contenu in _journaux_demo()],
+        data={
+            champ_modele.get("name"): option_defaut.get("value"),
+            champ_annee.get("name"): ANNEE,
+        },
+        headers={"X-CSRF-Token": jeton},
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+    id_lot = reponse.headers["location"].rsplit("/", 1)[-1]
+    assert reponse.headers["location"] == f"/incidents/{id_lot}"
+    suivi = client.get(reponse.headers["location"], follow_redirects=False)
+    assert suivi.status_code == 200
+    assert f'data-id-lot="{id_lot}"' in suivi.text
+    assert _attendre_fin(client, id_lot)["etat"] == "termine"
+    assert client.get(f"/incidents/{id_lot}/resultat").json()["total"] == 16
+
+
+def test_accueil_lot_en_cours_desactive_aussi_le_depot_incident(config_test, faux_moteur):
+    """[revue W4] EXPERIENCE « Accueil, lot déjà en cours » : dépôt désactivé, dans les deux
+    workflows (verrou unique, §24)."""
+    from tests.e2e.test_ui import _attendre_fin as _attendre_fin_fiches
+    from tests.e2e.test_ui import _notes_demo
+
+    client = client_web(_vers(config_test, faux_moteur("lent")))
+    premier = client.post("/lots", files=_notes_demo()[:1], follow_redirects=False)
+    id_lot = premier.headers["location"].rsplit("/", 1)[-1]
+    arbre = lxml_html.fromstring(client.get("/").text)
+    (formulaire,) = arbre.xpath('//form[@id="depot-incident"]')
+    for element in formulaire.xpath(".//input | .//select | .//button"):
+        assert element.get("disabled") is not None, element.get("name") or element.tag
+    _attendre_fin_fiches(client, id_lot)
