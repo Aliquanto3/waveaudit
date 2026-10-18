@@ -131,6 +131,34 @@ def test_lot_en_cours_pid_vivant_externe(config_test, monkeypatch):
     assert not list(dossier.glob("rapport-*.docx"))
 
 
+def test_lot_en_cours_dans_ce_processus(config_test):
+    """[revue X2] §27 étape 3 : verrou de ce processus (route web), pid = `os.getpid()`."""
+    import os
+
+    from waveaudit.application.moteur_demande import Occupation
+
+    dossier = _lot(config_test, "lot-local", ["01.md"])
+    _ecrire_lot_json(dossier, pid=os.getpid())
+    relecture.enregistrer_resultat(dossier, 1, _fiche("01.md"))
+    relecture.modifier(dossier, 1, 2, valider)
+    occupation = Occupation(
+        nature="fiches", id_lot="lot-local", index=None, debut=datetime.now().astimezone()
+    )
+    with pytest.raises(RefusRelecture) as refus:
+        export.exporter_lot(config_test, "lot-local", "final", occupation=occupation)
+    assert refus.value.code == "lot_en_cours"
+    assert not list(dossier.glob("rapport-*.docx"))
+    # Régénération d'une fiche de ce lot dans ce processus : refusée aussi (§26).
+    regen = Occupation(nature="regeneration", id_lot="lot-local", index=1, debut=occupation.debut)
+    with pytest.raises(RefusRelecture) as refus:
+        export.exporter_lot(config_test, "lot-local", "final", occupation=regen)
+    assert refus.value.code == "lot_en_cours"
+    # Une occupation d'un autre lot ne bloque pas celui-ci.
+    autre = Occupation(nature="fiches", id_lot="autre", index=None, debut=occupation.debut)
+    chemin, _n = export.exporter_lot(config_test, "lot-local", "final", occupation=autre)
+    assert chemin.is_file()
+
+
 def test_aucune_fiche_validee(config_test):
     dossier = _lot(config_test, "lot-sans-validation", ["01.md"])
     relecture.enregistrer_resultat(dossier, 1, _fiche("01.md"))

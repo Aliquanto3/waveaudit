@@ -451,7 +451,7 @@ def _lot_a_exporter(
     return dossier
 
 
-def test_exporter_final_code_0_bandeau_et_fiches_non_validees(tmp_path, faux_moteur):
+def test_exporter_final_sans_fiche_validee_code_2(tmp_path, faux_moteur):
     config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
     _lot_a_exporter(config, "lot-final", valide=False)
 
@@ -554,6 +554,8 @@ def test_exporter_fichier_cible_verrouille_code_4(tmp_path, faux_moteur):
 
     assert resultat.exit_code == 4
     assert "accès refusé" in resultat.output
+    assert "fermez le document dans Word" in resultat.output
+    assert not list(dossier.glob(".*.partiel"))
     assert str(tmp_path) not in resultat.output
 
 

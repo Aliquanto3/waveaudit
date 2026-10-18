@@ -348,7 +348,14 @@ def exporter(
 
         typer.echo(BANDEAU)
         with _codes_retour("exporter"):
-            chemin, non_validees = exporter_lot(cfg, lot, mode)
+            try:
+                chemin, non_validees = exporter_lot(cfg, lot, mode)
+            except PermissionError as erreur:
+                # [revue X2] §27 : code 4, « fermez le document dans Word ».
+                _log.exception("exporter : accès refusé")
+                nom = erreur.filename2 or erreur.filename
+                cible = Path(nom).name if nom else ""
+                _echouer(f"exporter : accès refusé ({cible}), fermez le document dans Word", 4)
         typer.echo(f"rapport : {chemin.name} (lot {lot})")
         if mode == "final" and non_validees:
             typer.echo(f"fiches non validées : {non_validees} (exclues, listées en annexe)")

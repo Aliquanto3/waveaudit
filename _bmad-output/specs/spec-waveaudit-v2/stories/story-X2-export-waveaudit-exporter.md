@@ -75,5 +75,18 @@ sources:
 ## Reports
 
 - Route web `POST /lots/{id}/export` (contrats §26 : `GET /api/lots`) : W3a, qui réutilisera
-  `application.export.exporter_lot` tel quel (mêmes codes `RefusRelecture`, traduits en 404/409
-  par la route).
+  `application.export.exporter_lot` en lui passant `occupation=verrou.occupation()` (mêmes
+  codes `RefusRelecture`, traduits en 404/409 par la route ; voir `revues/story-X2.md`).
+
+## Revue
+
+Détail : `_bmad-output/implementation-artifacts/revues/story-X2.md`.
+
+- moyenne, second avis 1, corrigé : §27 étape 3 (verrou de ce processus) non couvert ;
+  `exporter_lot(..., *, occupation=None)` passé à `etat_lot` et `charger`, refus `lot_en_cours`
+  si l'occupation porte ce lot.
+- faible, second avis 2, rejeté : `generation` non lue par `rapport_export`, docx inchangé.
+- faible, second avis 3, rejeté : `_VERROUS` borné par le nombre de lots.
+- faible, second avis 4, corrigé : test renommé `test_exporter_final_sans_fiche_validee_code_2`.
+- faible, reviewer, corrigé : message `PermissionError` « fermez le document dans Word » (§27).
+- Complexité : 0 constat.
