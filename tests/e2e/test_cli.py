@@ -84,7 +84,7 @@ def test_fiches_dossier_absent_code_2(tmp_path, faux_moteur):
 
     assert resultat.exit_code == 2
     assert resultat.output.strip()
-    assert str(tmp_path) not in resultat.output  # AD-8, message passé par `_sans_chemin`
+    assert str(tmp_path) not in resultat.output  # AD-8, message passé par `lot.sans_chemin`
     assert not garde_reseau._actif
 
 

@@ -8,7 +8,7 @@ import tomllib
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from waveaudit.domaine.erreurs import ConfigurationInvalide
 
@@ -34,8 +34,12 @@ class Artefact(BaseModel):
     prefixe_systeme: str
     # Facultatifs, modèles seulement. `mode_json` (§22) prime sur `moteur.mode_json`.
     mode_json: Literal["json_schema", "json_object"] | None = None
-    # Écart au §22 (V1, à entériner) : false coupe la réflexion du modèle de discussion.
+    # Écart au §22 entériné en v2 : false coupe la réflexion du modèle de discussion.
     reflexion: bool | None = None
+    # [v2] 0 < x <= 2.0, prime sur `moteur.repeat_penalty` (§3, §11).
+    repeat_penalty: float | None = Field(None, gt=0.0, le=2.0)
+    # [v2] Durée médiane par fiche mesurée au banc, affichée par l'UI (§11, §26).
+    duree_indicative_s: float | None = Field(None, gt=0.0)
 
 
 def charger(chemin: Path) -> list[Artefact]:

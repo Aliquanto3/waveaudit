@@ -98,18 +98,18 @@ def test_local_gere_demarre_llama_server(config_test, artefacts, monkeypatch):
     monkeypatch.setattr(memoire_psutil, "ram_disponible_octets", lambda: 2 * GO)
     _FauxServeur.instances.clear()
     config = _local(config_test, ctx=1024, threads=3, delai_demarrage_s=7.0)
-    _installer(config, artefacts, "llama-server-b11714", "minicpm5-1b-q4km")
+    _installer(config, artefacts, "llama-server-b11714", "qwen3.5-0.8b-q4km")
     with composition.ouvrir(config, None, id_lot="20261017-120000") as (ports, info):
         serveur = _FauxServeur.instances[0]
         assert serveur.ouvert
         assert info.pid == 4242
-        assert info.nom_modele == "minicpm5-1b-q4km"
+        assert info.nom_modele == "qwen3.5-0.8b-q4km"
         assert info.base_url == serveur.base_url
-        assert ports.moteur._modele_api == "minicpm5-1b-q4km"
+        assert ports.moteur._modele_api == "qwen3.5-0.8b-q4km"
     binaire, gguf, ctx, threads, delai_s, journal = serveur.args
     var = config.chemins.var
     assert binaire == var / "moteur" / "b11714" / "llama-server.exe"
-    assert gguf == var / "modeles" / "MiniCPM5-1B-Q4_K_M.gguf"
+    assert gguf == var / "modeles" / "Qwen3.5-0.8B-Q4_K_M.gguf"
     assert (ctx, threads, delai_s) == (1024, 3, 7.0)
     assert journal == var / "journaux" / "llama-server-20261017-120000.log"
     assert not serveur.ouvert

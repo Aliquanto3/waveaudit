@@ -13,13 +13,13 @@ from pathlib import Path
 from waveaudit.application import composition
 from waveaudit.application.journal import JournalLot
 from waveaudit.application.lot import (
-    _ID_LOT,
     JOURNAL,
     Abonne,
-    _Emetteur,
-    _sans_chemin,
-    _sorties,
+    Emetteur,
+    dossier_sorties,
     nouvel_id_lot,
+    sans_chemin,
+    verifier_id_lot,
 )
 from waveaudit.domaine.configuration import Configuration
 from waveaudit.domaine.detection import detecter
@@ -43,23 +43,6 @@ def _ecrire_atomique(chemin: Path, ecrire) -> None:
         provisoire.unlink(missing_ok=True)
 
 
-def _id_lot(requete: RequeteIncident, config: Configuration) -> str:
-    """Même règle que le lot des fiches : `nouvel_id_lot`, ou identifiant fourni et vérifié."""
-    if requete.id_lot is None:
-        return nouvel_id_lot(config.chemins.var)
-    if not _ID_LOT.fullmatch(requete.id_lot):
-        raise EntreeInvalide(f"identifiant de lot invalide : {requete.id_lot!r}")
-    dossier = _sorties(config) / requete.id_lot
-    try:
-        dossier.mkdir(parents=True, exist_ok=True)
-    except OSError:
-        pass
-    # Nom réservé Windows (NUL…) : mkdir « réussit » sans créer de dossier.
-    if not dossier.is_dir():
-        raise EntreeInvalide(f"identifiant de lot inutilisable : {requete.id_lot!r}")
-    return requete.id_lot
-
-
 def executer_incident(
     requete: RequeteIncident, config: Configuration, abonne: Abonne | None = None
 ) -> ResultatIncident:
@@ -71,11 +54,16 @@ def executer_incident(
     debut = time.perf_counter()
     if not Path(requete.dossier).is_dir():
         raise EntreeInvalide(f"journaux : dossier introuvable ({requete.dossier})")
-    id_lot = _id_lot(requete, config)
-    dossier_sortie = _sorties(config) / id_lot
+    # Même règle que le lot des fiches : `nouvel_id_lot`, ou identifiant fourni et vérifié.
+    if requete.id_lot is None:
+        id_lot = nouvel_id_lot(config.chemins.var)
+    else:
+        id_lot = requete.id_lot
+        verifier_id_lot(id_lot, config)
+    dossier_sortie = dossier_sorties(config) / id_lot
 
     with JournalLot(dossier_sortie / JOURNAL) as journal:
-        emetteur = _Emetteur(journal, abonne)
+        emetteur = Emetteur(journal, abonne)
         try:
             ports = composition.creer_ports_incident(config)
             lecture = ports.source_journaux.lire(requete.dossier, annee=requete.annee)
@@ -125,7 +113,7 @@ def executer_incident(
         except BaseException as erreur:
             emetteur.emettre(
                 TypeEvenement.LOT_ECHOUE,
-                details={"erreur": type(erreur).__name__, "message": _sans_chemin(str(erreur))},
+                details={"erreur": type(erreur).__name__, "message": sans_chemin(str(erreur))},
             )
             raise
         duree_lot = round(time.perf_counter() - debut, 3)

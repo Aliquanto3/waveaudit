@@ -4,11 +4,13 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from waveaudit.application import config as module_config
 from waveaudit.application.config import charger_configuration, racine_projet
 from waveaudit.domaine.configuration import Configuration
 from waveaudit.domaine.erreurs import ConfigurationInvalide
+from waveaudit.installation import manifeste
 
 RACINE = racine_projet()
 
@@ -116,18 +118,33 @@ CHAMPS_ARTEFACT = [
     "executable",
     "prefixe_systeme",
 ]
-CHAMPS_FACULTATIFS = ["mode_json", "reflexion"]
+CHAMPS_FACULTATIFS = ["mode_json", "reflexion", "repeat_penalty", "duree_indicative_s"]
+ARTEFACT_MINIMAL = {
+    "nom": "m",
+    "role": "candidat",
+    "version": "1",
+    "url": "https://exemple.invalid/m.gguf",
+    "sha256": "0" * 64,
+    "taille": 1,
+    "licence": "MIT",
+    "source": "https://exemple.invalid",
+    "destination": "modeles/m.gguf",
+    "extraire": False,
+    "executable": "",
+    "prefixe_systeme": "",
+}
 
 
 def test_manifeste_artefacts():
     with (RACINE / "config" / "artefacts.toml").open("rb") as fichier:
         artefacts = tomllib.load(fichier)["artefact"]
+    # v2 (CAP-7) : ordre moteur, défaut, repli, candidats ; qwen3.5 repli, MiniCPM5 candidat.
     assert [a["nom"] for a in artefacts] == [
         "llama-server-b11714",
         "granite-4.0-1b-q4km",
+        "qwen3.5-0.8b-q4km",
         "minicpm5-1b-q4km",
         "qwen3-1.7b-q4km",
-        "qwen3.5-0.8b-q4km",
     ]
     assert [a["role"] for a in artefacts] == [
         "moteur",
@@ -157,6 +174,67 @@ def test_manifeste_artefacts():
         "qwen3.5-0.8b-q4km": False,
     }
     assert not any("mode_json" in a for a in artefacts)
+    # v2 : aucune pénalité de répétition au manifeste ; durée indicative pour chaque modèle.
+    assert not any("repeat_penalty" in a for a in artefacts)
+    assert {a["nom"]: a.get("duree_indicative_s") for a in artefacts if a["role"] != "moteur"} == {
+        "granite-4.0-1b-q4km": 17.1,
+        "qwen3.5-0.8b-q4km": 11.4,
+        "minicpm5-1b-q4km": 12.9,
+        "qwen3-1.7b-q4km": 20.4,
+    }
+    # Le manifeste se charge avec le modèle `Artefact` (extra="forbid").
+    noms = [a.nom for a in manifeste.charger(RACINE / "config" / "artefacts.toml")]
+    assert noms == [a["nom"] for a in artefacts]
+
+
+@pytest.mark.parametrize("valeur", [0.0, -0.1, 2.01])
+def test_manifeste_repeat_penalty_borne(valeur):
+    with pytest.raises(ValidationError):
+        manifeste.Artefact.model_validate({**ARTEFACT_MINIMAL, "repeat_penalty": valeur})
+
+
+def test_manifeste_champs_facultatifs_v2():
+    artefact = manifeste.Artefact.model_validate(
+        {**ARTEFACT_MINIMAL, "repeat_penalty": 1.1, "duree_indicative_s": 12.5}
+    )
+    assert artefact.repeat_penalty == 1.1 and artefact.duree_indicative_s == 12.5
+    defaut = manifeste.Artefact.model_validate(ARTEFACT_MINIMAL)
+    assert defaut.repeat_penalty is None and defaut.duree_indicative_s is None
+
+
+def test_defauts_v2(fausse_racine):
+    config = charger_configuration()
+    assert config.moteur.repeat_penalty == 0.0
+    assert config.fiches.langue == "fr"
+    assert config.ui.inactivite_moteur_s == 300.0
+
+
+@pytest.mark.parametrize(
+    ("section", "cle", "valeur"),
+    [
+        ("moteur", "repeat_penalty", 2.01),
+        ("moteur", "repeat_penalty", -0.5),
+        ("fiches", "langue", "de"),
+        ("ui", "inactivite_moteur_s", 0.0),
+        ("ui", "inactivite_moteur_s", -1.0),
+        ("fiches", "inconnue", "x"),
+    ],
+)
+def test_bornes_v2_refusees(section, cle, valeur):
+    with pytest.raises(ValidationError):
+        Configuration.model_validate({section: {cle: valeur}})
+
+
+@pytest.mark.parametrize("valeur", [0.0, 1.1, 2.0])
+def test_repeat_penalty_bornes_admises(valeur):
+    assert (
+        Configuration.model_validate({"moteur": {"repeat_penalty": valeur}}).moteur.repeat_penalty
+        == valeur
+    )
+
+
+def test_langue_en_admise():
+    assert Configuration.model_validate({"fiches": {"langue": "en"}}).fiches.langue == "en"
 
 
 def test_chemin_relatif_resolu_contre_la_racine(fausse_racine, tmp_path, monkeypatch):

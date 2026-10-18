@@ -123,12 +123,12 @@ def test_entrees_invalides(config_test, tmp_path):
     ],
 )
 def test_sans_chemin_avec_espaces(message):
-    nettoye = lot._sans_chemin(message)
+    nettoye = lot.sans_chemin(message)
     assert "Prénom" not in nettoye and "Users" not in nettoye and "home" not in nettoye
 
 
 def test_sans_chemin_garde_les_url():
-    assert lot._sans_chemin("moteur http://127.0.0.1:8080/v1") == "moteur http://127.0.0.1:8080/v1"
+    assert lot.sans_chemin("moteur http://127.0.0.1:8080/v1") == "moteur http://127.0.0.1:8080/v1"
 
 
 def test_lot_echoue_sans_chemin_absolu(config_test, tmp_path):
