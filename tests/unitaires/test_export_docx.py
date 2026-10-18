@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from docx import Document
 
-from waveaudit.adaptateurs.export_docx import BANDEAU, ExportDocx
+from waveaudit.adaptateurs.export_docx import BANDEAU, BANDEAUX, LIBELLES, ExportDocx
 from waveaudit.domaine.erreurs import ConfigurationInvalide
 from waveaudit.domaine.modeles import (
     Candidat,
@@ -19,6 +19,7 @@ from waveaudit.domaine.modeles import (
     Statut,
     Tracabilite,
 )
+from waveaudit.domaine.ports import OptionsExport
 
 _REFERENCE = Reference(
     id="CWE-79", titre="XSS", url="https://cwe.mitre.org/data/definitions/79.html"
@@ -252,3 +253,149 @@ def test_theme_toml_sans_modele_colore_le_theme_generique(tmp_path: Path):
     document = Document(str(chemin))
     assert str(document.styles["Heading 3"].font.color.rgb) == "ABCDEF"
     assert str(document.styles["Heading 1"].font.color.rgb) == "1F3864"
+
+
+def _titres(document: Document) -> list[str]:
+    return [
+        p.text
+        for p in document.paragraphs
+        if p.style.name.startswith("Heading") or p.style.name == "Title"
+    ]
+
+
+def test_en_bandeau_intitules_severites_statuts_annexe(tmp_path: Path):
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(tmp_path / "absent").exporter(
+        _rapport(avec_ecartees=True), chemin, OptionsExport(langue="en")
+    )
+
+    document = Document(str(chemin))
+    libelles = LIBELLES["en"]
+    for section in document.sections:
+        assert section.header.paragraphs[0].text == BANDEAUX["en"]
+        assert section.footer.paragraphs[0].text == BANDEAUX["en"]
+
+    titres = _titres(document)
+    assert libelles["titre"] in titres
+    intitules = (
+        "description",
+        "impact",
+        "recommandation",
+        "cvss",
+        "references",
+        "statut",
+        "tracabilite",
+    )
+    for intitule in intitules:
+        assert titres.count(libelles[intitule]) == 2
+    assert libelles["annexe_titre"] in titres
+
+    textes = _textes(document)
+    assert "To review" in textes
+    assert any("vecteur_invalide : métrique AC inconnue : X" in t for t in textes)
+
+    tables = document.tables
+    synthese_entetes = [cellule.text for cellule in tables[0].rows[0].cells]
+    assert synthese_entetes == list(libelles["synthese"])
+    ligne_critique = [cellule.text for cellule in tables[0].rows[1].cells]
+    assert ligne_critique[2] == "Critical"
+    ligne_a_revoir = [cellule.text for cellule in tables[0].rows[2].cells]
+    assert ligne_a_revoir[2] == "None"
+    assert ligne_a_revoir[-1] == "To review"
+
+    annexe_entetes = [cellule.text for cellule in tables[1].rows[0].cells]
+    assert annexe_entetes == list(libelles["annexe_entetes"])
+
+
+def test_brouillon_marque_sur_les_seules_fiches_non_validees(tmp_path: Path):
+    chemin = tmp_path / "brouillon.docx"
+    options = OptionsExport(mode="brouillon", non_validees=frozenset({"02-notes.md"}))
+    ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin, options)
+
+    document = Document(str(chemin))
+    titres = _titres(document)
+    assert "1. Injection SQL sur le formulaire de connexion" in titres
+    assert "2. Vecteur CVSS invalide — Non validée" in titres
+
+    textes = _textes(document)
+    assert "À revoir" in textes
+    assert any("vecteur_invalide : métrique AC inconnue : X" in t for t in textes)
+
+    ligne_a_revoir = [cellule.text for cellule in document.tables[0].rows[2].cells]
+    assert ligne_a_revoir[-1] == "À revoir"
+
+
+def test_final_aucune_marque_validee_sans_motifs(tmp_path: Path):
+    chemin = tmp_path / "rapport-final.docx"
+    options = OptionsExport(mode="final")
+    ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin, options)
+
+    document = Document(str(chemin))
+    titres = _titres(document)
+    assert "1. Injection SQL sur le formulaire de connexion" in titres
+    assert "2. Vecteur CVSS invalide" in titres
+    assert not any(t.endswith("Non validée") for t in titres)
+
+    textes = _textes(document)
+    assert textes.count("Validée") == 2
+    assert "À revoir" not in textes
+    assert not any("vecteur_invalide" in t for t in textes)
+
+    for ligne in (document.tables[0].rows[1].cells, document.tables[0].rows[2].cells):
+        assert [c.text for c in ligne][-1] == "Validée"
+
+
+@pytest.mark.parametrize(
+    ("langue", "marque", "motif"),
+    [
+        ("fr", "Non validée", "fiche non validée, exclue du rapport final"),
+        ("en", "Not validated", "not validated, excluded from the final report"),
+    ],
+)
+def test_final_annexe_non_validees_fr_en(tmp_path: Path, langue: str, marque: str, motif: str):
+    chemin = tmp_path / "rapport-final.docx"
+    options = OptionsExport(
+        langue=langue, mode="final", non_validees=frozenset({"09-ecartee.md", "01-autre.md"})
+    )
+    ExportDocx(tmp_path / "absent").exporter(
+        Rapport(fiches=[_fiche_ok()], ecartees=[]), chemin, options
+    )
+
+    document = Document(str(chemin))
+    titres = [p.text for p in document.paragraphs]
+    assert LIBELLES[langue]["annexe_titre"] in titres
+
+    annexe = document.tables[1]
+    lignes = [[c.text for c in row.cells] for row in annexe.rows[1:]]
+    assert lignes == [
+        ["01-autre.md", marque, motif],
+        ["09-ecartee.md", marque, motif],
+    ]
+
+
+def test_annexe_avec_lot_interrompu(tmp_path: Path):
+    entree = EntreeEcartee(
+        note="10-pas-vue.md",
+        statut=Statut.NON_TRAITEE,
+        motif=Motif(code=CodeMotif.LOT_INTERROMPU, detail="lot interrompu"),
+        candidats=[],
+        constat_attendu=None,
+    )
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(tmp_path / "absent").exporter(
+        Rapport(fiches=[_fiche_ok()], ecartees=[entree]), chemin
+    )
+
+    document = Document(str(chemin))
+    annexe = document.tables[1]
+    ligne = [c.text for c in annexe.rows[1].cells]
+    assert ligne == ["10-pas-vue.md", "non_traitee", "lot_interrompu : lot interrompu"]
+
+
+def test_aucun_partiel_restant(tmp_path: Path):
+    chemin = tmp_path / "rapport.docx"
+    exporteur = ExportDocx(tmp_path / "absent")
+    exporteur.exporter(_rapport(avec_ecartees=True), chemin)
+    exporteur.exporter(_rapport(avec_ecartees=False), chemin, OptionsExport(mode="brouillon"))
+
+    assert [p.name for p in tmp_path.iterdir()] == ["rapport.docx"]
