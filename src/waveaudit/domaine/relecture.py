@@ -1,23 +1,29 @@
-"""État de relecture d'un lot de fiches : formes et invariants (contrats §25, story de socle v2).
+"""État de relecture d'un lot de fiches : formes, invariants et règles pures (contrats §25).
 
 Fichier `var/sorties/<id_lot>/relecture.json` = `EtatRelecture.model_dump_json(indent=2)`.
-Les règles pures (`corriger`, `valider`, `remplacer_fiche`, `fiche_courante`, `rapport_export`)
-sont ajoutées par la story R1 ; la persistance est dans `application/relecture.py` (R2).
+Les formes et invariants sont posées par la story de socle v2 (S0) ; les règles pures
+(`fiche_courante`, `corriger`, `valider`, `remplacer_fiche`, `rapport_export`) sont ajoutées par
+R1, en fonctions pures sans accès disque. La persistance est dans `application/relecture.py` (R2).
 """
 
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from waveaudit.domaine import cvss31
 from waveaudit.domaine.erreurs import EntreeInvalide
 from waveaudit.domaine.modeles import (
     Candidat,
+    CodeMotif,
     Cvss,
     EntreeEcartee,
     Fiche,
     Langue,
+    Motif,
     Note,
+    Rapport,
     Reference,
+    Statut,
 )
 
 _CONFIG = ConfigDict(extra="forbid", frozen=True)
@@ -115,3 +121,143 @@ class RefusRelecture(EntreeInvalide):
         super().__init__(message)
         self.code = code
         self.message = message
+
+
+def fiche_courante(e: EntreeRelecture) -> Fiche:
+    """Fiche à afficher : `fiche_generee` sans correction, ou corrigée (contrats §25)."""
+    generee = e.fiche_generee
+    corrigee = e.fiche_corrigee
+    if corrigee is None:
+        return generee
+    # [revue E30] CVSS corrigé invalide (None) : la fiche courante (brouillon) garde le CVSS
+    # généré ; une fiche validée a toujours un CVSS valide (vérifié par `valider`).
+    cvss = corrigee.cvss if corrigee.cvss is not None else generee.cvss
+    return generee.model_copy(
+        update={
+            "titre": corrigee.titre,
+            "description": corrigee.description,
+            "impact": corrigee.impact,
+            "recommandation": corrigee.recommandation,
+            "references": corrigee.references,
+            "cvss": cvss,
+        }
+    )
+
+
+def corriger(e: EntreeRelecture, correction: FicheCorrigee, longueur_max: int) -> EntreeRelecture:
+    """Applique une correction du consultant à une entrée `fiche` (contrats §25)."""
+    if e.etat != "fiche":
+        raise RefusRelecture("non_modifiable", "Cette entrée n'a pas de fiche à corriger.")
+    if e.generation == "en_cours":
+        raise RefusRelecture("generation_en_cours", "Une régénération est en cours.")
+    for rubrique in (
+        correction.titre,
+        correction.description,
+        correction.impact,
+        correction.recommandation,
+    ):
+        if len(rubrique) > longueur_max:
+            raise RefusRelecture(
+                "rubrique_trop_longue", f"Une rubrique dépasse {longueur_max} caractères."
+            )
+    ids_generee = [r.id for r in e.fiche_generee.references]
+    ids_corrigee = [r.id for r in correction.references]
+    if not set(ids_corrigee) <= set(ids_generee):
+        raise RefusRelecture(
+            "reference_ajoutee", "Une référence ajoutée n'est pas dans la fiche générée."
+        )
+    if len(set(ids_corrigee)) != len(ids_corrigee):
+        # [revue E29]
+        raise RefusRelecture("reference_dupliquee", "Une référence est répétée.")
+    # Les références gardées sont rangées dans l'ordre de `fiche_generee.references`.
+    references = [r for r in e.fiche_generee.references if r.id in ids_corrigee]
+    try:
+        cvss = cvss31.evaluer(correction.cvss_vecteur)
+    except EntreeInvalide:
+        # [revue E30] Vecteur invalide enregistré tel quel : la saisie n'est pas perdue.
+        cvss = None
+    nouvelle = FicheCorrigee(
+        titre=correction.titre,
+        description=correction.description,
+        impact=correction.impact,
+        recommandation=correction.recommandation,
+        cvss_vecteur=correction.cvss_vecteur,
+        cvss=cvss,
+        references=references,
+    )
+    if nouvelle == e.fiche_corrigee and e.statut_relecture == "a_valider":
+        # Correction identique à l'état courant : rien ne change (pas d'incrément de version,
+        # géré par `application/relecture.py` qui ne réécrit pas une entrée inchangée).
+        return e
+    return e.model_copy(update={"fiche_corrigee": nouvelle, "statut_relecture": "a_valider"})
+
+
+def valider(e: EntreeRelecture) -> EntreeRelecture:
+    """Valide l'entrée `fiche` courante (contrats §25)."""
+    if e.etat != "fiche":
+        raise RefusRelecture("non_modifiable", "Cette entrée n'a pas de fiche à valider.")
+    if e.generation == "en_cours":
+        raise RefusRelecture("generation_en_cours", "Une régénération est en cours.")
+    fiche = fiche_courante(e)
+    if e.fiche_corrigee is not None and e.fiche_corrigee.cvss is None:
+        raise RefusRelecture("vecteur_invalide", "Le vecteur CVSS corrigé n'est pas valide.")
+    for rubrique in (fiche.titre, fiche.description, fiche.impact, fiche.recommandation):
+        if not rubrique.strip():
+            raise RefusRelecture("rubrique_vide", "Une rubrique de la fiche est vide.")
+    return e.model_copy(update={"statut_relecture": "validee"})
+
+
+def remplacer_fiche(
+    e: EntreeRelecture, fiche: Fiche, constat_id: str, modele_generation: str
+) -> EntreeRelecture:
+    """Remplace la fiche courante par une fiche régénérée (contrats §25, §24)."""
+    return e.model_copy(
+        update={
+            "etat": "fiche",
+            "fiche_generee": fiche,
+            "fiche_corrigee": None,
+            "candidat_choisi": constat_id,
+            "ecartee": None,
+            "statut_relecture": "a_valider",
+            "generation": "aucune",
+            "erreur_generation": None,
+            "modele_generation": modele_generation,  # [revue A16]
+        }
+    )
+
+
+def rapport_export(
+    etat: EtatRelecture, mode: Literal["final", "brouillon"]
+) -> tuple[Rapport, frozenset[str]]:
+    """Fiches et entrées écartées à exporter, plus les fiches encore `a_valider` (contrats §25)."""
+    fiches_entrees = [e for e in etat.entrees if e.etat == "fiche"]
+    if mode == "final":
+        fiches = [fiche_courante(e) for e in fiches_entrees if e.statut_relecture == "validee"]
+    else:
+        fiches = [fiche_courante(e) for e in fiches_entrees]
+    # [revue A17] final : l'ensemble renvoyé liste les fiches encore `a_valider` pour l'annexe ;
+    # brouillon : même ensemble, mêmes notes `a_valider`.
+    non_validees = frozenset(e.note for e in fiches_entrees if e.statut_relecture == "a_valider")
+    ecartees_existantes = [(e.index, e.ecartee) for e in etat.entrees if e.etat == "ecartee"]
+    # [revue E17] Les entrées `attente` d'un lot interrompu deviennent des entrées écartées.
+    ecartees_interrompues = [
+        (
+            e.index,
+            EntreeEcartee(
+                note=e.note,
+                statut=Statut.NON_TRAITEE,
+                motif=Motif(
+                    code=CodeMotif.LOT_INTERROMPU, detail="lot interrompu avant cette note"
+                ),
+                candidats=[],
+                constat_attendu=e.source.constat_attendu if e.source else None,
+            ),
+        )
+        for e in etat.entrees
+        if e.etat == "attente"
+    ]
+    ecartees = [
+        ecartee
+        for _, ecartee in sorted(ecartees_existantes + ecartees_interrompues, key=lambda c: c[0])
+    ]
+    return Rapport(fiches=fiches, ecartees=ecartees), non_validees
