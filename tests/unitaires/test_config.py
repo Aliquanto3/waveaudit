@@ -139,12 +139,13 @@ def test_manifeste_artefacts():
     with (RACINE / "config" / "artefacts.toml").open("rb") as fichier:
         artefacts = tomllib.load(fichier)["artefact"]
     # v2 (CAP-7) : ordre moteur, défaut, repli, candidats ; qwen3.5 repli, MiniCPM5 candidat.
+    # Q5 : qwen3-1.7b promu défaut au rebanc (bilan-modeles.md, section v2), granite candidat.
     assert [a["nom"] for a in artefacts] == [
         "llama-server-b11714",
-        "granite-4.0-1b-q4km",
+        "qwen3-1.7b-q4km",
         "qwen3.5-0.8b-q4km",
         "minicpm5-1b-q4km",
-        "qwen3-1.7b-q4km",
+        "granite-4.0-1b-q4km",
     ]
     assert [a["role"] for a in artefacts] == [
         "moteur",
@@ -174,13 +175,17 @@ def test_manifeste_artefacts():
         "qwen3.5-0.8b-q4km": False,
     }
     assert not any("mode_json" in a for a in artefacts)
-    # v2 : aucune pénalité de répétition au manifeste ; durée indicative pour chaque modèle.
-    assert not any("repeat_penalty" in a for a in artefacts)
+    # Q5 (CAP-6) : pénalité de répétition mesurée au rebanc pour les deux modèles mesurés
+    # seulement ; durée indicative pour chaque modèle (médiane du rebanc pour ces deux-là).
+    assert {a["nom"]: a["repeat_penalty"] for a in artefacts if "repeat_penalty" in a} == {
+        "qwen3-1.7b-q4km": 1.1,
+        "granite-4.0-1b-q4km": 1.1,
+    }
     assert {a["nom"]: a.get("duree_indicative_s") for a in artefacts if a["role"] != "moteur"} == {
-        "granite-4.0-1b-q4km": 17.1,
+        "qwen3-1.7b-q4km": 36.2,
         "qwen3.5-0.8b-q4km": 11.4,
         "minicpm5-1b-q4km": 12.9,
-        "qwen3-1.7b-q4km": 20.4,
+        "granite-4.0-1b-q4km": 27.9,
     }
     # Le manifeste se charge avec le modèle `Artefact` (extra="forbid").
     noms = [a.nom for a in manifeste.charger(RACINE / "config" / "artefacts.toml")]

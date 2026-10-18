@@ -22,19 +22,20 @@ executable = "llama-server.exe"
 prefixe_systeme = ""
 
 [[artefact]]
-nom = "granite-4.0-1b-q4km"
+nom = "qwen3-1.7b-q4km"
 role = "modele_defaut"
-version = "b27c2fe3f211b7f44e80fa620177aea371099aaa"
-url = "https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF/resolve/b27c2fe3f211b7f44e80fa620177aea371099aaa/granite-4.0-1b-Q4_K_M.gguf"
-sha256 = "22ec0f9cc99a90185312de3c882c84e7bd6789bdd050389844380a01a831d7f1"
-taille = 1023645440
+version = "d7f544eead698dbd1f15126ef60b45a1e1933222"
+url = "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/d7f544eead698dbd1f15126ef60b45a1e1933222/Qwen3-1.7B-Q4_K_M.gguf"
+sha256 = "b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897"
+taille = 1107409472
 licence = "Apache-2.0"
-source = "https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF"
-destination = "modeles/granite-4.0-1b-Q4_K_M.gguf"
+source = "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF"
+destination = "modeles/Qwen3-1.7B-Q4_K_M.gguf"
 extraire = false
 executable = ""
-prefixe_systeme = ""
-duree_indicative_s = 17.1
+prefixe_systeme = "/no_think"
+repeat_penalty = 1.1
+duree_indicative_s = 36.2
 
 [[artefact]]
 nom = "qwen3.5-0.8b-q4km"
@@ -69,16 +70,17 @@ reflexion = false            # V1 : réflexion par défaut, content vide (écart
 duree_indicative_s = 12.9
 
 [[artefact]]
-nom = "qwen3-1.7b-q4km"
+nom = "granite-4.0-1b-q4km"
 role = "candidat"
-version = "d7f544eead698dbd1f15126ef60b45a1e1933222"
-url = "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/d7f544eead698dbd1f15126ef60b45a1e1933222/Qwen3-1.7B-Q4_K_M.gguf"
-sha256 = "b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897"
-taille = 1107409472
+version = "b27c2fe3f211b7f44e80fa620177aea371099aaa"
+url = "https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF/resolve/b27c2fe3f211b7f44e80fa620177aea371099aaa/granite-4.0-1b-Q4_K_M.gguf"
+sha256 = "22ec0f9cc99a90185312de3c882c84e7bd6789bdd050389844380a01a831d7f1"
+taille = 1023645440
 licence = "Apache-2.0"
-source = "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF"
-destination = "modeles/Qwen3-1.7B-Q4_K_M.gguf"
+source = "https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF"
+destination = "modeles/granite-4.0-1b-Q4_K_M.gguf"
 extraire = false
 executable = ""
-prefixe_systeme = "/no_think"
-duree_indicative_s = 20.4
+prefixe_systeme = ""
+repeat_penalty = 1.1
+duree_indicative_s = 27.9

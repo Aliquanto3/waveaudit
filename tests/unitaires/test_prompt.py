@@ -96,3 +96,29 @@ def test_langue_fr_defaut_consigne_francaise():
     )
     messages = prompt.construire(note, constat, "", 6000)
     assert messages[0]["content"] == prompt.CONSIGNE == prompt.CONSIGNES["fr"]
+
+
+def test_consigne_revisee_cap6_fr_et_en_paralleles():
+    """Q5 (CAP-6) : consigne révisée par rubrique, mêmes exigences en français et en anglais."""
+    fr, en = prompt.CONSIGNES["fr"], prompt.CONSIGNES["en"]
+    # Mêmes puces, dans le même ordre : une par rubrique, puis les trois règles du §8.
+    puces_fr = [ligne.split(" ")[1] for ligne in fr.splitlines()[1:]]
+    puces_en = [ligne.split(" ")[1].rstrip(":") for ligne in en.splitlines()[1:]]
+    assert puces_fr[:4] == ["titre", "description", "impact", "recommandation"]
+    assert [p.rstrip(":") for p in puces_fr[:4]] == puces_en[:4]
+    assert len(fr.splitlines()) == len(en.splitlines()) == 8
+    # Contre la recopie : titre et impact propres au cas, description non recopiée.
+    assert "ne reprends pas le titre du constat type" in fr
+    assert "ne recopie pas la description générique" in fr
+    assert "ne recopie pas l'impact générique" in fr
+    assert "do not reuse the constat type's title" in en
+    assert "do not copy the generic description" in en
+    assert "do not copy the generic impact" in en
+    # Règles du §8 gardées dans les deux langues, et langue de rédaction demandée.
+    regles = {
+        "fr": ("N'invente aucun", "vecteur CVSS par défaut", "objet JSON", "en français"),
+        "en": ("Do not invent any", "default CVSS vector", "JSON object", "professional English"),
+    }
+    for langue, attendus in regles.items():
+        assert all(attendu in prompt.CONSIGNES[langue] for attendu in attendus)
+    assert "<constat>" in fr and "<note>" in fr and "<constat>" in en and "<note>" in en
