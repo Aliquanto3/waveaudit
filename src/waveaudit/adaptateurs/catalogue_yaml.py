@@ -85,16 +85,28 @@ class CatalogueYaml:
         doublons: set[str] = set()
         for fichier in sorted(self._dossier.glob("*.yaml")):
             for index, entree in _lire_fichier(fichier):
+                # [v2] le bloc `en` brut est examiné avant pydantic : un `en` incomplet ou à
+                # champ vide serait sinon refusé par `ConstatType.model_validate` avec le
+                # message générique « constat type invalide », avant d'atteindre le contrôle
+                # `constat.en is None` ci-dessous (contrats §15).
+                bloc_en = entree.get("en") if isinstance(entree, dict) else None
+                if isinstance(entree, dict) and bloc_en is None:
+                    raise ConfigurationInvalide(
+                        f"{fichier.name}:{index}: textes anglais manquants ({_CHAMPS_EN_LISTE})"
+                    )
+                if isinstance(bloc_en, dict):
+                    manquants = _champs_en_manquants(bloc_en)
+                    if manquants:
+                        liste = ", ".join(f"en.{champ}" for champ in manquants)
+                        raise ConfigurationInvalide(
+                            f"{fichier.name}:{index}: textes anglais manquants ({liste})"
+                        )
                 try:
                     constat = ConstatType.model_validate(entree)
                 except ValidationError as erreur:
                     raise ConfigurationInvalide(
                         f"{fichier.name}:{index}: constat type invalide ({_resumer(erreur)})"
                     ) from erreur
-                if constat.en is None:
-                    raise ConfigurationInvalide(
-                        f"{fichier.name}:{index}: textes anglais manquants ({_CHAMPS_EN_LISTE})"
-                    )
                 if constat.id in par_id:
                     doublons.add(constat.id)
                 par_id[constat.id] = constat
@@ -115,6 +127,11 @@ class CatalogueYaml:
             return self._charger()[id]
         except KeyError:
             raise EntreeInvalide(f"constat type inconnu : {id!r}") from None
+
+
+def _champs_en_manquants(bloc_en: dict) -> list[str]:
+    """[v2] Champs du bloc `en` brut (mapping YAML, avant pydantic) manquants ou vides."""
+    return [champ for champ in _CHAMPS_EN if not str(bloc_en.get(champ, "")).strip()]
 
 
 def _resumer(erreur: Exception) -> str:
@@ -164,6 +181,25 @@ def verifier(dossier: Path) -> list[str]:
 
         for index, entree in entrees:
             cle = entree.get("id", index) if isinstance(entree, dict) else index
+
+            # [v2] bloc `en` brut examiné avant pydantic, même raison qu'à `_charger` :
+            # sinon un `en` incomplet est rejeté par `model_validate` avant qu'une erreur
+            # §15 par champ ne puisse être produite ici.
+            bloc_en = entree.get("en") if isinstance(entree, dict) else None
+            if isinstance(entree, dict) and bloc_en is None:
+                erreurs.append(
+                    f"{fichier.name}:{cle}: textes anglais manquants ({_CHAMPS_EN_LISTE})"
+                )
+                continue
+            if isinstance(bloc_en, dict):
+                manquants = _champs_en_manquants(bloc_en)
+                if manquants:
+                    for champ in manquants:
+                        erreurs.append(
+                            f"{fichier.name}:{cle}: textes anglais manquants (en.{champ})"
+                        )
+                    continue
+
             try:
                 constat = ConstatType.model_validate(entree)
             except ValidationError as erreur:
@@ -180,7 +216,6 @@ def verifier(dossier: Path) -> list[str]:
 
             _verifier_vecteur(fichier, constat, erreurs)
             _verifier_references(fichier, constat, erreurs)
-            _verifier_textes_anglais(fichier, constat, erreurs)
 
     _verifier_unicite(identifiants, erreurs)
     _verifier_identifiants_figes(identifiants, erreurs)
@@ -219,18 +254,6 @@ def _verifier_references(fichier: Path, constat: ConstatType, erreurs: list[str]
             erreurs.append(
                 f"{fichier.name}:{constat.id}: url de référence non https ({reference.url!r})"
             )
-
-
-def _verifier_textes_anglais(fichier: Path, constat: ConstatType, erreurs: list[str]) -> None:
-    """[v2] Bloc `en` obligatoire, 4 textes non vides (contrats §15, CAP-8)."""
-    if constat.en is None:
-        erreurs.append(
-            f"{fichier.name}:{constat.id}: textes anglais manquants ({_CHAMPS_EN_LISTE})"
-        )
-        return
-    for champ in _CHAMPS_EN:
-        if not getattr(constat.en, champ).strip():
-            erreurs.append(f"{fichier.name}:{constat.id}: textes anglais manquants (en.{champ})")
 
 
 def _verifier_unicite(identifiants: list[str], erreurs: list[str]) -> None:

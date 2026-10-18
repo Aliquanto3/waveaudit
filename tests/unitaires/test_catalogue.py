@@ -168,7 +168,9 @@ def test_verifier_detecte_en_incomplet(tmp_path: Path):
         ],
     )
     erreurs = verifier(tmp_path)
-    assert any("web.yaml" in e for e in erreurs)
+    assert any(
+        "web.yaml" in e and "textes anglais manquants (en.recommandation)" in e for e in erreurs
+    )
 
 
 def test_charger_leve_configuration_invalide_si_en_absent(tmp_path: Path):
@@ -192,7 +194,9 @@ def test_charger_leve_configuration_invalide_si_en_incomplet(tmp_path: Path):
             )
         ],
     )
-    with pytest.raises(ConfigurationInvalide):
+    with pytest.raises(
+        ConfigurationInvalide, match=r"textes anglais manquants \(en\.recommandation\)"
+    ):
         CatalogueYaml(tmp_path).constats()
 
 
