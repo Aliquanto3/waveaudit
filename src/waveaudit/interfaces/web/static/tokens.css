@@ -26,6 +26,9 @@
   --couleur-danger-texte: #B3261E;
   --couleur-texte-sur-vif: #0A0A14;
 
+  /* Fond de page et texte sur fond primaire : blanc, référence des ratios de DESIGN.md. */
+  --couleur-blanc: #FFFFFF;
+
   /* Focus visible */
   --focus-contour: var(--couleur-primaire);
   --focus-decalage: 2px;

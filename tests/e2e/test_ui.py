@@ -513,3 +513,27 @@ def test_accessibilite_accueil(config_test):
     verifier_accessibilite(client.get("/").text)
     verifier_accessibilite(client.get("/lots/un-identifiant").text)
     verifier_focus_css((_RACINE_WEB / "static" / "style.css").read_text(encoding="utf-8"))
+
+
+def test_logo_sous_csp_et_nosniff(config_test, tmp_path):
+    """§26 et §28 : le logo SVG (seul fichier actif servi depuis theme-prive) porte la CSP et
+    nosniff, présent comme absent ; tokens.css aussi."""
+    dossier = tmp_path / "theme-prive-csp"
+    (dossier / "web").mkdir(parents=True)
+    (dossier / "web" / "logo.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+        encoding="utf-8",
+    )
+    present = client_web(_avec_theme_prive(config_test, dossier))
+    absent = client_web(_avec_theme_prive(config_test, tmp_path / "vide"))
+    reponses = {
+        "logo present": present.get("/theme/logo.svg"),
+        "logo absent": absent.get("/theme/logo.svg"),
+        "tokens": absent.get("/static/tokens.css"),
+    }
+    assert reponses["logo present"].status_code == 200
+    assert reponses["logo absent"].status_code == 404
+    assert reponses["tokens"].status_code == 200
+    for nom, reponse in reponses.items():
+        for en_tete, valeur in _EN_TETES_SECURITE.items():
+            assert reponse.headers.get(en_tete) == valeur, (nom, en_tete)

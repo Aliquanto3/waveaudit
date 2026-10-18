@@ -80,3 +80,8 @@ sources:
 
 Tests ciblés et suite complète (`825 passed`) verts, `ruff check` et `ruff format --check`
 propres, contrôle rapide sans erreur. Complexité : 0 constat.
+
+Revue Opus (détail : `implementation-artifacts/revues/story-W5.md`) : 5 medium corrigés (CSP du
+logo, rôles ARIA de l'aide, retrait de contour CSS, `#ffffff` en dur, parité exacte tokens.css
+et DESIGN.md), 3 low corrigés (faux positifs, bouton désactivé, id à guillemet), 1 low laissé
+(`lxml` transitif, pyproject hors périmètre). Complexité : 0 constat.

@@ -6,7 +6,7 @@ body {
   font-family: var(--police-texte);
   font-size: var(--taille-corps);
   color: var(--couleur-encre);
-  background: #ffffff;
+  background: var(--couleur-blanc);
   margin: 0;
   padding: 0;
 }
@@ -20,7 +20,7 @@ main {
 .bandeau {
   text-align: center;
   background: var(--couleur-primaire-fonce);
-  color: #ffffff;
+  color: var(--couleur-blanc);
   padding: 0.4rem;
   font-size: var(--taille-petit);
 }
@@ -31,7 +31,7 @@ main {
   gap: 0.75rem;
   height: 56px;
   padding: 0 1rem;
-  background: #ffffff;
+  background: var(--couleur-blanc);
   border-bottom: 1px solid var(--couleur-trait);
 }
 
@@ -74,13 +74,14 @@ button {
   border-radius: 12px;
   border: 1px solid var(--couleur-trait);
   background: var(--couleur-primaire);
-  color: #ffffff;
+  color: var(--couleur-blanc);
   font-family: var(--police-texte);
   font-size: var(--taille-corps);
 }
 
 button:disabled {
-  background: var(--couleur-gris);
+  background: var(--couleur-fond-creme);
+  color: var(--couleur-gris-texte);
   cursor: default;
 }
 

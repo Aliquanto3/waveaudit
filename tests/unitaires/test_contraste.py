@@ -9,6 +9,8 @@ silence).
 import re
 from pathlib import Path
 
+import yaml
+
 RACINE_WEB = Path(__file__).resolve().parents[2] / "src" / "waveaudit" / "interfaces" / "web"
 TOKENS_CSS = RACINE_WEB / "static" / "tokens.css"
 
@@ -81,3 +83,31 @@ def test_contrastes_wcag_conformes_a_design_md():
         if abs(ratio - attendu) > 0.1:
             fautes.append(f"{fg}/{bg} : {ratio:.2f} ≠ {attendu} annoncé par DESIGN.md")
     assert fautes == []
+
+
+DESIGN_MD = Path(__file__).resolve().parents[2] / "_bmad-output/planning-artifacts/ux/DESIGN.md"
+STYLE_CSS = RACINE_WEB / "static" / "style.css"
+# Tokens hors de la clé `colors` de DESIGN.md, mais référence implicite de ses ratios.
+_TOKENS_HORS_DESIGN = {"blanc": BLANC}
+
+
+def _couleurs_design_md() -> dict[str, str]:
+    texte = DESIGN_MD.read_text(encoding="utf-8")
+    entete = yaml.safe_load(texte.split("---")[1])
+    return {nom: str(valeur).upper() for nom, valeur in entete["colors"].items()}
+
+
+def test_tokens_css_egale_exactement_les_couleurs_de_design_md():
+    """§28 : une couleur de `tokens.css` différente de `DESIGN.md` fait échouer le test, même
+    si son ratio reste à 0,1 près du ratio annoncé."""
+    publiees = {
+        nom: valeur.upper() for nom, valeur in _RE_TOKEN.findall(TOKENS_CSS.read_text("utf-8"))
+    }
+    assert publiees == _couleurs_design_md() | _TOKENS_HORS_DESIGN
+
+
+def test_style_css_sans_couleur_litterale():
+    """§28 : `style.css` n'utilise que les propriétés de `tokens.css` pour les couleurs."""
+    css = re.sub(r"/\*.*?\*/", "", STYLE_CSS.read_text(encoding="utf-8"), flags=re.DOTALL)
+    litterales = re.findall(r"#[0-9A-Fa-f]{3,8}\b|\b(?:rgba?|hsla?)\(|:\s*(?:white|black)\b", css)
+    assert litterales == []
