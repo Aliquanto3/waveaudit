@@ -19,6 +19,18 @@
   recommandation: >-
     N'accepter que TLS 1.2 et 1.3 avec des suites de chiffrement
     recommandées, et désactiver les versions et algorithmes obsolètes.
+  en:
+    titre: Obsolete TLS versions or cipher suites accepted
+    description: >-
+      The service accepts outdated versions of the TLS protocol (or even
+      SSL) or weak cipher suites, considered unsafe by current
+      reference standards.
+    impact: >-
+      Weakens the confidentiality and integrity of encrypted exchanges,
+      facilitating their interception or tampering.
+    recommandation: >-
+      Accept only TLS 1.2 and 1.3 with recommended cipher suites, and
+      disable obsolete versions and algorithms.
   cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N
   references:
     - id: CWE-326
@@ -50,6 +62,19 @@
     Déployer un certificat valide émis par une autorité reconnue, le
     renouveler avant expiration et ne jamais désactiver sa validation côté
     client.
+  en:
+    titre: Invalid or poorly validated TLS certificate
+    description: >-
+      The certificate presented by the service is expired, self-signed,
+      does not match the domain name, or its validation is disabled on
+      the client side, breaking the TLS chain of trust.
+    impact: >-
+      Facilitates an active interception (man in the middle) since the
+      client can no longer verify the server's identity.
+    recommandation: >-
+      Deploy a valid certificate issued by a recognized authority, renew
+      it before expiry, and never disable its validation on the client
+      side.
   cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:N
   references:
     - id: CWE-295
@@ -80,6 +105,18 @@
   recommandation: >-
     Utiliser une fonction de hachage de mots de passe dédiée (Argon2id,
     bcrypt, scrypt) avec un sel unique par compte.
+  en:
+    titre: Weak hashing algorithm for passwords
+    description: >-
+      Passwords are stored with a fast hashing algorithm (MD5, SHA-1)
+      without a salt or a suitable key derivation function, making them
+      easy to crack offline.
+    impact: >-
+      Fast recovery of cleartext passwords from a database leak, through
+      a precomputed table or accelerated brute force.
+    recommandation: >-
+      Use a dedicated password hashing function (Argon2id, bcrypt,
+      scrypt) with a unique salt per account.
   cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N
   references:
     - id: CWE-327
@@ -108,6 +145,18 @@
   recommandation: >-
     Générer une clé par environnement, la fournir via un gestionnaire de
     secrets et purger les clés versionnées de l'historique du dépôt.
+  en:
+    titre: Cryptographic key hard-coded in the source code
+    description: >-
+      An encryption or signing key is hard-coded in the source code and
+      versioned with the repository, identical across every deployment of
+      the application.
+    impact: >-
+      Decryption or forgery of protected data by anyone who accesses the
+      source code, including through the repository's history.
+    recommandation: >-
+      Generate a key per environment, provide it through a secrets
+      manager, and purge versioned keys from the repository's history.
   cvss_vecteur: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
   references:
     - id: CWE-321
@@ -136,6 +185,18 @@
   recommandation: >-
     Chiffrer les données sensibles au repos avec un algorithme à jour et
     gérer les clés séparément du support de stockage.
+  en:
+    titre: Sensitive data unencrypted or weakly encrypted at rest
+    description: >-
+      Sensitive data is stored without encryption, or with an obsolete
+      encryption algorithm, on disk, in the database, or on the backup
+      medium.
+    impact: >-
+      Disclosure of sensitive data in the event of physical access to the
+      medium or theft of a backup, with no encryption protecting it.
+    recommandation: >-
+      Encrypt sensitive data at rest with an up-to-date algorithm and
+      manage keys separately from the storage medium.
   cvss_vecteur: CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
   references:
     - id: CWE-311

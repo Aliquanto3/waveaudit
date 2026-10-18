@@ -54,6 +54,10 @@ IDENTIFIANTS_FIGES: frozenset[str] = frozenset(
 
 TOTAL_MINIMAL = 30
 
+# [v2] champs du bloc anglais obligatoire (contrats §15, CAP-8).
+_CHAMPS_EN = ("titre", "description", "impact", "recommandation")
+_CHAMPS_EN_LISTE = ", ".join(f"en.{champ}" for champ in _CHAMPS_EN)
+
 # Formes canoniques de référence acceptées (contrats §15) : CWE-79, CAPEC-63, WSTG-INPV-01,
 # A03:2021, ANSSI-<SIGLE>, CERTFR-AAAA-XXX-NNN.
 _RE_REFERENCE = re.compile(
@@ -87,6 +91,10 @@ class CatalogueYaml:
                     raise ConfigurationInvalide(
                         f"{fichier.name}:{index}: constat type invalide ({_resumer(erreur)})"
                     ) from erreur
+                if constat.en is None:
+                    raise ConfigurationInvalide(
+                        f"{fichier.name}:{index}: textes anglais manquants ({_CHAMPS_EN_LISTE})"
+                    )
                 if constat.id in par_id:
                     doublons.add(constat.id)
                 par_id[constat.id] = constat
@@ -172,6 +180,7 @@ def verifier(dossier: Path) -> list[str]:
 
             _verifier_vecteur(fichier, constat, erreurs)
             _verifier_references(fichier, constat, erreurs)
+            _verifier_textes_anglais(fichier, constat, erreurs)
 
     _verifier_unicite(identifiants, erreurs)
     _verifier_identifiants_figes(identifiants, erreurs)
@@ -210,6 +219,18 @@ def _verifier_references(fichier: Path, constat: ConstatType, erreurs: list[str]
             erreurs.append(
                 f"{fichier.name}:{constat.id}: url de référence non https ({reference.url!r})"
             )
+
+
+def _verifier_textes_anglais(fichier: Path, constat: ConstatType, erreurs: list[str]) -> None:
+    """[v2] Bloc `en` obligatoire, 4 textes non vides (contrats §15, CAP-8)."""
+    if constat.en is None:
+        erreurs.append(
+            f"{fichier.name}:{constat.id}: textes anglais manquants ({_CHAMPS_EN_LISTE})"
+        )
+        return
+    for champ in _CHAMPS_EN:
+        if not getattr(constat.en, champ).strip():
+            erreurs.append(f"{fichier.name}:{constat.id}: textes anglais manquants (en.{champ})")
 
 
 def _verifier_unicite(identifiants: list[str], erreurs: list[str]) -> None:

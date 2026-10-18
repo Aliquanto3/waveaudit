@@ -20,6 +20,19 @@
     Exiger la signature SMB sur les serveurs et les postes sensibles,
     particulièrement les contrôleurs de domaine, et limiter les protocoles
     de résolution de noms vulnérables au relais.
+  en:
+    titre: SMB signing not required
+    description: >-
+      A server accepts SMB sessions without requiring message signing,
+      which lets an attacker positioned on the network relay an
+      intercepted NTLM authentication toward that server.
+    impact: >-
+      Execution of commands or access to shares with the privileges of
+      the account whose authentication was relayed.
+    recommandation: >-
+      Require SMB signing on servers and sensitive workstations,
+      particularly domain controllers, and limit name resolution
+      protocols vulnerable to relaying.
   cvss_vecteur: CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N
   references:
     - id: CWE-300
@@ -48,6 +61,18 @@
   recommandation: >-
     Mettre à jour ou remplacer le service par une version maintenue, et
     planifier un cycle de gestion des correctifs.
+  en:
+    titre: Obsolete or unmaintained network service
+    description: >-
+      An exposed service runs an old version, past end of support or
+      known to carry published vulnerabilities, for lack of an update or
+      a planned replacement.
+    impact: >-
+      Direct exploitation of public vulnerabilities, often documented
+      with available proof-of-concept code.
+    recommandation: >-
+      Update or replace the service with a maintained version, and plan
+      a patch management cycle.
   cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H
   references:
     - id: CWE-1104
@@ -75,6 +100,18 @@
   recommandation: >-
     Changer les communautés par défaut, migrer vers SNMPv3 avec
     authentification et chiffrement, ou désactiver SNMP si inutilisé.
+  en:
+    titre: Default or weak SNMP community string
+    description: >-
+      A device answers SNMP requests using a default (`public`,
+      `private`) or guessable community string, on version 1 or 2c
+      without strong authentication.
+    impact: >-
+      Disclosure of the network configuration, routing tables, and
+      sometimes modification of the device's configuration.
+    recommandation: >-
+      Change default community strings, migrate to SNMPv3 with
+      authentication and encryption, or disable SNMP if unused.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N
   references:
     - id: CWE-1392
@@ -104,6 +141,19 @@
     Restreindre l'accès RDP par liste blanche ou VPN, activer
     l'authentification au niveau réseau (NLA) et imposer une politique de
     verrouillage des comptes.
+  en:
+    titre: Remote desktop exposed without restriction
+    description: >-
+      The remote desktop service is reachable from an uncontrolled
+      network (the Internet or a broad internal network) without access
+      restriction or prior network authentication.
+    impact: >-
+      Exposure to brute-force attacks and to protocol vulnerability
+      exploitation, which can lead to full takeover of the workstation
+      or server.
+    recommandation: >-
+      Restrict RDP access with an allow list or a VPN, enable network
+      level authentication (NLA), and enforce an account lockout policy.
   cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H
   references:
     - id: CWE-284
@@ -131,6 +181,18 @@
   recommandation: >-
     Désactiver LLMNR et NBT-NS lorsque la résolution DNS interne est fiable,
     et exiger la signature SMB pour limiter l'impact d'un relais.
+  en:
+    titre: LLMNR/NBT-NS fallback name resolution not disabled
+    description: >-
+      The LLMNR and NBT-NS fallback name resolution protocols remain
+      active on the network, letting an attacker answer in place of a
+      legitimate host and capture NTLM authentications.
+    impact: >-
+      Capture of NTLM hashes that can be reused for an offline attack or
+      relayed toward other services.
+    recommandation: >-
+      Disable LLMNR and NBT-NS once internal DNS resolution is reliable,
+      and require SMB signing to limit the impact of a relay.
   cvss_vecteur: CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:L/A:N
   references:
     - id: CWE-300
@@ -159,6 +221,18 @@
   recommandation: >-
     Isoler le réseau de gestion IPMI, changer les identifiants par défaut
     et désactiver les suites de chiffrement non authentifiées.
+  en:
+    titre: IPMI management interface exposed without restriction
+    description: >-
+      The IPMI (BMC) out-of-band management interface is reachable from
+      an unrestricted network, sometimes with default credentials or the
+      `cipher 0` encryption that disables authentication.
+    impact: >-
+      Full takeover of the underlying server, regardless of the
+      operating system, through the out-of-band management interface.
+    recommandation: >-
+      Isolate the IPMI management network, change default credentials,
+      and disable unauthenticated cipher suites.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
   references:
     - id: CWE-306
@@ -189,6 +263,19 @@
     Restreindre les exports NFS aux hôtes nécessaires, retirer
     `no_root_squash` sauf besoin justifié, et préférer une authentification
     Kerberos lorsque c'est possible.
+  en:
+    titre: NFS share exported without access restriction
+    description: >-
+      An NFS share is exported to a broad network, or even without any
+      client restriction, sometimes with the `no_root_squash` option,
+      which preserves the client's root rights on the server.
+    impact: >-
+      Reading or modifying shared files by an unauthorized client, or
+      even privilege escalation on the server through `no_root_squash`.
+    recommandation: >-
+      Restrict NFS exports to the required hosts, remove
+      `no_root_squash` unless genuinely needed, and prefer Kerberos
+      authentication where possible.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
   references:
     - id: CWE-668
@@ -219,6 +306,19 @@
     Restreindre l'accès aux interfaces de gestion à un réseau
     d'administration dédié, filtré, et accessible uniquement via VPN ou
     bastion.
+  en:
+    titre: Device management interface exposed on the network
+    description: >-
+      A device administration interface (server management console,
+      hypervisor, network device) is reachable from a network broader
+      than the one intended for administration.
+    impact: >-
+      Exposes the interface to brute-force attacks or the exploitation
+      of known vulnerabilities, with a direct impact on the managed
+      infrastructure.
+    recommandation: >-
+      Restrict access to management interfaces to a dedicated, filtered
+      administration network, reachable only through a VPN or a bastion.
   cvss_vecteur: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H
   references:
     - id: CWE-284

@@ -152,3 +152,14 @@ def test_aucun_faux_positif_sur_les_textes_francais_du_catalogue():
             texte = getattr(constat, champ)
             assert motif_langue(texte, "fr") is None, f"{constat.id}.{champ}"
             assert est_repetitif(texte) is False, f"{constat.id}.{champ}"
+
+
+def test_aucun_faux_positif_sur_les_textes_en_du_catalogue():
+    """[v2] Mesure du contrat : 0 mot-outil français dans les textes en du catalogue (Q3)."""
+    constats = CatalogueYaml(RACINE / "donnees" / "catalogue").constats()
+    for constat in constats:
+        assert constat.en is not None, constat.id
+        for champ in ("description", "impact", "recommandation"):
+            texte = getattr(constat.en, champ)
+            assert motif_langue(texte, "en") is None, f"{constat.id}.en.{champ}"
+            assert est_repetitif(texte) is False, f"{constat.id}.en.{champ}"

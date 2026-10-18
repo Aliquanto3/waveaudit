@@ -20,6 +20,18 @@
     Affecter des mots de passe longs et aléatoires aux comptes de service,
     privilégier les comptes de service gérés (gMSA) et surveiller les
     demandes de tickets anormales.
+  en:
+    titre: Exposure to Kerberoasting attacks
+    description: >-
+      Service accounts carrying an SPN use a weak or outdated password,
+      allowing any domain user to request a service ticket and crack it
+      offline.
+    impact: >-
+      Recovery of a service account's cleartext password, often a service
+      account with elevated privileges on several systems.
+    recommandation: >-
+      Assign long, random passwords to service accounts, prefer managed
+      service accounts (gMSA), and monitor abnormal ticket requests.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
   references:
     - id: CWE-521
@@ -47,6 +59,19 @@
   recommandation: >-
     Réactiver la préauthentification Kerberos pour tous les comptes
     concernés et renforcer les mots de passe des comptes restants.
+  en:
+    titre: Exposure to AS-REP Roasting attacks
+    description: >-
+      One or more accounts have Kerberos pre-authentication disabled,
+      allowing an attacker to obtain, without authenticating at all, a
+      piece of material encrypted with their password and crack it
+      offline.
+    impact: >-
+      Recovery of a domain account's password without having to
+      authenticate beforehand.
+    recommandation: >-
+      Re-enable Kerberos pre-authentication for every affected account and
+      strengthen the passwords of the remaining accounts.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
   references:
     - id: CWE-522
@@ -75,6 +100,18 @@
     Remplacer la délégation non contrainte par une délégation contrainte ou
     basée sur les ressources, limitée aux services qui en ont réellement
     besoin.
+  en:
+    titre: Unconstrained Kerberos delegation
+    description: >-
+      An account or server is configured for unconstrained Kerberos
+      delegation, letting it receive and reuse the full ticket-granting
+      ticket (TGT) of any user who connects to it.
+    impact: >-
+      Theft of a connected domain administrator's TGT, leading to a total
+      compromise of the domain.
+    recommandation: >-
+      Replace unconstrained delegation with constrained or resource-based
+      delegation, limited to the services that genuinely need it.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:H
   references:
     - id: CWE-269
@@ -104,6 +141,18 @@
   recommandation: >-
     Déployer une solution de rotation automatique des mots de passe
     administrateur locaux (LAPS ou équivalent), unique par machine.
+  en:
+    titre: Missing local administrator password management (LAPS)
+    description: >-
+      The local administrator account password is identical across several
+      workstations or servers and is not rotated automatically, for lack
+      of a dedicated management solution (LAPS).
+    impact: >-
+      An attacker who obtains this password on one machine can reuse it to
+      move laterally across every asset sharing the same secret.
+    recommandation: >-
+      Deploy an automatic rotation solution for local administrator
+      passwords (LAPS or equivalent), unique per machine.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:H
   references:
     - id: CWE-1391
@@ -133,6 +182,19 @@
     Réduire les groupes à privilèges au strict nécessaire, mettre en place
     des comptes d'administration dédiés et temporaires, et revoir
     périodiquement les appartenances.
+  en:
+    titre: Excessive number of domain administrator accounts
+    description: >-
+      A high number of accounts belong to privileged groups (Domain
+      Admins, Enterprise Admins) without clear operational justification,
+      widening the attack surface.
+    impact: >-
+      Multiplies the paths to full domain control, since every privileged
+      account becomes a potential target.
+    recommandation: >-
+      Reduce privileged groups to the strict minimum, set up dedicated and
+      temporary administration accounts, and periodically review
+      membership.
   cvss_vecteur: CVSS:3.1/AV:A/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H
   references:
     - id: CWE-269
@@ -161,6 +223,18 @@
   recommandation: >-
     Supprimer les mots de passe stockés dans les préférences de stratégie
     de groupe existantes et changer les secrets concernés.
+  en:
+    titre: Password exposed in a Group Policy Preference (GPP)
+    description: >-
+      A password is stored in a Group Policy Preference (local account,
+      scheduled task) encrypted with an AES key publicly published by the
+      vendor, and remains readable by any domain user through SYSVOL.
+    impact: >-
+      Immediate decryption of the password by anyone who can read SYSVOL,
+      often exposing a privileged account.
+    recommandation: >-
+      Remove passwords stored in existing Group Policy Preferences and
+      rotate the affected secrets.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
   references:
     - id: CWE-798
@@ -191,6 +265,18 @@
   recommandation: >-
     Revoir périodiquement les délégations d'accès sur les objets sensibles
     et retirer les droits non justifiés par un besoin opérationnel.
+  en:
+    titre: Dangerous access control entry (ACE) on a sensitive Active Directory object
+    description: >-
+      A low-privileged user or group holds an excessive access control
+      entry (ACE), such as `GenericAll` or `WriteDACL`, on a sensitive
+      directory object (domain controller, privileged account, GPO).
+    impact: >-
+      Privilege escalation up to domain administration by abusing the
+      delegated right to modify the targeted object.
+    recommandation: >-
+      Periodically review access delegations on sensitive objects and
+      remove rights not justified by an operational need.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
   references:
     - id: CWE-732
@@ -223,6 +309,21 @@
     Retirer le droit d'inscription aux utilisateurs peu privilégiés sur ces
     modèles, ou désactiver l'option permettant au demandeur de spécifier le
     nom de sujet.
+  en:
+    titre: AD CS certificate template vulnerable to ESC1 escalation
+    description: >-
+      A certificate template published by the Active Directory
+      Certificate Services authority lets a low-privileged requester
+      specify the subject name and allows client authentication, which
+      makes it possible to issue a certificate in the name of a
+      privileged account.
+    impact: >-
+      Authentication as any arbitrary privileged account, including a
+      domain administrator, starting from a low-privileged account.
+    recommandation: >-
+      Remove the enrollment right for low-privileged users on these
+      templates, or disable the option letting the requester specify the
+      subject name.
   cvss_vecteur: CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
   references:
     - id: CWE-269
@@ -251,6 +352,18 @@
   recommandation: >-
     Désactiver les comptes à privilèges inactifs après une durée définie et
     mettre en place une revue périodique des comptes privilégiés.
+  en:
+    titre: Inactive privileged accounts not disabled
+    description: >-
+      Accounts belonging to privileged groups have not been used for an
+      extended period and remain enabled, often for lack of a periodic
+      review when staff leave or change roles.
+    impact: >-
+      Provides an attacker with poorly monitored privileged accounts,
+      suited to quiet, prolonged use once compromised.
+    recommandation: >-
+      Disable inactive privileged accounts after a defined period and set
+      up a periodic review of privileged accounts.
   cvss_vecteur: CVSS:3.1/AV:A/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:N
   references:
     - id: CWE-284

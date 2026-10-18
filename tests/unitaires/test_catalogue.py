@@ -8,6 +8,11 @@ import yaml
 from waveaudit.adaptateurs.catalogue_yaml import IDENTIFIANTS_FIGES, CatalogueYaml, verifier
 from waveaudit.application.config import racine_projet
 from waveaudit.domaine.erreurs import ConfigurationInvalide, EntreeInvalide
+from waveaudit.domaine.qualite_texte import motif_langue
+
+# [v2] ids dont le titre anglais ne peut pas différer utilement du titre français : termes
+# techniques sans traduction propre (revue E38).
+TITRES_IDENTIQUES_ADMIS: frozenset[str] = frozenset()
 
 CONSTAT_MINIMAL = {
     "id": "WEB-TEST",
@@ -22,6 +27,13 @@ CONSTAT_MINIMAL = {
         {"id": "CWE-79", "titre": "XSS", "url": "https://cwe.mitre.org/data/definitions/79.html"}
     ],
     "source": "Rédaction WaveAudit d'après CWE-79, licence du dépôt",
+    # [v2] bloc anglais obligatoire (contrats §15, CAP-8).
+    "en": {
+        "titre": "Test finding",
+        "description": "d",
+        "impact": "i",
+        "recommandation": "r",
+    },
 }
 
 
@@ -134,6 +146,56 @@ def test_verifier_detecte_url_de_reference_non_https(tmp_path: Path):
     assert any("non https" in e for e in erreurs)
 
 
+def test_verifier_detecte_en_absent(tmp_path: Path):
+    _ecrire(tmp_path, "web.yaml", [_constat(en=None)])
+    erreurs = verifier(tmp_path)
+    assert any("textes anglais manquants" in e for e in erreurs)
+
+
+def test_verifier_detecte_en_incomplet(tmp_path: Path):
+    _ecrire(
+        tmp_path,
+        "web.yaml",
+        [
+            _constat(
+                en={
+                    "titre": "Test finding",
+                    "description": "d",
+                    "impact": "i",
+                    "recommandation": "",
+                }
+            )
+        ],
+    )
+    erreurs = verifier(tmp_path)
+    assert any("web.yaml" in e for e in erreurs)
+
+
+def test_charger_leve_configuration_invalide_si_en_absent(tmp_path: Path):
+    _ecrire(tmp_path, "web.yaml", [_constat(en=None)])
+    with pytest.raises(ConfigurationInvalide, match="textes anglais manquants"):
+        CatalogueYaml(tmp_path).constats()
+
+
+def test_charger_leve_configuration_invalide_si_en_incomplet(tmp_path: Path):
+    _ecrire(
+        tmp_path,
+        "web.yaml",
+        [
+            _constat(
+                en={
+                    "titre": "Test finding",
+                    "description": "d",
+                    "impact": "i",
+                    "recommandation": "",
+                }
+            )
+        ],
+    )
+    with pytest.raises(ConfigurationInvalide):
+        CatalogueYaml(tmp_path).constats()
+
+
 def test_verifier_detecte_identifiant_fige_manquant(tmp_path: Path):
     _ecrire(tmp_path, "web.yaml", [_constat()])
     erreurs = verifier(tmp_path)
@@ -198,6 +260,13 @@ def test_contenu_du_catalogue_du_depot_suit_le_cahier_des_charges():
             if ref.id[0] == "A" and ":" in ref.id:
                 rang, annee = ref.id.split(":")
                 assert f"/Top10/{rang}_{annee}-" in ref.url, c.id
+        # [v2] bloc en complet (contrats §15, CAP-8).
+        assert c.en is not None, c.id
+        if c.id not in TITRES_IDENTIQUES_ADMIS:
+            assert c.en.titre != c.titre, c.id
+        for champ in ("titre", "description", "impact", "recommandation"):
+            assert getattr(c.en, champ).strip(), f"{c.id}.en.{champ}"
+        assert motif_langue(c.en.description, "en") is None, c.id
 
 
 def test_constats_leve_configuration_invalide_si_dossier_absent(tmp_path: Path):
