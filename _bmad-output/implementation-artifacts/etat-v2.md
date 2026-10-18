@@ -17,12 +17,13 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 | 3 | L1 | Langue du lot, de la CLI au Word | Sonnet | intégrée fc41074 |
 | 4 | B1 | Banc v2 | Sonnet | intégrée 762a165 |
 | 4 | R2 | Persistance de la relecture et lot.json | Opus | intégrée fc527cc |
-| 5 | Q5 | Rebanc EliteBook, consigne et rôles ★ | Opus | revue, attend l'arbitrage d'Anaël (branche worktree-agent-a57f6f15afb8ed9e2, b7b05e5) |
+| 5 | Q5 | Rebanc EliteBook, consigne et rôles ★ | Opus | intégrée 751ccab (granite défaut, arbitrage d'Anaël) |
 | 5 | W2 | Accueil, lots récents, suivi lu sur le disque | Sonnet | intégrée 996ce74 |
 | 6 | X2 | Service d'export et `waveaudit exporter` | Sonnet | en cours |
 | 6 | W4 | Incident dans l'UI | Sonnet | en cours |
 | 7 | W3a | API de relecture, régénération et export | Opus | à faire |
 | 8 | W3b | Écran de relecture | Sonnet | à faire |
+| 7 | LIB | Libellés par langue des statuts et motifs dans le Word (annexe des écartées, tous modes) | Sonnet | à faire |
 | 8 | ARR | Arrêt propre de l'UI (llama-server enfant, fermer(timeout)) | Sonnet | à faire |
 | 8 | DOC | README et guide des testeurs | Sonnet | à faire |
 | 8 | REC | Recette finale sur l'EliteBook ★ | avec Anaël | à faire |
@@ -55,14 +56,15 @@ Constats tirés par Q3 (textes `en` dans `donnees/catalogue/*.yaml`) : AD-KERBER
 - R2 : un `relecture.json` illisible lève une `ValidationError` ; aucun code d'API prévu (W3a ne doit pas le laisser sortir en 500 brut). §26 annonce 409 `generation_en_cours` pour `POST …/candidat`, mais avec l'ordre du §26 (verrou d'abord) une régénération en cours donne 409 `lot_en_cours`. Réécriture complète de `relecture.json` à chaque fiche (O(n²), 18 ms par fiche à 300 notes, négligeable).
 - B1 (avant Q5) : une rubrique complétée par le garde-fou (`rubrique_completee`) compte 1,0 dans la recopie, conformément à §29 et mesures-qualite.md (définition A29). Cela pénalise, sans jamais l'avantager, un modèle qui laisse des rubriques vides ; le cas reste visible (`a_revoir`, `motifs`). Définition gardée telle quelle pour Q5.
 - W2 : `fermer()` de M1 reste bloquant pendant une ouverture du moteur : l'arrêt de l'UI pendant le démarrage d'une régénération dépasse la borne de 10 s (E3). Accepter pour le POC, ou story `fermer(timeout)` sur M1. Report antérieur (v0.1.0) : arrêter l'UI pendant un lot tue le fil daemon sans son `finally`, le llama-server du lot peut rester orphelin (à vérifier en REC : `tasklist | findstr llama-server`). `date_creation_processus` ajouté dans `adaptateurs/memoire_psutil.py` (psutil réservé aux adaptateurs). La redirection 303 `/lots/{id}` → `/incidents/{id}` est faite par W2 dans `pages.py` ; le sens inverse reste à W4.
-- Q5 (à arbitrer par Anaël avant fusion) : la règle de CAP-7 donne qwen3-1.7b par défaut (médianes 6/6, recopie 0,45, 36,2 s ; granite 6/6, 0,56, 27,9 s), mais CAP-6 n'est pas tenu pour qwen3-1.7b : 5/6 à la seed 242 (note 11 en `repli_moteur`, délai de 180 s dépassé, charge du poste supposée, non démontrée ; rejeu non compté). Options : valider qwen3-1.7b, garder granite (tient CAP-6), ou rebancer la seed 242 poste au repos. Reports : README (DOC), `ram_min_defaut_go` à remesurer, repli qwen3.5 et MiniCPM5 non rebancés. Détail : `bilan-modeles.md` section v2, `revues/story-Q5.md`.
+- Q5 (arbitré : granite défaut, voir « Arbitrages ») : la règle de CAP-7 donne qwen3-1.7b par défaut (médianes 6/6, recopie 0,45, 36,2 s ; granite 6/6, 0,56, 27,9 s), mais CAP-6 n'est pas tenu pour qwen3-1.7b : 5/6 à la seed 242 (note 11 en `repli_moteur`, délai de 180 s dépassé, charge du poste supposée, non démontrée ; rejeu non compté). Options : valider qwen3-1.7b, garder granite (tient CAP-6), ou rebancer la seed 242 poste au repos. Reports : README (DOC), `ram_min_defaut_go` à remesurer, repli qwen3.5 et MiniCPM5 non rebancés. Détail : `bilan-modeles.md` section v2, `revues/story-Q5.md`.
 - Test instable : `tests/e2e/test_ui.py::test_lot_nominal_20_notes_puis_telechargement` a échoué une fois dans la suite complète après Q3 (machine chargée, suite à 173 s), puis passé seul, avec `tests/e2e/` et dans une seconde suite complète (908). À surveiller ; dev-story de correction s'il récidive.
+Suite complète après la vague 5 (W2 + Q5) : 994 verts.
 
 ## Arbitrages d'Anaël (2026-10-18)
 
 1. Modèle par défaut : **granite reste défaut** (tient CAP-6 ; un délai dépassé en usage réel est pire qu'une recopie un peu plus forte). qwen3-1.7b reste `candidat`, choisissable à l'accueil. Rôles rééchangés sur la branche Q5 avant fusion.
 2. Arrêt de l'UI : story **ARR** « arrêt propre » (tuer le llama-server enfant à l'arrêt, `fermer(timeout)` sur M1), après W3a et avant REC.
-3. Word `en` (X1) : accepté si les `detail` et codes bruts ne paraissent qu'en brouillon ; s'ils paraissent dans le Word final, story de libellés par langue avant REC.
+3. Word `en` (X1) : accepté si les `detail` et codes bruts ne paraissent qu'en brouillon ; s'ils paraissent dans le Word final, story de libellés par langue avant REC. Vérifié : l'annexe des entrées écartées les écrit dans tous les modes, final compris (`export_docx.py:305-309`, ex. `non_traitee | lot_interrompu : lot interrompu`) ; aucun test ne couvre final + écartées. D'où la story **LIB**.
 4. Relecture des 10 constats de Q3 : faite par Anaël pendant la REC, sur le Word `en`.
 5 à 14. Écarts Q4, R1 (×2), W1, Q2, B1, W5, README/repli, test instable : acceptés tels que recommandés. R2 : W3a renvoie une erreur codée (`relecture_illisible`) pour un `relecture.json` illisible, jamais un 500 brut ; 409 `lot_en_cours` gardé pendant une régénération (ordre du §26). Repli qwen3.5-0.8b essayé en REC ; README réaligné par DOC.
 
