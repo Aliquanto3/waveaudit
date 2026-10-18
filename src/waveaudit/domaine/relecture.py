@@ -8,7 +8,7 @@ R1, en fonctions pures sans accès disque. La persistance est dans `application/
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from waveaudit.domaine import cvss31
 from waveaudit.domaine.erreurs import EntreeInvalide
@@ -185,11 +185,30 @@ def corriger(e: EntreeRelecture, correction: FicheCorrigee, longueur_max: int) -
         cvss=cvss,
         references=references,
     )
-    if nouvelle == e.fiche_corrigee and e.statut_relecture == "a_valider":
-        # Correction identique à l'état courant : rien ne change (pas d'incrément de version,
-        # géré par `application/relecture.py` qui ne réécrit pas une entrée inchangée).
+    if nouvelle == (e.fiche_corrigee or _projection_generee(e.fiche_generee)):
+        # Correction identique à l'état courant : rien ne change, ni la fiche ni le statut
+        # (une fiche validée le reste). L'entrée reçue est renvoyée telle quelle ;
+        # `application/relecture.modifier` (R2) n'incrémente pas la version d'une entrée égale.
         return e
-    return e.model_copy(update={"fiche_corrigee": nouvelle, "statut_relecture": "a_valider"})
+    return _maj(e, fiche_corrigee=nouvelle, statut_relecture="a_valider")
+
+
+def _projection_generee(fiche: Fiche) -> FicheCorrigee:
+    """La fiche générée sous forme de correction, pour reconnaître une correction sans effet."""
+    return FicheCorrigee(
+        titre=fiche.titre,
+        description=fiche.description,
+        impact=fiche.impact,
+        recommandation=fiche.recommandation,
+        cvss_vecteur=fiche.cvss.vecteur,
+        cvss=fiche.cvss,
+        references=fiche.references,
+    )
+
+
+def _maj(e: EntreeRelecture, **champs: object) -> EntreeRelecture:
+    """Copie revalidée : `model_copy` seul ne vérifie pas les invariants de `EntreeRelecture`."""
+    return EntreeRelecture.model_validate(e.model_dump() | champs)
 
 
 def valider(e: EntreeRelecture) -> EntreeRelecture:
@@ -204,26 +223,32 @@ def valider(e: EntreeRelecture) -> EntreeRelecture:
     for rubrique in (fiche.titre, fiche.description, fiche.impact, fiche.recommandation):
         if not rubrique.strip():
             raise RefusRelecture("rubrique_vide", "Une rubrique de la fiche est vide.")
-    return e.model_copy(update={"statut_relecture": "validee"})
+    return _maj(e, statut_relecture="validee")
 
 
 def remplacer_fiche(
     e: EntreeRelecture, fiche: Fiche, constat_id: str, modele_generation: str
 ) -> EntreeRelecture:
     """Remplace la fiche courante par une fiche régénérée (contrats §25, §24)."""
-    return e.model_copy(
-        update={
-            "etat": "fiche",
-            "fiche_generee": fiche,
-            "fiche_corrigee": None,
-            "candidat_choisi": constat_id,
-            "ecartee": None,
-            "statut_relecture": "a_valider",
-            "generation": "aucune",
-            "erreur_generation": None,
-            "modele_generation": modele_generation,  # [revue A16]
-        }
-    )
+    try:
+        return _maj(
+            e,
+            etat="fiche",
+            fiche_generee=fiche,
+            fiche_corrigee=None,
+            candidat_choisi=constat_id,
+            ecartee=None,
+            statut_relecture="a_valider",
+            generation="aucune",
+            erreur_generation=None,
+            modele_generation=modele_generation,  # [revue A16]
+        )
+    except ValidationError as erreur:
+        # Seul invariant atteignable : `candidat_choisi` hors des candidats (revue A14 : admis
+        # seulement si aucun candidat n'a de score > 0, cas `non_rattachee`).
+        raise RefusRelecture(
+            "candidat_inconnu", "Ce constat n'est pas un candidat de cette note."
+        ) from erreur
 
 
 def rapport_export(

@@ -56,13 +56,14 @@ Aucun fichier du socle modifié ; `domaine/cvss31.evaluer` est le seul point d'a
 
 - « Pas d'incrément de version » (corriger, cas identique) est implémenté dans la règle pure
   elle-même : `corriger` renvoie l'entrée reçue sans modification quand la correction calculée
-  est égale à `fiche_corrigee` courant et que `statut_relecture` vaut déjà `"a_valider"`. La
+  est égale à `fiche_corrigee` courant (ou, sans correction, à la fiche générée), quel que soit
+  le statut : une fiche validée le reste (revue R1). La
   persistance (R2, `application/relecture.py`) peut ainsi détecter l'absence de changement
   sans logique supplémentaire : comparer le résultat à l'entrée d'origine suffit.
-- `model_copy(update=...)` (pydantic v2) ne revalide pas le modèle : `remplacer_fiche` peut
-  donc poser un `candidat_choisi` issu de tout le catalogue (régénération depuis
-  `non_rattachee`) sans se heurter à l'invariant `candidat_choisi ∈ candidats` posé par S0 ;
-  le contrôle d'existence du constat reste à la route (R2/W2), comme prévu par le contrat.
+- Les règles renvoient une copie revalidée (`EntreeRelecture.model_validate`), jamais un
+  `model_copy` seul, qui ne vérifie pas les invariants. Le cas A14 (`non_rattachee`, constat
+  pris dans tout le catalogue) passe le validateur S0 ; un `constat_id` hors candidats ailleurs
+  fait lever `RefusRelecture("candidat_inconnu")` par `remplacer_fiche` (revue R1).
 - Ordre des refus de `corriger` : `reference_ajoutee` avant `reference_dupliquee`, repris de
   l'ordre des puces du contrat (E29 est une puce ajoutée en revue, après `reference_ajoutee`).
 - `valider` calcule `fiche_courante(e)` avant de vérifier `vecteur_invalide`, pour que
@@ -78,4 +79,12 @@ Aucun fichier du socle modifié ; `domaine/cvss31.evaluer` est le seul point d'a
 
 ## Revue
 
-En attente (second avis puis reviewer).
+Détail : `_bmad-output/implementation-artifacts/revues/story-R1.md`.
+
+- medium | second avis 1 | corrigé | `remplacer_fiche` sans revalidation pouvait produire une entrée illisible ; copie revalidée, `candidat_inconnu`.
+- medium | second avis 2 | corrigé | correction identique sur une fiche validée la repassait à `a_valider`.
+- medium | second avis 3 | corrigé (test `is`) ; consigne R2 | `modifier` n'incrémente pas une entrée inchangée ; texte du §25 `modifier` à arbitrer.
+- low | second avis 4 | corrigé | test du vecteur invalide dans `corriger`.
+- low | second avis 5 | rejeté | forme S0, jugée voulue en revue S0.
+- low | reviewer | reporté | `evaluer` accepte `CVSS:3.0` et les métriques temporelles ; à arbitrer.
+- Complexité : 0 constat.

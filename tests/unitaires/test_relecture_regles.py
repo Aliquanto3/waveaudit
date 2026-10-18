@@ -156,8 +156,26 @@ def test_corriger_identique_sans_increment():
     entree = corriger(_entree(), corrigee, 1000)
     assert entree.statut_relecture == "a_valider"
     meme = corriger(entree, corrigee, 1000)
-    assert meme == entree
+    assert meme is entree  # entrée inchangée : la persistance (R2) n'incrémente pas la version
     assert meme.version == entree.version
+
+
+def test_corriger_identique_garde_une_fiche_validee():
+    validee = valider(corriger(_entree(), _corrigee(), 1000))
+    assert corriger(validee, _corrigee(), 1000) is validee
+
+
+def test_corriger_identique_a_la_fiche_generee_ne_change_rien():
+    entree = _entree(statut_relecture="validee")
+    identique = _corrigee(titre=FICHE.titre, references=[REF_2, REF_1])
+    assert corriger(entree, identique, 1000) is entree
+
+
+def test_corriger_vecteur_invalide_enregistre_tel_quel():
+    resultat = corriger(_entree(), _corrigee(cvss_vecteur="CVSS:3.1/AV:Z", cvss=CVSS), 1000)
+    assert resultat.fiche_corrigee.cvss_vecteur == "CVSS:3.1/AV:Z"
+    assert resultat.fiche_corrigee.cvss is None
+    assert fiche_courante(resultat).cvss == CVSS
 
 
 def test_valider_puis_corriger_redevient_a_valider():
@@ -314,3 +332,32 @@ def test_rapport_export_ecartees_ordonnees_par_index():
     )
     rapport, _ = rapport_export(etat, "final")
     assert [e.note for e in rapport.ecartees] == ["01-attente.md", "03.md"]
+
+
+def test_remplacer_fiche_hors_candidats_refuse():
+    with pytest.raises(RefusRelecture) as exc:
+        remplacer_fiche(_entree(), FICHE, "WEB-999", "m")
+    assert exc.value.code == "candidat_inconnu"
+
+
+def test_remplacer_fiche_depuis_non_rattachee_admet_un_id_du_catalogue():
+    nuls = [Candidat(id="WEB-001", score=0.0), Candidat(id="WEB-002", score=0.0)]
+    ecartee = EntreeEcartee(
+        note="01-sqli.md",
+        statut=Statut.NON_RATTACHEE,
+        motif=Motif(code=CodeMotif.AUCUN_CONSTAT, detail="x"),
+        candidats=nuls,
+        constat_attendu=None,
+    )
+    entree = _entree(
+        etat="ecartee",
+        candidats=nuls,
+        candidat_choisi=None,
+        fiche_generee=None,
+        statut_relecture=None,
+        ecartee=ecartee,
+    )
+    resultat = remplacer_fiche(entree, FICHE, "AD-007", "m")
+    assert resultat.candidat_choisi == "AD-007"
+    assert resultat.ecartee is None
+    assert EntreeRelecture.model_validate_json(resultat.model_dump_json()) == resultat
