@@ -11,6 +11,7 @@ Les stories web suivantes remplissent leur module de routeur sans retoucher ce f
 (AD-22 [revue A28]).
 """
 
+import logging
 import secrets
 
 from fastapi import FastAPI, Request
@@ -29,7 +30,12 @@ MIO = 1024 * 1024
 # Limites totales de corps par route d'écriture (§26) ; les autres écritures : 256 Kio.
 _LIMITES = {"/lots": 20 * MIO, "/incidents": 50 * MIO}
 _LIMITE_PAR_DEFAUT = 256 * 1024
+# Origin et jeton CSRF : toute méthode non sûre (DELETE, PATCH compris, au-delà du §26).
+_METHODES_SURES = frozenset({"GET", "HEAD", "OPTIONS"})
+# Longueur et taille : écritures à corps du §26.
 _ECRITURES = frozenset({"POST", "PUT"})
+
+_journal = logging.getLogger(__name__)
 
 _EN_TETES = {
     "Content-Security-Policy": (
@@ -89,7 +95,7 @@ def creer_app(config: Configuration, *, hotes_test: tuple[str, ...] = ()) -> Fas
         """Règles communes, dans l'ordre du §26 ; renvoie la réponse de refus ou `None`."""
         if request.headers.get("host", "").lower() not in hotes_autorises:
             return erreur(400, "hote_refuse", "Hôte non autorisé.")
-        if request.method not in _ECRITURES:
+        if request.method in _METHODES_SURES:
             return None
         origine = request.headers.get("origin")
         if origine is not None and origine.lower() not in origines_autorisees:
@@ -101,6 +107,8 @@ def creer_app(config: Configuration, *, hotes_test: tuple[str, ...] = ()) -> Fas
                 "csrf_invalide",
                 "Jeton de sécurité absent ou périmé. Rechargez la page.",
             )
+        if request.method not in _ECRITURES:
+            return None
         longueur = request.headers.get("content-length", "")
         if not longueur.isascii() or not longueur.isdigit():
             return erreur(411, "longueur_requise", "Longueur de la requête requise.")
@@ -111,7 +119,15 @@ def creer_app(config: Configuration, *, hotes_test: tuple[str, ...] = ()) -> Fas
 
     @app.middleware("http")
     async def _enveloppe(request: Request, call_next) -> Response:
-        reponse = _controler(request) or await call_next(request)
+        reponse = _controler(request)
+        if reponse is None:
+            try:
+                reponse = await call_next(request)
+            except Exception:
+                # Sans cela, ServerErrorMiddleware répondrait en texte brut, sans les en-têtes
+                # de sécurité ni code ; la trace reste dans le journal local, pas dans la réponse.
+                _journal.exception("Erreur interne sur %s %s", request.method, request.url.path)
+                reponse = erreur(500, "erreur_interne", "Erreur interne du serveur.")
         for nom, valeur in _EN_TETES.items():
             reponse.headers[nom] = valeur
         if not request.url.path.startswith("/static/"):

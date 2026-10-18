@@ -67,3 +67,11 @@ sources:
 - Aide `tests/accessibilite.py` : W5.
 - Un nom envoyé par le client avec un chemin Windows (`C:\…\x.md`) n'est pas testable par
   `httpx` (il ne garde que le nom de base) : non couvert.
+
+## Revue
+
+Détail : `_bmad-output/implementation-artifacts/revues/story-W1.md`. Corrigés (low) : Origin et jeton
+CSRF sur toute méthode non sûre ; 500 `erreur_interne` codé avec les en-têtes de sécurité ;
+`sans_chemin` sur l'échec de `fil.start()`. Tests ajoutés : PUT/DELETE/PATCH sans jeton,
+`Origin: null`, erreur interne, aucun GET n'écrit sur le disque. Rejetés : `/api/jeton` (§26),
+`no-store` hors `/static/` (écart déclaré). Complexité : 0 constat.

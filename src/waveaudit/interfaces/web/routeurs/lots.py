@@ -241,7 +241,7 @@ async def creer_lot(request: Request) -> Response:
         try:
             fil.start()
         except RuntimeError as exc:
-            lots.registre.echouer(id_lot, str(exc))
+            lots.registre.echouer(id_lot, sans_chemin(str(exc)))
             raise
         lance = True
         return RedirectResponse(f"/lots/{id_lot}", status_code=303)

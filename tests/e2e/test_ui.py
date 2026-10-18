@@ -407,3 +407,63 @@ def test_corps_d_erreur_codes_sans_chemin_absolu(config_test, tmp_path):
         assert str(tmp_path) not in reponse.text
         assert str(config_test.chemins.var) not in reponse.text
         assert _CHEMIN_WINDOWS.search(corps["detail"]) is None, corps
+
+
+def test_put_et_methodes_non_sures_sans_jeton_refuses(config_test):
+    """Revue W1 : jeton exigé sur PUT (§26) et sur toute méthode non sûre, avant le routage."""
+    nu = TestClient(creer_app(config_test, hotes_test=("testserver",)))
+    for methode in ("PUT", "DELETE", "PATCH"):
+        reponse = nu.request(methode, "/lots", content=b"x")
+        _erreur_codee(reponse, 403, "csrf_invalide")
+    assert _aucune_entree(config_test)
+
+
+def test_origin_null_refuse(config_test):
+    """Revue W1 : `Origin: null` (iframe sandbox, fichier local) n'est pas une origine permise."""
+    client = client_web(config_test)
+    for methode in ("POST", "PUT"):
+        reponse = client.request(
+            methode, "/lots", files=[_notes_demo()[0]], headers={"origin": "null"}
+        )
+        _erreur_codee(reponse, 403, "origine_refusee")
+    assert _aucune_entree(config_test)
+
+
+def test_erreur_interne_codee_avec_en_tetes(config_test):
+    """Revue W1 : une exception non prévue sort en `{detail, code}` avec les en-têtes §26."""
+    from fastapi import APIRouter
+
+    app = creer_app(config_test, hotes_test=("testserver",))
+    routeur = APIRouter()
+
+    @routeur.get("/boum")
+    def boum():
+        raise ValueError(str(config_test.chemins.var))
+
+    app.include_router(routeur)
+    reponse = TestClient(app, raise_server_exceptions=False).get("/boum")
+    corps = _erreur_codee(reponse, 500, "erreur_interne")
+    assert str(config_test.chemins.var) not in reponse.text, corps
+    for en_tete, valeur in _EN_TETES_SECURITE.items():
+        assert reponse.headers.get(en_tete) == valeur, en_tete
+    assert reponse.headers.get("cache-control") == "no-store"
+
+
+def test_aucun_get_n_ecrit_sur_le_disque(config_test):
+    """En-tête de stories.yaml v2 : aucun GET n'écrit sur le disque (§26 [revue A3])."""
+    client = client_web(config_test)
+    var = config_test.chemins.var
+    avant = sorted(var.rglob("*")) if var.exists() else []
+    for chemin in (
+        "/",
+        "/lots/20260101-000000-abcd",
+        "/lots/20260101-000000-abcd/etat",
+        "/lots/20260101-000000-abcd/rapport.docx",
+        "/lots/..%2F..%2Fx/etat",
+        "/api/jeton",
+        "/static/style.css",
+        "/nulle-part",
+    ):
+        client.get(chemin)
+    apres = sorted(var.rglob("*")) if var.exists() else []
+    assert apres == avant
