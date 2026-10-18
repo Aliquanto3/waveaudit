@@ -95,9 +95,31 @@ Commande : `uv run waveaudit incident donnees/demo/incident --modele <nom>`. Psu
 | granite-4.0-1b-q4km (défaut) | 16/16, 0 à revoir | 8 à 22 s | 210 s | récits en français, factuels (hôte, IP, plage horaire, ports) |
 | minicpm5-1b-q4km (repli) | 16/16, 0 à revoir | 4 à 8 s | 88 s | JSON valide avec `reflexion = false` ; 1 récit sur 16 en anglais, et faux sur le sens (« Bastion01 has attempted to brute-force »), avec le statut `ok` |
 
+## v2 — Index BM25 bilingue et rattachement des notes 01 et 29 (Q4)
+
+Index bilingue (contrats §7 v2) : `titre` + `en.titre` ×3, `mots_cles` ×3, `description` +
+`en.description` ×1. `k1` et `b` laissés aux valeurs par défaut (1.5, 0.75) : le rattachement
+visé est obtenu par ajustement des `mots_cles` de `WEB-XSS-REFLECHI` et `WEB-SSTI` seuls (sans
+régler `k1`/`b`), donc aucune justification chiffrée de changement n'est due sur ces deux
+réglages.
+
+- **Notes 01 et 29 :** rattachées au rang 1 (contre rang 2 avant la story, concurrencées par
+  `WEB-XSS-STOCKE` et `WEB-DIVULGATION-ERREURS`). Mots-clés ajoutés (overlap distinctif avec le
+  texte des notes, vérifié par script hors dépôt) : `WEB-XSS-REFLECHI` → « résultats de
+  recherche non échappés », « navigateur jetable », « chevrons non filtrés » (en échange du
+  retrait de 4 mots-clés redondants avec le bloc `en` ou peu discriminants : « cross-site
+  scripting », « reflected xss », « alert(1) », « dalfox », pour rester sous la borne de 12 du
+  cahier des charges) ; `WEB-SSTI` → « erreur 500 avec trace du moteur », « accolades doubles
+  évaluées », « expression arithmétique dans un champ ».
+- **Mesures notes 01-20 (bloquant) :** top1 = 18/20 (seuil 17/20), top3 = 20/20 (seuil 20/20).
+- **Mesures notes non vues 21-28, 30 (9 notes, la 29 en est sortie) :** top1 = 8/9 (seuil 8/9),
+  top3 = 9/9 (seuil 9/9) — seuils déjà atteints sans réglage supplémentaire : le marqueur
+  `xfail` prévu par le contrat (§29, revue A30) a été retiré sans qu'aucun nouveau réglage
+  n'ait été tenté après la mesure initiale.
+- Report précédent (ci-dessous, « Rattachement des notes 01 et 29 ») traité par cette story.
+
 ## Reports (hors périmètre V2)
 
-- **Rattachement** des notes 01 (réfléchi contre stocké) et 29 (SSTI contre divulgation d'erreurs). À traiter par la recherche ou par les mots du catalogue, dans une story de calibrage.
 - **Garde-fous fiches** :
   - une sortie dégénérée (répétition jusqu'à `longueur_max_rubrique`) reste `ok` ;
   - l'URL de l'actif citée depuis la note est retirée comme une référence inventée ;

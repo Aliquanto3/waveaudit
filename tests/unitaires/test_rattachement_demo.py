@@ -1,14 +1,15 @@
-"""Calibrage du rattachement BM25 sur les notes de démonstration (CAP-3, story 11, D1).
+"""Calibrage du rattachement BM25 sur les notes de démonstration (CAP-5, Q4).
 
-Charge le vrai catalogue (`donnees/catalogue`) et les vraies notes
-(`donnees/demo/notes`), classe chaque note et vérifie le seuil de CAP-3.
+Charge le vrai catalogue (`donnees/catalogue`, index bilingue) et les vraies notes
+(`donnees/demo/notes`), classe chaque note et vérifie les seuils de CAP-5.
 
-Notes 01-20 : seuil inchangé (story 11), bloquant.
-Notes 21-30 (difficiles, story D1) : mesure informative top1/top3, non bloquante
-(`xfail(strict=False)` si le score est sous 7/10 en top 3).
+Notes 01 et 29 : chacune doit être rattachée au rang 1 (bloquant, Q4).
+Notes 01-20 : top1 >= 17/20 et top3 = 20/20 (bloquant).
+Notes non vues 21-28 et 30 (la note 29, cible du réglage, n'en fait plus partie) :
+top1 >= 8/9 et top3 = 9/9. Valeurs figées en fin de story (commit Q4) : non bloquant
+pendant le réglage (xfail retiré), puisque le seuil est déjà atteint sans réglage
+supplémentaire — voir le message du commit Q4 pour les essais tentés.
 """
-
-import pytest
 
 from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
 from waveaudit.adaptateurs.notes_fichiers import NotesFichiers
@@ -17,9 +18,10 @@ from waveaudit.domaine.configuration import ConfigRecherche
 from waveaudit.domaine.modeles import Note
 from waveaudit.domaine.recherche import classer, requete_depuis_note
 
-SEUIL_TOP3 = 18
-SEUIL_TOP1 = 15
-SEUIL_TOP3_DIFFICILES = 7  # sur 10 notes 21-30 (non bloquant)
+SEUIL_TOP3 = 20
+SEUIL_TOP1 = 17
+SEUIL_TOP3_NON_VUES = 9  # sur 9 notes (21-28, 30)
+SEUIL_TOP1_NON_VUES = 8
 
 
 def _rang(note: Note, constats, reglages: ConfigRecherche) -> int | None:
@@ -48,8 +50,8 @@ def _prefixe(fichier: str) -> int:
     return int(fichier.split("-", 1)[0])
 
 
-def test_rattachement_atteint_le_seuil_cap3():
-    """Notes 01-20 : seuil inchangé depuis la story 11."""
+def test_rattachement_atteint_le_seuil_cap5():
+    """Notes 01-20 : top1 >= 17/20, top3 = 20/20 (Q4)."""
     rangs = {f: r for f, r in _rangs_des_notes().items() if _prefixe(f) <= 20}
 
     top1 = sum(1 for rang in rangs.values() if rang == 1)
@@ -67,19 +69,30 @@ def test_rattachement_atteint_le_seuil_cap3():
     )
 
 
-def test_rattachement_des_notes_difficiles_21_30():
-    """Notes 21-30 (difficiles, D1) : mesure informative top1/top3, non bloquante."""
-    rangs = {f: r for f, r in _rangs_des_notes().items() if 21 <= _prefixe(f) <= 30}
-    assert len(rangs) == 10
+def test_note_01_rattachee_au_rang_1():
+    """Note 01 (XSS réfléchi) : rattachement exact au rang 1 (Q4)."""
+    rangs = _rangs_des_notes()
+    rang = next(r for f, r in rangs.items() if f.startswith("01-"))
+    assert rang == 1, f"rang={rang}"
+
+
+def test_note_29_rattachee_au_rang_1():
+    """Note 29 (SSTI) : rattachement exact au rang 1 (Q4)."""
+    rangs = _rangs_des_notes()
+    rang = next(r for f, r in rangs.items() if f.startswith("29-"))
+    assert rang == 1, f"rang={rang}"
+
+
+def test_rattachement_des_notes_non_vues():
+    """Notes non vues 21-28 et 30 (la 29 en est sortie) : top1 >= 8/9, top3 = 9/9 (Q4)."""
+    rangs = {
+        f: r for f, r in _rangs_des_notes().items() if 21 <= _prefixe(f) <= 28 or _prefixe(f) == 30
+    }
+    assert len(rangs) == 9
 
     top1 = sum(1 for rang in rangs.values() if rang == 1)
     top3 = sum(1 for rang in rangs.values() if rang is not None and rang <= 3)
 
-    print(f"\nnotes difficiles 21-30 : top1={top1}/10, top3={top3}/10")
-    for fichier, rang in sorted(rangs.items()):
-        print(f"  {fichier}: rang={rang}")
-
-    if top3 < SEUIL_TOP3_DIFFICILES:
-        pytest.xfail(
-            f"top3={top3}/10 (seuil informatif {SEUIL_TOP3_DIFFICILES}) sur les notes difficiles"
-        )
+    matrice = "\n".join(f"  {fichier}: rang={rang}" for fichier, rang in sorted(rangs.items()))
+    assert top3 >= SEUIL_TOP3_NON_VUES, f"top3={top3}/9 (seuil {SEUIL_TOP3_NON_VUES}) :\n{matrice}"
+    assert top1 >= SEUIL_TOP1_NON_VUES, f"top1={top1}/9 (seuil {SEUIL_TOP1_NON_VUES}) :\n{matrice}"

@@ -4,7 +4,7 @@ from math import log
 
 import pytest
 
-from waveaudit.domaine.modeles import ConstatType, Note, Reference
+from waveaudit.domaine.modeles import ConstatType, Note, Reference, TextesConstat
 from waveaudit.domaine.recherche import _MOTS_VIDES, _tokeniser, classer, requete_depuis_note
 
 _REF = Reference(id="r1", titre="Référence", url="https://example.invalid/r1")
@@ -111,6 +111,27 @@ def test_mots_vides_deja_normalises_et_filtres() -> None:
 def test_accents_et_ligatures() -> None:
     assert _tokeniser("DÉFAUT d’accès") == ["defaut", "acces"]
     assert _tokeniser("Mise en œuvre, MANŒUVRE") == _tokeniser("mise en oeuvre, manoeuvre")
+
+
+def test_index_bilingue_mot_present_seulement_dans_en_titre_rattache() -> None:
+    """Contrats §7 v2 : en.titre fait partie du document indexé. N reste le nombre de
+    constats (pas de doublon par langue)."""
+    c1 = _constat("c1", "Mot de passe par défaut", ["authentification"]).model_copy(
+        update={
+            "en": TextesConstat(
+                titre="Default credentials exposed",
+                description="description",
+                impact="impact",
+                recommandation="recommandation",
+            )
+        }
+    )
+    catalogue = [c1, _constat("c2", "Anomalie réseau", ["réseau"])]
+    candidats = classer(catalogue, "credentials exposed", k1=1.5, b=0.75)
+    scores = {c.id: c.score for c in candidats}
+    assert scores["c1"] > 0.0
+    assert scores["c1"] > scores["c2"]
+    assert len(candidats) == 2
 
 
 def test_score_bm25_valeur_calculee_a_la_main() -> None:

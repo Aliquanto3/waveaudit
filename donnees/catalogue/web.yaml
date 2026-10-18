@@ -4,16 +4,15 @@
   mots_cles:
     - xss réfléchi
     - injection de script
-    - cross-site scripting
-    - reflected xss
     - payload html encodé
     - burp repeater
     - paramètre non échappé
-    - alert(1)
     - vol de session
     - lien forgé
     - échappement de sortie absent
-    - dalfox
+    - résultats de recherche non échappés
+    - navigateur jetable
+    - chevrons non filtrés
   description: >-
     Un paramètre de requête est renvoyé dans la page sans encodage adapté au
     contexte HTML, ce qui permet d'y injecter du script exécuté par le
@@ -818,6 +817,9 @@
     - exécution de code via template
     - tplmap
     - payload d'évaluation arithmétique
+    - erreur 500 avec trace du moteur
+    - accolades doubles évaluées
+    - expression arithmétique dans un champ
   description: >-
     Une entrée utilisateur est insérée directement dans un gabarit évalué
     par le moteur de template côté serveur, ce qui permet d'exécuter des
