@@ -1,6 +1,6 @@
 [project]
 name = "waveaudit"
-version = "0.1.0"
+version = "0.2.0rc1"
 description = "Assistant d'audit cyber hors ligne : notes brutes vers fiches de vulnérabilité (POC)."
 readme = "README.md"
 license = "Apache-2.0"

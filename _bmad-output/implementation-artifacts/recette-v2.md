@@ -1,14 +1,14 @@
 # Recette v2 (REC) — fiche à remplir
 
 Poste : EliteBook (i5-1145G7, 15,7 Gio). Base : `main` à a49d271 (suite 1079 verts, `slow` 5/5, CI verte).
-Déroulé détaillé : `docs/guide-testeurs.md` (parcours de Camille et Karim, « Points à vérifier en recette »).
+Déroulé détaillé : `docs/guide-testeurs.md` (parcours de Camille et Karim). Version interactive : https://claude.ai/artifact/Nk48VmdCwE7XfDNTGvUuWQ.
 Cocher `[x]` si conforme, `[!]` si écart (le décrire dans « Écarts relevés »).
 
 ## 0. Avant de commencer
 
 - [ ] Fermer les applications lourdes ; RAM libre notée : ____ Go (7,7 Go au moment de la préparation).
 - [ ] `tasklist | findstr llama-server` : aucune ligne.
-- [ ] `uv run waveaudit version` affiche 0.1.0 (la 0.2.0 n'est posée qu'après la recette).
+- [ ] `uv run waveaudit version` affiche 0.2.0rc1 (version candidate ; la 0.2.0 n'est posée qu'après la recette).
 - [ ] `uv run waveaudit ui`, puis ouvrir `http://127.0.0.1:8765` dans un vrai navigateur (Edge ou Firefox).
 
 Dossiers prêts (ignorés par git) :
@@ -73,7 +73,7 @@ Relancer le parcours sur 3 ou 4 notes avec la langue « English » (ou `uv run w
 ## 5. Robustesse
 
 - [ ] Ctrl+C sur l'UI pendant un lot en cours ; arrêt en moins de ~10 s ; `tasklist | findstr llama-server` : aucune ligne (story ARR).
-- [ ] Repli `qwen3.5-0.8b` avec peu de RAM (ouvrir la suite bureautique et d'autres applis jusqu'à passer sous le seuil `ram_min_defaut_go = 4.5` de `config/waveaudit.toml`, puis lancer un lot) : le repli est annoncé et le lot aboutit. RAM libre au lancement : ____ Go.
+- [ ] Repli `qwen3.5-0.8b` avec peu de RAM (ouvrir la suite bureautique et d'autres applis jusqu'à passer sous le seuil `ram_min_defaut_go = 4.5` de `config/waveaudit.toml`, recharger l'accueil, puis lancer un lot) : `qwen3.5-0.8b` est présélectionné dans la liste « Modèle » et le lot aboutit. Aucun message n'annonce le repli (constat de la revue DOC-T) : dire si c'est gênant. RAM libre au lancement : ____ Go.
 - [ ] Facultatif : un lot avec qwen3-1.7b (candidat) choisi à l'accueil, durée par fiche : ____ s.
 
 ## Écarts relevés
