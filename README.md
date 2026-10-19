@@ -4,7 +4,19 @@
 
 Assistant IA **hors ligne** pour les consultants en audit de cybersécurité, sur un PC professionnel de 16 Go sans GPU. Il rédige des **fiches de vulnérabilité** à partir des notes brutes du consultant, en retrouvant le constat type dans un catalogue puis en l'adaptant au contexte. Aucune donnée ne quitte le poste.
 
-> **État : POC en développement.** Il ne traite que des données publiques ou fictives ; toute sortie porte le bandeau « Démonstration — données fictives ».
+> **État : POC v2 en test (version candidate 0.2.0).** Il ne traite que des données publiques ou fictives ; toute sortie porte le bandeau « Démonstration — données fictives ».
+
+## Ce que fait WaveAudit
+
+- Déposer des notes d'audit fictives et obtenir des fiches de vulnérabilité rédigées automatiquement.
+- Relire chaque fiche à côté de sa note source, la corriger, puis la valider, dans une interface web locale.
+- Changer le constat type proposé pour une fiche, ou en choisir un à la main dans le catalogue.
+- Exporter un brouillon Word à tout moment, ou le rapport final une fois les fiches validées.
+- Rédiger les fiches en français ou en anglais.
+- Analyser des journaux techniques (connexions, événements Windows) et produire un rapport d'incident (démonstration CERT).
+
+> **Vous testez le POC ?** Suivez le [guide des testeurs](docs/guide-testeurs.md) : installation,
+> premier lot, et comment transmettre votre retour.
 
 ## Pourquoi en local
 
@@ -28,14 +40,16 @@ Les données de mission d'un audit de sécurité (preuves, vulnérabilités, ext
 | Mémoire | Pic ≤ 6 Go |
 | Installation | < 10 min |
 
-> **Vous testez le POC ?** Suivez le [guide des testeurs](docs/guide-testeurs.md) : installation,
-> premier lot, et comment transmettre votre retour.
-
 ## Prérequis
 
 - Windows 11, CPU seul (pas de GPU requis), 16 Go de RAM.
-- [Python 3.12](https://www.python.org/) et [uv](https://docs.astral.sh/uv/) (aucun `python` ni `pip` global : toutes les commandes passent par `uv run`).
+- [uv](https://docs.astral.sh/uv/), qui installe Python 3.12 lui-même au besoin (aucun `python`
+  ni `pip` global : toutes les commandes passent par `uv run`). Installation sans droits admin,
+  et clonage possible par simple téléchargement du ZIP GitHub sans git : détail dans le
+  [guide des testeurs](docs/guide-testeurs.md#récupérer-le-dépôt).
 - Pas de droits admin ni de compilateur nécessaires.
+- Sur un réseau d'entreprise avec proxy, voir le
+  [guide des testeurs](docs/guide-testeurs.md#réseau-dentreprise).
 
 ## Installation
 

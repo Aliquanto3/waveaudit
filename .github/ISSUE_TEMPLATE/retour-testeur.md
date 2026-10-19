@@ -9,13 +9,32 @@ labels: retour-testeur
 
 - Modèle / configuration (CPU, RAM) :
 - OS :
+- Version testée (`uv run waveaudit version`) :
 
-## Temps mesurés
+## Installation
 
 - Temps d'installation (`uv sync` + `waveaudit installer`) :
-- Temps moyen par fiche (lot sur les notes de démonstration ou vos notes) :
+- [ ] Proxy d'entreprise configuré (`HTTPS_PROXY`)
+- [ ] Blocage ou téléchargement échoué rencontré — si oui, message exact :
 
-## Notes traitées
+## Interface
+
+- [ ] Relecture d'une fiche (note à gauche, fiche à droite)
+- [ ] Correction d'un champ (indicateur « Enregistrement… » / « Enregistré »)
+- [ ] Changement de constat type proposé pour une fiche
+- [ ] Export d'un brouillon
+- [ ] Export du rapport final
+
+Ce qui a marché, gêné ou manqué dans l'interface :
+
+-
+
+- Langue utilisée : [ ] Français [ ] English
+- [ ] Démo incident testée (workflow « Incident ») — si oui, remarques :
+
+## Fiches traitées
+
+Temps moyen par fiche :
 
 Pour chaque fiche jugée, une note globale : **utilisable** / **retouches légères** / **à refaire**.
 
