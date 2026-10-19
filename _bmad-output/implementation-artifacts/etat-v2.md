@@ -26,7 +26,8 @@ Plan : `plan-v2.md`. États possibles : `à faire`, `en cours`, `intégrée <sha
 | 7 | LIB | Libellés par langue des statuts et motifs dans le Word (annexe des écartées, tous modes) | Sonnet | intégrée 1b72836 |
 | 8 | ARR | Arrêt propre de l'UI (llama-server enfant, fermer(timeout)) | Sonnet | intégrée 659a6cb |
 | 8 | DOC | README et guide des testeurs | Sonnet | intégrée 7cf0d27 |
-| 8 | REC | Recette finale sur l'EliteBook ★ | avec Anaël | à faire |
+| 9 | DOC-T | Guide des testeurs pour collègues auditeurs (proxy, uv sans admin, UI d'abord), modèle d'issue v2 ; version candidate `v0.2.0-rc.1` publiée | Sonnet | intégrée 13f82ce |
+| 8 | REC | Recette finale sur l'EliteBook ★ (fiche interactive : https://claude.ai/artifact/Nk48VmdCwE7XfDNTGvUuWQ) | avec Anaël | à faire |
 
 ★ : point d'arrêt humain (voir `plan-v2.md`).
 
