@@ -40,6 +40,10 @@ Ou, si `winget` est disponible sur votre poste :
 winget install --id=astral-sh.uv -e
 ```
 
+Fermez ensuite ce terminal et ouvrez-en un nouveau : la commande `uv` n'est reconnue que dans
+les terminaux ouverts après son installation. `uv --version` doit alors afficher un numéro de
+version.
+
 ### Récupérer le dépôt
 
 Avec git :
@@ -54,25 +58,36 @@ l'archive et ouvrez un terminal dans le dossier obtenu.
 
 ### Réseau d'entreprise
 
-Seules deux commandes sortent sur Internet : `uv sync` (paquets Python) et
-`waveaudit installer` (moteur et modèles). Elles contactent `github.com` et `huggingface.co`.
+Seules deux commandes sortent sur Internet : `uv sync` (paquets Python, et Python 3.12 lui-même
+s'il manque) et `waveaudit installer` (moteur et modèles). Les principaux domaines contactés
+sont `pypi.org` et `files.pythonhosted.org` (paquets Python), `github.com` (moteur et, au
+besoin, Python) et `huggingface.co` (modèles) ; les téléchargements sont ensuite redirigés vers
+les serveurs de diffusion de ces sites (par exemple `objects.githubusercontent.com` pour GitHub,
+d'autres sous-domaines de Hugging Face pour les modèles).
 
-Si votre poste passe par un proxy d'entreprise, définissez-le avant ces deux commandes :
+Si votre poste passe par un proxy d'entreprise, définissez-le dans le terminal où vous lancerez
+ces deux commandes (le réglage ne vaut que pour ce terminal) :
 
 ```powershell
 $env:HTTPS_PROXY = "http://proxy:port"
 ```
 
-Si le proxy inspecte le trafic chiffré (erreur de certificat au téléchargement), ajoutez pour
-`uv` :
+Si le proxy inspecte le trafic chiffré (erreur de certificat au téléchargement), il faut
+indiquer le certificat racine de votre entreprise. Demandez-le au support informatique, sous
+forme de fichier au format PEM (« Base-64 », extension `.pem` ou `.crt`), puis, dans le même
+terminal :
 
 ```powershell
+$env:SSL_CERT_FILE = "C:\chemin\vers\certificat-entreprise.pem"
 $env:UV_NATIVE_TLS = "1"
 ```
 
+`SSL_CERT_FILE` sert aux deux commandes (`uv sync` et `waveaudit installer`) ; `UV_NATIVE_TLS`
+permet en plus à `uv` de reprendre les certificats déjà reconnus par Windows.
+
 Si un téléchargement reste bloqué malgré ces réglages, notez-le dans votre retour (voir
 « Votre retour » plus bas) avec le message d'erreur exact : votre administrateur réseau pourra
-avoir besoin d'ouvrir `github.com` et `huggingface.co`.
+avoir besoin d'ouvrir les domaines cités plus haut.
 
 ## Installation (estimation : moins de 10 min, selon votre débit réseau)
 
@@ -98,7 +113,8 @@ Edge ou Firefox.
 
 1. À l'accueil, le workflow « Fiches » est déjà sélectionné. Déposez 3 ou 4 notes du dossier
    `donnees/demo/notes` (par exemple `01-xss-reflechi.md`, `02-xss-stocke.md`,
-   `03-injection-sql.md`), par glisser-déposer ou avec le sélecteur de fichiers.
+   `03-injection-sql.md`) avec le bouton de sélection de fichiers (`Ctrl`+clic pour en choisir
+   plusieurs), puis cliquez « Lancer le lot ».
 2. Une barre de progression et un journal apparaissent : le lot est en cours.
 3. Une fois le lot terminé, l'écran de relecture s'ouvre automatiquement : votre note d'origine
    à gauche, la fiche générée à droite.
@@ -108,7 +124,10 @@ Edge ou Firefox.
    toutes les fiches validées.
 
 Raccourcis utiles pendant la relecture : `Ctrl+Entrée` pour valider la fiche affichée,
-`Ctrl+Alt+↓` et `Ctrl+Alt+↑` pour passer à la fiche suivante ou précédente.
+`Ctrl+Alt+↓` et `Ctrl+Alt+↑` pour passer à la fiche suivante ou précédente. Ces deux derniers
+ne marchent pas pendant que le curseur est dans un champ de saisie : cliquez d'abord en dehors
+des champs (par exemple sur la note à gauche), ou utilisez les boutons « Suivante » et
+« Précédente ».
 
 ### Parcours détaillé — fiches de bout en bout
 
@@ -170,7 +189,8 @@ Pour un rapport en anglais :
 uv run waveaudit fiches donnees/demo/notes --langue en
 ```
 
-Pour réexporter le rapport d'un lot déjà traité (final ou brouillon), sans relancer le moteur :
+Pour réexporter le rapport final d'un lot déjà traité, sans relancer le moteur (ajoutez
+`--brouillon` pour un brouillon) :
 
 ```
 uv run waveaudit exporter <id-du-lot>
@@ -191,19 +211,23 @@ Corps de la note : ce que vous avez observé, les preuves (requêtes, sorties d'
 ```
 
 Seul le corps est obligatoire ; une note sans corps est invalide et ressort dans l'annexe
-« Notes écartées » du rapport. N'utilisez que des données publiques ou fictives.
+« Annexe — notes écartées » du rapport. N'utilisez que des données publiques ou fictives.
 
 ## Si c'est lent ou bloqué
 
 - Fermez les applications gourmandes en mémoire (le POC vise un pic de 6 Go maximum, suite
   bureautique ouverte) avant un lot complet.
-- Sur un poste avec moins de 4,5 Go de RAM libre au lancement, WaveAudit bascule automatiquement
-  sur un modèle plus petit et plus rapide ; l'interface vous l'indique.
+- Sur un poste avec moins de 4,5 Go de RAM libre, WaveAudit choisit automatiquement un modèle
+  plus petit et plus rapide (`qwen3.5-0.8b-q4km` au lieu de `granite-4.0-1b-q4km`). Aucun
+  message ne l'annonce : dans l'interface, c'est le modèle présélectionné dans la liste
+  « Modèle » de l'accueil (la mémoire libre est mesurée à l'affichage de la page). Notez dans
+  votre retour le modèle utilisé.
 - Une fiche qui dépasse largement 3 min n'est pas bloquée : le modèle tourne sur CPU, laissez-le
-  finir. Au-delà de 10 min sans avancement dans la console, interrompez (`Ctrl+C`) et notez-le
+  finir. Au-delà de 10 min sans avancement (journal du lot dans l'interface, ou affichage du
+  terminal en ligne de commande), arrêtez WaveAudit (`Ctrl+C` dans le terminal) et notez-le
   dans votre retour avec la fiche concernée.
-- `uv run waveaudit catalogue verifier` contrôle que le catalogue des constats types est en
-  cause avant de suspecter le modèle.
+- `uv run waveaudit catalogue verifier` contrôle que le catalogue des constats types est
+  intact : utile pour écarter cette cause avant de suspecter le modèle.
 
 ## Ce qui sort, ou non, du poste
 
@@ -216,7 +240,8 @@ votre dossier et dans `var/` : rien n'est envoyé ailleurs.
 ## Votre retour
 
 Merci de remplir une issue GitHub avec le modèle « Retour testeur » (menu *New issue* du dépôt).
-Cela demande un compte GitHub ; si vous n'en avez pas, envoyez le même contenu par mail à la
+Indiquez-y la version testée, affichée par `uv run waveaudit version` (`waveaudit 0.2.0rc1` ou
+plus récent pour cette campagne). Cela demande un compte GitHub ; si vous n'en avez pas, envoyez le même contenu par mail à la
 personne qui vous a invité à tester.
 
 Jamais de données réelles de mission, ni dans vos notes de test, ni dans votre retour :

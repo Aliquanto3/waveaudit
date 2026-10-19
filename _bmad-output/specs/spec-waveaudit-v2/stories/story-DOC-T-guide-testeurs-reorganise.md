@@ -48,8 +48,8 @@ modèle d'issue `.github/ISSUE_TEMPLATE/retour-testeur.md`. Rien d'autre modifi�
 - **CLI** devenue section « Pour aller plus loin » (lot complet, `--langue en`, `exporter`).
 - **Retrait** de « Points à vérifier en recette » (reste propre à `recette-v2.md`, déjà
   existant, destiné au mainteneur). Conservés : « Si c'est lent ou bloqué » (ajout : repli
-  automatique sur un modèle plus petit sous 4,5 Go de RAM libre, `ram_min_defaut_go`,
-  annoncé à l'accueil de l'UI), « Ce qui sort, ou non, du poste », « Votre retour » (issue
+  automatique sur un modèle plus petit sous 4,5 Go de RAM libre, `ram_min_defaut_go` ;
+  aucun message ne l'annonce, seul le modèle présélectionné à l'accueil de l'UI le montre), « Ce qui sort, ou non, du poste », « Votre retour » (issue
   GitHub, repli par mail si pas de compte GitHub, rappel : jamais de données réelles de
   mission).
 - Vocabulaire interne retiré des parties destinées aux testeurs (pas de « §», « contrats »,
@@ -95,4 +95,15 @@ modèle d'issue `.github/ISSUE_TEMPLATE/retour-testeur.md`. Rien d'autre modifi�
 
 ## Revue
 
-- (à compléter par le second avis et le reviewer)
+Détail : `_bmad-output/implementation-artifacts/revues/story-DOC-T.md`.
+
+- medium · second avis 1 · corrigé · `SSL_CERT_FILE` (certificat PEM d'entreprise) documenté, vaut pour uv et httpx (`create_ssl_context`, trust_env).
+- medium · second avis 2 · corrigé · domaines PyPI ajoutés, redirections vers les CDN GitHub / Hugging Face signalées.
+- medium · second avis 3 · corrigé · nouveau terminal après l'installation de uv, contrôle `uv --version`.
+- medium · second avis 4 · corrigé · repli non annoncé : seul le modèle présélectionné de la liste « Modèle » le montre (`modeles_installes` → `choisir_modele`) ; noms des deux modèles donnés.
+- low · second avis 5 · corrigé · version attendue `0.2.0rc1` ou plus dans « Votre retour » ; pyproject non touché.
+- low · second avis 6 · corrigé · Ctrl+Alt+↓/↑ inactifs dans un champ (`focusDansChamp`), sortie indiquée.
+- low · reviewer · corrigé · « glisser-déposer » retiré (aucun gestionnaire de dépôt dans l'UI) ; bouton « Lancer le lot » cité.
+- low · reviewer · corrigé · `catalogue verifier` : phrase au sens inversé.
+- low · reviewer · corrigé · `exporter` : `--brouillon` cité ; titre d'annexe exact ; arrêt `Ctrl+C` situé dans le terminal ; proxy valable pour le seul terminal.
+- Complexité : 0 constat (documentation seule).
