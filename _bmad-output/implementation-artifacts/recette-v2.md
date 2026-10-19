@@ -73,7 +73,7 @@ Relancer le parcours sur 3 ou 4 notes avec la langue « English » (ou `uv run w
 ## 5. Robustesse
 
 - [ ] Ctrl+C sur l'UI pendant un lot en cours ; arrêt en moins de ~10 s ; `tasklist | findstr llama-server` : aucune ligne (story ARR).
-- [ ] Repli `qwen3.5-0.8b` avec peu de RAM (ouvrir la suite bureautique et d'autres applis jusqu'à passer sous le seuil, puis lancer un lot) : le repli est annoncé et le lot aboutit. RAM libre au lancement : ____ Go.
+- [ ] Repli `qwen3.5-0.8b` avec peu de RAM (ouvrir la suite bureautique et d'autres applis jusqu'à passer sous le seuil `ram_min_defaut_go = 4.5` de `config/waveaudit.toml`, puis lancer un lot) : le repli est annoncé et le lot aboutit. RAM libre au lancement : ____ Go.
 - [ ] Facultatif : un lot avec qwen3-1.7b (candidat) choisi à l'accueil, durée par fiche : ____ s.
 
 ## Écarts relevés
