@@ -5,7 +5,7 @@
 ## Contexte établi
 - Utilisateurs : consultants d'un pool audit cyber. Un seul PC (16 Go, sans GPU), connecté au SI de l'entreprise (mail, VPN).
 - Interdiction : politique liée à PASSI et aux contrats (périmètre maîtrisé), pas une coupure réseau. Un LLM interne de l'entreprise cloisonné reste possible à terme.
-- Perf de référence : EliteBook i5-1145G7, 16 Go, CPU seul : 1,3 tok/s en chat, 5,7 tok/s en labo (`wavelocalai/docs/audits/`).
+- Perf de référence : EliteBook i5-1145G7, 16 Go, CPU seul : 1,3 tok/s en chat, 5,7 tok/s en labo (`frugal-ai-workbench/docs/audits/`).
 
 ## Décisions verrouillées
 1. **Produit = application d'assistance à l'audit au moteur interchangeable.** Endpoint compatible OpenAI : SLM local maintenant, LLM interne plus tard. La valeur durable est dans les workflows, le gabarit, le catalogue et le RAG.
@@ -40,4 +40,4 @@
 - Moteur Windows sans compilateur : roue CPU précompilée ou `llama-server` épinglé.
 - Charte visuelle : charte générique dans le dépôt public.
 - Risque de dispersion (6 dépôts actifs) : périmètre et date figés.
-- Réutiliser : `service-public-slm-fine-tuning` (hors ligne, RAG, mesures CPU), `slm-quality-bench` (méthode de choix du modèle), `wavelocalai` (profil machine).
+- Réutiliser : `service-public-slm-fine-tuning` (hors ligne, RAG, mesures CPU), `slm-quality-bench` (méthode de choix du modèle), `Frugal AI Workbench` (profil machine).
