@@ -1,4 +1,4 @@
-# Validation Report — WaveAudit UX v2
+# Validation Report — PentestScribe UX v2
 
 - **DESIGN.md:** `_bmad-output/planning-artifacts/ux/DESIGN.md`
 - **EXPERIENCE.md:** `_bmad-output/planning-artifacts/ux/EXPERIENCE.md`

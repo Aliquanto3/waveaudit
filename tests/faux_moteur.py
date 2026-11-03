@@ -17,7 +17,7 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from waveaudit.domaine.cvss31 import metriques_depuis_vecteur
+from pentest_scribe.domaine.cvss31 import metriques_depuis_vecteur
 
 SCENARIOS = (
     "nominal",

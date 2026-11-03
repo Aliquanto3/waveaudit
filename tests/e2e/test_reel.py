@@ -1,5 +1,5 @@
 """Bout en bout sur le vrai moteur (marqueur `slow`, sauté si `var/modeles` ou `llama-server`
-sont absents : lancer `waveaudit installer`). Mode `local-gere` de la configuration livrée, 2
+sont absents : lancer `pentest-scribe installer`). Mode `local-gere` de la configuration livrée, 2
 notes de démonstration. Assertions de structure seulement : la qualité réelle (0 référence
 inventée, ≥ 70 % utilisables) se juge hors nuit, avec `slm-quality-bench` (SPEC §Assumptions).
 
@@ -19,14 +19,14 @@ import psutil
 import pytest
 from docx import Document
 
-from waveaudit.adaptateurs.export_docx import BANDEAU
-from waveaudit.adaptateurs.llama_server import port_libre
-from waveaudit.adaptateurs.moteur_openai import MoteurOpenAI
-from waveaudit.application.banc import executer_banc
-from waveaudit.application.config import charger_configuration, racine_projet
-from waveaudit.application.lot import executer_lot
-from waveaudit.domaine.modeles import CodeMotif, RequeteLot, Statut
-from waveaudit.installation import manifeste
+from pentest_scribe.adaptateurs.export_docx import BANDEAU
+from pentest_scribe.adaptateurs.llama_server import port_libre
+from pentest_scribe.adaptateurs.moteur_openai import MoteurOpenAI
+from pentest_scribe.application.banc import executer_banc
+from pentest_scribe.application.config import charger_configuration, racine_projet
+from pentest_scribe.application.lot import executer_lot
+from pentest_scribe.domaine.modeles import CodeMotif, RequeteLot, Statut
+from pentest_scribe.installation import manifeste
 
 pytestmark = pytest.mark.slow
 
@@ -47,9 +47,9 @@ def _config_reelle():
     binaire = manifeste.chemin(manifeste.par_role(artefacts, "moteur"), var)
     gguf = manifeste.chemin(manifeste.par_role(artefacts, "modele_defaut"), var)
     if not (var / "modeles").is_dir() or not binaire.is_file() or not gguf.is_file():
-        pytest.skip("var/modeles ou llama-server absent : lancer `waveaudit installer`")
+        pytest.skip("var/modeles ou llama-server absent : lancer `pentest-scribe installer`")
     if config.moteur.mode != "local-gere":
-        pytest.skip("configuration locale surchargée en mode externe (waveaudit.local.toml)")
+        pytest.skip("configuration locale surchargée en mode externe (pentest-scribe.local.toml)")
     return config, artefacts
 
 
@@ -156,18 +156,18 @@ def _vivant(p: psutil.Process) -> bool:
 
 
 def test_ui_reel_arret_pendant_un_lot_ne_laisse_pas_de_llama_server(tmp_path):
-    """Story ARR : `waveaudit ui` réel, un lot de dix notes démarré, puis arrêt du processus
+    """Story ARR : `pentest-scribe ui` réel, un lot de dix notes démarré, puis arrêt du processus
     (CTRL_BREAK, Windows) pendant que le lot tourne encore ; aucun llama-server ne doit rester
     (filet `atexit`/lifespan, contrats §24)."""
     config, _ = _config_reelle()
-    waveaudit = shutil.which("waveaudit")
-    if waveaudit is None:
-        pytest.skip("script `waveaudit` introuvable sur le PATH de l'environnement de test")
+    pentest_scribe = shutil.which("pentest-scribe")
+    if pentest_scribe is None:
+        pytest.skip("script `pentest-scribe` introuvable sur le PATH de l'environnement de test")
     sorties = config.chemins.var / "sorties"
     avant = set(sorties.iterdir()) if sorties.is_dir() else set()
     port = port_libre()
     processus = subprocess.Popen(
-        [waveaudit, "ui", "--port", str(port)],
+        [pentest_scribe, "ui", "--port", str(port)],
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
     )
     base_url = f"http://127.0.0.1:{port}"

@@ -13,10 +13,10 @@ from typing import Any
 from docx import Document
 from typer.testing import CliRunner
 
-from waveaudit.adaptateurs.export_docx import LIBELLES
-from waveaudit.application.config import racine_projet
-from waveaudit.interfaces.cli import app
-from waveaudit.securite import garde_reseau
+from pentest_scribe.adaptateurs.export_docx import LIBELLES
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.interfaces.cli import app
+from pentest_scribe.securite import garde_reseau
 
 DEMO = racine_projet() / "donnees" / "demo" / "notes"
 BANDEAU = "Démonstration — données fictives"
@@ -61,7 +61,7 @@ def _ecrire_config(
             "chemins": chemins,
         }
     )
-    chemin = tmp_path / "waveaudit-test.toml"
+    chemin = tmp_path / "pentest-scribe-test.toml"
     chemin.write_text(texte, encoding="utf-8")
     return chemin
 
@@ -209,7 +209,7 @@ def test_ui_port_occupe_code_4(monkeypatch, tmp_path):
 
 
 def test_ui_hote_invalide_code_2(tmp_path):
-    chemin = tmp_path / "waveaudit-test.toml"
+    chemin = tmp_path / "pentest-scribe-test.toml"
     chemin.write_text('[ui]\nhote = "0.0.0.0"\n', encoding="utf-8")
     resultat = runner.invoke(app, ["ui", "--config", str(chemin)])
 
@@ -230,8 +230,8 @@ def test_banc_succes_code_0(monkeypatch, config_test):
     """Chemin nominal de `banc` par la CLI : faux moteur (config_test), mesure mémoire factice."""
     import os
 
-    from waveaudit.application import composition
-    from waveaudit.interfaces import cli
+    from pentest_scribe.application import composition
+    from pentest_scribe.interfaces import cli
 
     class _Mesure:
         def rss_octets(self, pid: int) -> int | None:
@@ -253,8 +253,8 @@ def test_banc_succes_code_0(monkeypatch, config_test):
 
 def test_banc_seed_cli(monkeypatch, config_test):
     """[revue B1] `banc --seed 142` atteint banc.json ; seed hors de 0..2**32-1 -> code 2."""
-    from waveaudit.application import composition
-    from waveaudit.interfaces import cli
+    from pentest_scribe.application import composition
+    from pentest_scribe.interfaces import cli
 
     class _Mesure:
         def rss_octets(self, pid: int) -> int | None:
@@ -277,10 +277,10 @@ def test_banc_seed_cli(monkeypatch, config_test):
 
 
 def test_banc_erreurs_traduites_en_codes(monkeypatch, tmp_path):
-    from waveaudit.domaine.erreurs import EntreeInvalide, MoteurInjoignable
+    from pentest_scribe.domaine.erreurs import EntreeInvalide, MoteurInjoignable
 
-    faux_banc = type(sys)("waveaudit.application.banc")
-    monkeypatch.setitem(sys.modules, "waveaudit.application.banc", faux_banc)
+    faux_banc = type(sys)("pentest_scribe.application.banc")
+    monkeypatch.setitem(sys.modules, "pentest_scribe.application.banc", faux_banc)
     for erreur, code in ((EntreeInvalide("x"), 2), (MoteurInjoignable("x"), 3), (KeyError(1), 4)):
 
         def leve(*a: Any, erreur: Exception = erreur) -> None:
@@ -307,7 +307,7 @@ def test_fiches_modele_externe_surcharge_modele_api(tmp_path, faux_moteur):
 
 def test_sbom_succes_code_0(monkeypatch):
     monkeypatch.setattr(
-        "waveaudit.installation.sbom.generer", lambda var: Path(var) / "sbom.cdx.json"
+        "pentest_scribe.installation.sbom.generer", lambda var: Path(var) / "sbom.cdx.json"
     )
     resultat = runner.invoke(app, ["sbom"])
 
@@ -319,7 +319,7 @@ def test_sbom_echec_disque_code_4(monkeypatch):
     def leve(var: Path) -> Path:
         raise OSError("disque plein")
 
-    monkeypatch.setattr("waveaudit.installation.sbom.generer", leve)
+    monkeypatch.setattr("pentest_scribe.installation.sbom.generer", leve)
     resultat = runner.invoke(app, ["sbom"])
 
     assert resultat.exit_code == 4
@@ -327,7 +327,7 @@ def test_sbom_echec_disque_code_4(monkeypatch):
 
 def test_installer_succes_code_0(monkeypatch, tmp_path):
     monkeypatch.setattr(
-        "waveaudit.installation.telechargement.installer", lambda *a, **k: [tmp_path / "x"]
+        "pentest_scribe.installation.telechargement.installer", lambda *a, **k: [tmp_path / "x"]
     )
     resultat = runner.invoke(app, ["installer"])
 
@@ -335,12 +335,12 @@ def test_installer_succes_code_0(monkeypatch, tmp_path):
 
 
 def test_installer_empreinte_invalide_code_5(monkeypatch):
-    from waveaudit.domaine.erreurs import EmpreinteInvalide
+    from pentest_scribe.domaine.erreurs import EmpreinteInvalide
 
     def leve(*a: Any, **k: Any) -> None:
         raise EmpreinteInvalide("empreinte invalide")
 
-    monkeypatch.setattr("waveaudit.installation.telechargement.installer", leve)
+    monkeypatch.setattr("pentest_scribe.installation.telechargement.installer", leve)
     resultat = runner.invoke(app, ["installer"])
 
     assert resultat.exit_code == 5
@@ -352,19 +352,19 @@ def test_installer_erreur_httpx_code_4(monkeypatch):
     def leve(*a: Any, **k: Any) -> None:
         raise httpx.ConnectError("hors ligne")
 
-    monkeypatch.setattr("waveaudit.installation.telechargement.installer", leve)
+    monkeypatch.setattr("pentest_scribe.installation.telechargement.installer", leve)
     resultat = runner.invoke(app, ["installer"])
 
     assert resultat.exit_code == 4
 
 
 def test_installer_manifeste_invalide_code_2(monkeypatch):
-    from waveaudit.domaine.erreurs import ConfigurationInvalide
+    from pentest_scribe.domaine.erreurs import ConfigurationInvalide
 
     def leve(*a: Any, **k: Any) -> None:
         raise ConfigurationInvalide("manifeste invalide")
 
-    monkeypatch.setattr("waveaudit.installation.manifeste.charger", leve)
+    monkeypatch.setattr("pentest_scribe.installation.manifeste.charger", leve)
     resultat = runner.invoke(app, ["installer"])
 
     assert resultat.exit_code == 2
@@ -375,7 +375,7 @@ def test_installer_erreur_os_code_4(monkeypatch):
     def leve(*a: Any, **k: Any) -> None:
         raise OSError("disque plein")
 
-    monkeypatch.setattr("waveaudit.installation.telechargement.installer", leve)
+    monkeypatch.setattr("pentest_scribe.installation.telechargement.installer", leve)
     resultat = runner.invoke(app, ["installer"])
 
     assert resultat.exit_code == 4
@@ -388,10 +388,10 @@ def _lot_a_exporter(
     config_chemin: Path, id_lot: str, *, valide: bool = True, notes_non_validees: int = 0
 ) -> Path:
     """Lot `fiches` : une entrée (validée ou non), plus `notes_non_validees` jamais validées."""
-    from waveaudit.application import relecture as relecture_app
-    from waveaudit.application.config import charger_configuration
-    from waveaudit.application.lot import dossier_sorties, ecrire_fiche_lot
-    from waveaudit.domaine.modeles import (
+    from pentest_scribe.application import relecture as relecture_app
+    from pentest_scribe.application.config import charger_configuration
+    from pentest_scribe.application.lot import dossier_sorties, ecrire_fiche_lot
+    from pentest_scribe.domaine.modeles import (
         Candidat,
         Cvss,
         Fiche,
@@ -400,7 +400,7 @@ def _lot_a_exporter(
         Statut,
         Tracabilite,
     )
-    from waveaudit.domaine.relecture import valider
+    from pentest_scribe.domaine.relecture import valider
 
     cfg = charger_configuration(config_chemin)
     dossier = dossier_sorties(cfg) / id_lot
@@ -509,8 +509,8 @@ def test_exporter_lot_inconnu_code_2(tmp_path, faux_moteur):
 
 
 def test_exporter_lot_incident_code_2(tmp_path, faux_moteur):
-    from waveaudit.application.config import charger_configuration
-    from waveaudit.application.lot import dossier_sorties, ecrire_fiche_lot
+    from pentest_scribe.application.config import charger_configuration
+    from pentest_scribe.application.lot import dossier_sorties, ecrire_fiche_lot
 
     config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
     cfg = charger_configuration(config)
@@ -526,7 +526,7 @@ def test_exporter_lot_incident_code_2(tmp_path, faux_moteur):
 
 
 def test_exporter_lot_en_cours_code_2(tmp_path, faux_moteur, monkeypatch):
-    from waveaudit.application import composition
+    from pentest_scribe.application import composition
 
     config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
     dossier = _lot_a_exporter(config, "lot-en-cours", valide=True)
@@ -560,9 +560,9 @@ def test_exporter_fichier_cible_verrouille_code_4(tmp_path, faux_moteur):
 
 
 def test_exporter_aucune_commande_ne_valide_une_fiche(tmp_path, faux_moteur):
-    from waveaudit.application import relecture as relecture_app
-    from waveaudit.application.config import charger_configuration
-    from waveaudit.application.lot import dossier_sorties
+    from pentest_scribe.application import relecture as relecture_app
+    from pentest_scribe.application.config import charger_configuration
+    from pentest_scribe.application.lot import dossier_sorties
 
     config = _ecrire_config(tmp_path, base_url=faux_moteur().base_url)
     dossier = _lot_a_exporter(config, "lot-sans-validation-cli", valide=False)

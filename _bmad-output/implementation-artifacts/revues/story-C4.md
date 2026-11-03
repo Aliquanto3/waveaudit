@@ -6,7 +6,7 @@ inchangés, appliqués sur une copie de même longueur où le point final est ne
 
 ## Revue
 
-Constats détaillés : `_bmad-output/specs/spec-waveaudit-cert/stories/story-C4-indicateurs-garde-fous.md`,
+Constats détaillés : `_bmad-output/specs/spec-pentest-scribe-cert/stories/story-C4-indicateurs-garde-fous.md`,
 section Revue.
 
 - medium — second avis — corrigé : point suivi d'une ponctuation fermante ou séparatrice

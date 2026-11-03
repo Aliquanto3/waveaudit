@@ -2,7 +2,7 @@
 
 Branche `story-12-revue` (depuis `story-12`, 4a2360a, déjà à jour sur `main` 8ad1a67, sans conflit). Contrat : contrats §9, §10, §12 ; AD-2, AD-6, AD-8, AD-9, AD-11 ; stories.yaml id 12.
 
-Verdict : prête à intégrer. Le tableau des constats est dans la spec de la story (`_bmad-output/specs/spec-waveaudit-poc/stories/story-12-lot-composition-llama.md`, § Revue).
+Verdict : prête à intégrer. Le tableau des constats est dans la spec de la story (`_bmad-output/specs/spec-pentest-scribe-poc/stories/story-12-lot-composition-llama.md`, § Revue).
 
 Corrections : `_sans_chemin` (chemins avec espaces, URL préservées), `id_lot` réservé Windows -> `EntreeInvalide`, test du Job Object rendu stable.
 

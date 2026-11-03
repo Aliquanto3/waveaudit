@@ -5,16 +5,16 @@ Commit dev : `cd7517f`. Story documentaire ; aucun fichier de `src/` ni `tests/`
 
 ## Revue
 
-- medium — second avis — corrigé : `docs/guide-testeurs.md` ne mentionnait pas `waveaudit sbom`
-  dans « Ce qui sort, ou non, du poste ». Vérifié que `sbom` (src/waveaudit/installation/sbom.py)
+- medium — second avis — corrigé : `docs/guide-testeurs.md` ne mentionnait pas `pentest-scribe sbom`
+  dans « Ce qui sort, ou non, du poste ». Vérifié que `sbom` (src/pentest_scribe/installation/sbom.py)
   ne fait aucun appel réseau (lecture du venv local uniquement, pas de `garde()`). Ajouté une
   phrase dédiée, distincte du garde réseau qui protège `fiches`/`ui`/`banc`.
-- low — second avis — corrigé : l'UI (`src/waveaudit/interfaces/web/templates/index.html`,
+- low — second avis — corrigé : l'UI (`src/pentest_scribe/interfaces/web/templates/index.html`,
   `<input type="file" ... multiple>`) prend des fichiers, pas un dossier. Guide corrigé
   (« un ou plusieurs fichiers `.md`/`.txt` (pas un dossier) »).
 - low — second avis — corrigé : « chaque fiche se génère en arrière-plan » est vrai pour l'UI
-  (`threading.Thread` dans `src/waveaudit/interfaces/web/app.py`) mais pas pour la CLI `fiches`,
-  qui traite les notes de façon synchrone dans le terminal (`src/waveaudit/interfaces/cli.py`,
+  (`threading.Thread` dans `src/pentest_scribe/interfaces/web/app.py`) mais pas pour la CLI `fiches`,
+  qui traite les notes de façon synchrone dans le terminal (`src/pentest_scribe/interfaces/cli.py`,
   pas de thread/async). Reformulé : section CLI dit « synchrone », la mention « en arrière-plan »
   déplacée dans la section UI où elle est vraie.
 - low — second avis — corrigé : incohérence entre « traitez-en quelques-unes (copiez-les à part) »
@@ -27,7 +27,7 @@ Commit dev : `cd7517f`. Story documentaire ; aucun fichier de `src/` ni `tests/`
   PyPI, sans autre dépôt ni télémétrie.
 - low — second avis — corrigé : le guide parlait d'une « entrée écartée » pour une note invalide,
   alors que le rapport Word affiche la section « Annexe — notes écartées » (vérifié dans
-  `src/waveaudit/adaptateurs/export_docx.py`, fonction `_annexe_ecartees`). Reformulé pour
+  `src/pentest_scribe/adaptateurs/export_docx.py`, fonction `_annexe_ecartees`). Reformulé pour
   renvoyer vers ce libellé exact.
 
 ## Vérifications

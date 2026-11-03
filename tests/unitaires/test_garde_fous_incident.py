@@ -7,11 +7,11 @@ texte où ce point final devient une espace. Voir les reports de la story C1.
 
 import pytest
 
+from pentest_scribe.domaine.garde_fous_incident import appliquer_recit
+from pentest_scribe.domaine.incident import Indicateur
+from pentest_scribe.domaine.modeles import CodeMotif, Motif, Statut
 from tests.faux_moteur import REFERENCES_INVENTEES_INCIDENT
 from tests.incident_outils import detection, regle
-from waveaudit.domaine.garde_fous_incident import appliquer_recit
-from waveaudit.domaine.incident import Indicateur
-from waveaudit.domaine.modeles import CodeMotif, Motif, Statut
 
 
 def _sortie(**surcharges) -> dict:

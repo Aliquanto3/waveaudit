@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from waveaudit.application import lot, relecture
-from waveaudit.application.config import racine_projet
-from waveaudit.application.moteur_demande import MoteurALaDemande, Occupation
-from waveaudit.domaine.modeles import (
+from pentest_scribe.application import lot, relecture
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.application.moteur_demande import MoteurALaDemande, Occupation
+from pentest_scribe.domaine.modeles import (
     Candidat,
     CodeMotif,
     Cvss,
@@ -29,8 +29,8 @@ from waveaudit.domaine.modeles import (
     Tracabilite,
     TypeEvenement,
 )
-from waveaudit.domaine.relecture import EtatRelecture, RefusRelecture, corriger, valider
-from waveaudit.workflows.fiches.prompt import CONSIGNES
+from pentest_scribe.domaine.relecture import EtatRelecture, RefusRelecture, corriger, valider
+from pentest_scribe.workflows.fiches.prompt import CONSIGNES
 
 DEMO = racine_projet() / "donnees" / "demo" / "notes"
 VECTEUR = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
@@ -345,7 +345,7 @@ def test_provisoire_non_supprime_ne_masque_pas_l_erreur(tmp_path, monkeypatch):
 def test_id_lot_deja_execute_refuse(config_test, tmp_path):
     """[revue R2] §25 « Relance » : un id_lot fourni dont relecture.json existe est refusé
     sans rien réécrire (corrections et validations gardées)."""
-    from waveaudit.domaine.erreurs import EntreeInvalide
+    from pentest_scribe.domaine.erreurs import EntreeInvalide
 
     sortie = config_test.chemins.var / "sorties" / "lot-existant"
     _lot_fiche(sortie)
@@ -422,7 +422,7 @@ def test_confirmation_fiche_validee(tmp_path):
 
 
 def test_confirmation_fiche_corrigee(tmp_path):
-    from waveaudit.domaine.relecture import FicheCorrigee
+    from pentest_scribe.domaine.relecture import FicheCorrigee
 
     dossier = tmp_path / "lot"
     _lot_fiche(dossier)
@@ -487,7 +487,7 @@ def _vers(config, fm):
 
 def _lot_reel(config, dossier: Path, moteurs, **champs):
     """Lot d'une note de démonstration traitée par le vrai pipeline et le faux moteur."""
-    from waveaudit.workflows.fiches import pipeline
+    from pentest_scribe.workflows.fiches import pipeline
 
     with moteurs(config).utiliser(None) as (ports, _info):
         (note,) = [n for n in ports.source_notes.lire(DEMO) if n.fichier.startswith("03-")]
@@ -603,7 +603,7 @@ def test_echec_ouverture_generation_echec(config_test, faux_moteur, tmp_path, mo
 
 
 def test_toute_exception_donne_echec(config_test, tmp_path, monkeypatch, moteurs):
-    from waveaudit.workflows.fiches import pipeline
+    from pentest_scribe.workflows.fiches import pipeline
 
     dossier = tmp_path / "lot"
     _lot_fiche(dossier)

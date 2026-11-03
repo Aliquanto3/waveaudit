@@ -3,10 +3,10 @@
 import json
 from datetime import datetime, timedelta
 
-from waveaudit.application import composition
-from waveaudit.application import lots as lots_app
-from waveaudit.application.lot import dossier_sorties
-from waveaudit.application.moteur_demande import Occupation
+from pentest_scribe.application import composition
+from pentest_scribe.application import lots as lots_app
+from pentest_scribe.application.lot import dossier_sorties
+from pentest_scribe.application.moteur_demande import Occupation
 
 _ISO = "2026-10-18T09:14:00+02:00"
 

@@ -4,9 +4,9 @@ Toujours `--annee 2026` : aucun test ne dépend de l'année courante. Chaque tes
 configuration TOML sous `tmp_path` (aucun test n'écrit dans le `var/` du dépôt, AD-10).
 """
 
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.securite import garde_reseau
 from tests.e2e.test_cli import BANDEAU, _ecrire_config, app, runner
-from waveaudit.application.config import racine_projet
-from waveaudit.securite import garde_reseau
 
 DEMO = racine_projet() / "donnees" / "demo" / "incident"
 ANNEE = "2026"

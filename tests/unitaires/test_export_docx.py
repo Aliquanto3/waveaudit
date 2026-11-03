@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from docx import Document
 
-from waveaudit.adaptateurs.export_docx import (
+from pentest_scribe.adaptateurs.export_docx import (
     BANDEAU,
     BANDEAUX,
     DETAILS_EN,
@@ -19,8 +19,8 @@ from waveaudit.adaptateurs.export_docx import (
     ExportDocx,
     _motif_affiche,
 )
-from waveaudit.domaine.erreurs import ConfigurationInvalide
-from waveaudit.domaine.modeles import (
+from pentest_scribe.domaine.erreurs import ConfigurationInvalide
+from pentest_scribe.domaine.modeles import (
     RUBRIQUES,
     Candidat,
     CodeMotif,
@@ -33,9 +33,9 @@ from waveaudit.domaine.modeles import (
     Statut,
     Tracabilite,
 )
-from waveaudit.domaine.ports import OptionsExport
-from waveaudit.domaine.qualite_texte import motif_langue
-from waveaudit.workflows.fiches import pipeline
+from pentest_scribe.domaine.ports import OptionsExport
+from pentest_scribe.domaine.qualite_texte import motif_langue
+from pentest_scribe.workflows.fiches import pipeline
 
 _REFERENCE = Reference(
     id="CWE-79", titre="XSS", url="https://cwe.mitre.org/data/definitions/79.html"
@@ -469,7 +469,7 @@ def test_aucun_partiel_si_le_remplacement_echoue(tmp_path: Path, monkeypatch):
     def refus(*_args, **_kwargs):
         raise PermissionError("document ouvert dans Word")
 
-    monkeypatch.setattr("waveaudit.adaptateurs.export_docx.os.replace", refus)
+    monkeypatch.setattr("pentest_scribe.adaptateurs.export_docx.os.replace", refus)
     chemin = tmp_path / "rapport.docx"
     with pytest.raises(PermissionError):
         ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin)

@@ -15,7 +15,7 @@ Verdict : intégrable ; un écart à arbitrer par Anaël (mots-clés tirés des 
 | low | second avis 4 | Un seul test bilingue (en.titre) ; rien sur en=None ni sur le poids de en.description. | Corrigé : `test_index_bilingue_ponderations_calculees_a_la_main` (scores BM25 calculés à la main pour en.titre ×3, en.description ×1, constat voisin en=None, en.impact et en.recommandation non indexés). Le cas en=None seul reste couvert par `test_score_bm25_valeur_calculee_a_la_main` (avgdl 8 inchangé). |
 | low | second avis 5 | Pas de spec de story Q4. | Corrigé : ce fichier. |
 | low | reviewer | Retrait de « cross-site scripting » et « reflected xss » de `WEB-XSS-REFLECHI` : il reste un seul mot-clé anglais (« burp repeater ») alors que formats.md dit que les mots-clés couvrent déjà les deux langues. | Laissé : compensé par l'index bilingue (`en.titre` « Reflected script injection (reflected XSS) ») ; modification des mots-clés exclue dans cette revue. |
-| — | reviewer | Intégration : `pipeline.py` appelle `classer` sans changement de signature ; `k1`/`b` et `config/waveaudit.toml` inchangés ; pondérations restées constantes du module. | — |
+| — | reviewer | Intégration : `pipeline.py` appelle `classer` sans changement de signature ; `k1`/`b` et `config/pentest-scribe.toml` inchangés ; pondérations restées constantes du module. | — |
 | — | reviewer | Complexité : 0 constat (index reconstruit à chaque `classer`, comme avant ; aucune structure qui grossit). | — |
 
 ## Reports

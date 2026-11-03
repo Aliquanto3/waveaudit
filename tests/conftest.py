@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
+from pentest_scribe.application.config import FICHIER_DEFAUTS, racine_projet
+from pentest_scribe.domaine.configuration import Configuration
 from tests.faux_moteur import FauxMoteur, demarrer
-from waveaudit.application.config import FICHIER_DEFAUTS, racine_projet
-from waveaudit.domaine.configuration import Configuration
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def faux_moteur() -> Iterator[Callable[..., FauxMoteur]]:
 def config_test(tmp_path: Path, faux_moteur: Callable[..., FauxMoteur]) -> Configuration:
     """Configuration de test : mode externe vers un faux moteur nominal, var/ sous tmp_path.
 
-    Part des seuls défauts du dépôt (jamais de `waveaudit.local.toml`). Le catalogue est celui
+    Part des seuls défauts du dépôt (jamais de `pentest-scribe.local.toml`). Le catalogue est celui
     du dépôt ; `theme_prive` pointe vers un dossier absent de tmp_path (thème générique).
     """
     racine = racine_projet()

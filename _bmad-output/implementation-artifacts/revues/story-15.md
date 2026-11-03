@@ -12,7 +12,7 @@ Branche `story-15-revue` (depuis `story-15`, 164bcb2, rebasée sur main après D
 | 4 | low | second avis | `join(timeout=2.0)` puis échantillon final : course si le join expire. | Rejeté : ne survient que si `rss_octets` bloque plus de 2 s ; les `append` sur liste restent sûrs sous le GIL et l'effet se borne à un échantillon de plus. |
 | 5 | low | second avis | Pas de test CLI du chemin de succès de `banc`, demandé par la story. | Corrigé : `test_banc_succes_code_0` (faux moteur via `config_test`, `MesureMemoire` factice, code 0, `banc.json` écrit, garde relâché). |
 
-Branchement CLI vérifié : `cli.banc` importe `waveaudit.application.banc` sous `garde()` et traduit les erreurs (`_codes_retour`) ; il était déjà en place, la story n'avait pas à modifier `cli.py`. Pas d'import typer ni interfaces dans `banc.py`. Aucun test ne suppose 20 notes de démo (comptage du dossier).
+Branchement CLI vérifié : `cli.banc` importe `pentest_scribe.application.banc` sous `garde()` et traduit les erreurs (`_codes_retour`) ; il était déjà en place, la story n'avait pas à modifier `cli.py`. Pas d'import typer ni interfaces dans `banc.py`. Aucun test ne suppose 20 notes de démo (comptage du dossier).
 
 Complexité : 0 constat (échantillons ajoutés en O(1), maximum calculé une fois en fin de lot ; ~2 échantillons/s, volume négligeable).
 

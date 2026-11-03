@@ -2,7 +2,7 @@
 
 Branche `story-C6b-revue`, depuis `story-C6b`, déjà à jour sur main (aucun conflit). Tri
 détaillé : section « Revue » de
-`_bmad-output/specs/spec-waveaudit-cert/stories/story-C6b-cli-incident-hors-ligne-readme.md`.
+`_bmad-output/specs/spec-pentest-scribe-cert/stories/story-C6b-cli-incident-hors-ligne-readme.md`.
 
 ## Constats
 

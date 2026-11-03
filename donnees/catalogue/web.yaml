@@ -47,7 +47,7 @@
     - id: "A03:2021"
       titre: Injection
       url: https://owasp.org/Top10/A03_2021-Injection/
-  source: "Rédaction WaveAudit d'après CWE-79 et OWASP Top 10 A03:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-79 et OWASP Top 10 A03:2021, licence du dépôt"
 
 - id: WEB-XSS-STOCKE
   titre: Injection de script persistante (XSS stocké)
@@ -92,7 +92,7 @@
     - id: "A03:2021"
       titre: Injection
       url: https://owasp.org/Top10/A03_2021-Injection/
-  source: "Rédaction WaveAudit d'après CWE-79 et OWASP Top 10 A03:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-79 et OWASP Top 10 A03:2021, licence du dépôt"
 
 - id: WEB-INJECTION-SQL
   titre: Injection SQL dans les requêtes applicatives
@@ -141,7 +141,7 @@
     - id: "A03:2021"
       titre: Injection
       url: https://owasp.org/Top10/A03_2021-Injection/
-  source: "Rédaction WaveAudit d'après CWE-89 et OWASP Top 10 A03:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-89 et OWASP Top 10 A03:2021, licence du dépôt"
 
 - id: WEB-CSRF
   titre: Falsification de requête inter-site (CSRF)
@@ -184,7 +184,7 @@
     - id: "A01:2021"
       titre: Broken Access Control
       url: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
-  source: "Rédaction WaveAudit d'après CWE-352 et OWASP Top 10 A01:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-352 et OWASP Top 10 A01:2021, licence du dépôt"
 
 - id: WEB-IDOR
   titre: Référence directe à un objet non vérifiée (IDOR)
@@ -233,7 +233,7 @@
     - id: "A01:2021"
       titre: Broken Access Control
       url: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
-  source: "Rédaction WaveAudit d'après CWE-639 et OWASP Top 10 A01:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-639 et OWASP Top 10 A01:2021, licence du dépôt"
 
 - id: WEB-SSRF
   titre: Falsification de requête côté serveur (SSRF)
@@ -278,7 +278,7 @@
     - id: "A10:2021"
       titre: Server-Side Request Forgery (SSRF)
       url: https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/
-  source: "Rédaction WaveAudit d'après CWE-918 et OWASP Top 10 A10:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-918 et OWASP Top 10 A10:2021, licence du dépôt"
 
 - id: WEB-TRAVERSEE-CHEMIN
   titre: Traversée de répertoire (path traversal)
@@ -322,7 +322,7 @@
     - id: "A01:2021"
       titre: Broken Access Control
       url: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
-  source: "Rédaction WaveAudit d'après CWE-22 et OWASP Top 10 A01:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-22 et OWASP Top 10 A01:2021, licence du dépôt"
 
 - id: WEB-UPLOAD-NON-RESTREINT
   titre: Téléversement de fichier non restreint
@@ -366,7 +366,7 @@
     - id: "A04:2021"
       titre: Insecure Design
       url: https://owasp.org/Top10/A04_2021-Insecure_Design/
-  source: "Rédaction WaveAudit d'après CWE-434 et OWASP Top 10 A04:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-434 et OWASP Top 10 A04:2021, licence du dépôt"
 
 - id: WEB-SESSION-FIXATION
   titre: Fixation de session utilisateur
@@ -409,7 +409,7 @@
     - id: "A07:2021"
       titre: Identification and Authentication Failures
       url: https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/
-  source: "Rédaction WaveAudit d'après CWE-384 et OWASP Top 10 A07:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-384 et OWASP Top 10 A07:2021, licence du dépôt"
 
 - id: WEB-ENTETES-SECURITE
   titre: En-têtes de sécurité HTTP absents
@@ -454,7 +454,7 @@
     - id: "A05:2021"
       titre: Security Misconfiguration
       url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
-  source: "Rédaction WaveAudit d'après CWE-693 et OWASP Top 10 A05:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-693 et OWASP Top 10 A05:2021, licence du dépôt"
 
 - id: WEB-CORS-PERMISSIF
   titre: Partage de ressources inter-origines permissif (CORS)
@@ -496,7 +496,7 @@
     - id: "A05:2021"
       titre: Security Misconfiguration
       url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
-  source: "Rédaction WaveAudit d'après CWE-942 et OWASP Top 10 A05:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-942 et OWASP Top 10 A05:2021, licence du dépôt"
 
 - id: WEB-REDIRECTION-OUVERTE
   titre: Redirection ouverte non contrôlée
@@ -536,7 +536,7 @@
     - id: "A01:2021"
       titre: Broken Access Control
       url: https://owasp.org/Top10/A01_2021-Broken_Access_Control/
-  source: "Rédaction WaveAudit d'après CWE-601 et OWASP Top 10 A01:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-601 et OWASP Top 10 A01:2021, licence du dépôt"
 
 - id: WEB-DIVULGATION-ERREURS
   titre: Divulgation d'informations par les messages d'erreur
@@ -578,7 +578,7 @@
     - id: "A05:2021"
       titre: Security Misconfiguration
       url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
-  source: "Rédaction WaveAudit d'après CWE-209 et OWASP Top 10 A05:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-209 et OWASP Top 10 A05:2021, licence du dépôt"
 
 - id: WEB-AUTH-FORCE-BRUTE
   titre: Authentification sans protection contre les essais répétés
@@ -621,7 +621,7 @@
     - id: "A07:2021"
       titre: Identification and Authentication Failures
       url: https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/
-  source: "Rédaction WaveAudit d'après CWE-307 et OWASP Top 10 A07:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-307 et OWASP Top 10 A07:2021, licence du dépôt"
 
 - id: WEB-XXE
   titre: Injection d'entité externe XML (XXE)
@@ -664,7 +664,7 @@
     - id: "A05:2021"
       titre: Security Misconfiguration
       url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
-  source: "Rédaction WaveAudit d'après CWE-611 et OWASP Top 10 A05:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-611 et OWASP Top 10 A05:2021, licence du dépôt"
 
 - id: WEB-DESERIALISATION
   titre: Désérialisation de données non fiables
@@ -707,7 +707,7 @@
     - id: "A08:2021"
       titre: Software and Data Integrity Failures
       url: https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/
-  source: "Rédaction WaveAudit d'après CWE-502 et OWASP Top 10 A08:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-502 et OWASP Top 10 A08:2021, licence du dépôt"
 
 - id: WEB-JWT-FAIBLE
   titre: Jeton JWT signé avec un secret faible ou prévisible
@@ -754,7 +754,7 @@
     - id: "A02:2021"
       titre: Cryptographic Failures
       url: https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
-  source: "Rédaction WaveAudit d'après CWE-347 et OWASP Top 10 A02:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-347 et OWASP Top 10 A02:2021, licence du dépôt"
 
 - id: WEB-CLICKJACKING
   titre: Détournement de clic par superposition de cadre (clickjacking)
@@ -803,7 +803,7 @@
     - id: "A05:2021"
       titre: Security Misconfiguration
       url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
-  source: "Rédaction WaveAudit d'après CWE-1021 et OWASP Top 10 A05:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-1021 et OWASP Top 10 A05:2021, licence du dépôt"
 
 - id: WEB-SSTI
   titre: Injection de modèle côté serveur (SSTI)
@@ -851,7 +851,7 @@
     - id: "A03:2021"
       titre: Injection
       url: https://owasp.org/Top10/A03_2021-Injection/
-  source: "Rédaction WaveAudit d'après CWE-1336 et OWASP Top 10 A03:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-1336 et OWASP Top 10 A03:2021, licence du dépôt"
 
 - id: WEB-GRAPHQL-INTROSPECTION
   titre: Introspection GraphQL accessible en production
@@ -896,4 +896,4 @@
     - id: "A05:2021"
       titre: Security Misconfiguration
       url: https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
-  source: "Rédaction WaveAudit d'après CWE-200 et OWASP Top 10 A05:2021, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-200 et OWASP Top 10 A05:2021, licence du dépôt"

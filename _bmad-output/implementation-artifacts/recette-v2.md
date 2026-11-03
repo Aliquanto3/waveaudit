@@ -8,8 +8,8 @@ Cocher `[x]` si conforme, `[!]` si écart (le décrire dans « Écarts relevés 
 
 - [ ] Fermer les applications lourdes ; RAM libre notée : ____ Go (7,7 Go au moment de la préparation).
 - [ ] `tasklist | findstr llama-server` : aucune ligne.
-- [ ] `uv run waveaudit version` affiche 0.2.0rc1 (version candidate ; la 0.2.0 n'est posée qu'après la recette).
-- [ ] `uv run waveaudit ui`, puis ouvrir `http://127.0.0.1:8765` dans un vrai navigateur (Edge ou Firefox).
+- [ ] `uv run pentest-scribe version` affiche 0.2.0rc2 (version candidate ; la 0.2.0 n'est posée qu'après la recette).
+- [ ] `uv run pentest-scribe ui`, puis ouvrir `http://127.0.0.1:8765` dans un vrai navigateur (Edge ou Firefox).
 
 Dossiers prêts (ignorés par git) :
 - `var/recette-v2/notes/` : les 6 notes du banc (01, 11, 16, 22, 26, 29) et `99-hors-sujet.md` (recette de cuisine, pour l'entrée non rattachée).
@@ -54,7 +54,7 @@ Accueil : workflow « Fiches », granite (défaut), langue « Français », dép
 
 ## 4. Lot en anglais et relecture de Q3
 
-Relancer le parcours sur 3 ou 4 notes avec la langue « English » (ou `uv run waveaudit fiches var/recette-v2/notes --langue en`).
+Relancer le parcours sur 3 ou 4 notes avec la langue « English » (ou `uv run pentest-scribe fiches var/recette-v2/notes --langue en`).
 
 - [ ] `lang` du panneau de relecture passe à `en`.
 - [ ] Word final `en` : libellés des statuts et motifs en anglais dans l'annexe des écartées (story LIB) ; aucun code brut français dans le final.
@@ -73,7 +73,7 @@ Relancer le parcours sur 3 ou 4 notes avec la langue « English » (ou `uv run w
 ## 5. Robustesse
 
 - [ ] Ctrl+C sur l'UI pendant un lot en cours ; arrêt en moins de ~10 s ; `tasklist | findstr llama-server` : aucune ligne (story ARR).
-- [ ] Repli `qwen3.5-0.8b` avec peu de RAM (ouvrir la suite bureautique et d'autres applis jusqu'à passer sous le seuil `ram_min_defaut_go = 4.5` de `config/waveaudit.toml`, recharger l'accueil, puis lancer un lot) : `qwen3.5-0.8b` est présélectionné dans la liste « Modèle » et le lot aboutit. Aucun message n'annonce le repli (constat de la revue DOC-T) : dire si c'est gênant. RAM libre au lancement : ____ Go.
+- [ ] Repli `qwen3.5-0.8b` avec peu de RAM (ouvrir la suite bureautique et d'autres applis jusqu'à passer sous le seuil `ram_min_defaut_go = 4.5` de `config/pentest-scribe.toml`, recharger l'accueil, puis lancer un lot) : `qwen3.5-0.8b` est présélectionné dans la liste « Modèle » et le lot aboutit. Aucun message n'annonce le repli (constat de la revue DOC-T) : dire si c'est gênant. RAM libre au lancement : ____ Go.
 - [ ] Facultatif : un lot avec qwen3-1.7b (candidat) choisi à l'accueil, durée par fiche : ____ s.
 
 ## Écarts relevés

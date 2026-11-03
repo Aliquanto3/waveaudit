@@ -1,6 +1,6 @@
 # Revue story 13 — CLI complète
 
-Branche `story-13-revue` (depuis `story-13`, rebasée sur main dc99785 sans conflit). Constats et tri : section « Revue » de `_bmad-output/specs/spec-waveaudit-poc/stories/story-13-cli-complete.md`, reprise ci-dessous.
+Branche `story-13-revue` (depuis `story-13`, rebasée sur main dc99785 sans conflit). Constats et tri : section « Revue » de `_bmad-output/specs/spec-pentest-scribe-poc/stories/story-13-cli-complete.md`, reprise ci-dessous.
 
 ## Constats
 

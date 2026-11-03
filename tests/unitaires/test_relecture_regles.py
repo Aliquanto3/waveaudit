@@ -2,7 +2,7 @@
 
 import pytest
 
-from waveaudit.domaine.modeles import (
+from pentest_scribe.domaine.modeles import (
     Candidat,
     CodeMotif,
     Cvss,
@@ -14,7 +14,7 @@ from waveaudit.domaine.modeles import (
     Statut,
     Tracabilite,
 )
-from waveaudit.domaine.relecture import (
+from pentest_scribe.domaine.relecture import (
     EntreeRelecture,
     EtatRelecture,
     FicheCorrigee,

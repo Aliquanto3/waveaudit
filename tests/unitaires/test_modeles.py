@@ -4,10 +4,10 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from waveaudit.domaine import erreurs
-from waveaudit.domaine.cvss31 import metriques_depuis_vecteur, vecteur
-from waveaudit.domaine.erreurs import EntreeInvalide
-from waveaudit.domaine.modeles import (
+from pentest_scribe.domaine import erreurs
+from pentest_scribe.domaine.cvss31 import metriques_depuis_vecteur, vecteur
+from pentest_scribe.domaine.erreurs import EntreeInvalide
+from pentest_scribe.domaine.modeles import (
     LANGUES,
     Candidat,
     CodeMotif,
@@ -28,7 +28,7 @@ from waveaudit.domaine.modeles import (
     TypeEvenement,
     schema_sortie,
 )
-from waveaudit.workflows.registre import REGISTRE
+from pentest_scribe.workflows.registre import REGISTRE
 
 VECTEUR = "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
 
@@ -211,7 +211,7 @@ def test_erreurs_hors_oserror():
         "EmpreinteInvalide",
     ):
         classe = getattr(erreurs, nom)
-        assert issubclass(classe, erreurs.ErreurWaveAudit)
+        assert issubclass(classe, erreurs.ErreurPentestScribe)
         assert not issubclass(classe, OSError)
 
 

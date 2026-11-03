@@ -8,7 +8,7 @@ tableau de l'annexe.
 ## Revue
 
 Détail des constats : section « Revue » de
-`_bmad-output/specs/spec-waveaudit-cert/stories/story-C6a-rapport-incident-docx.md`.
+`_bmad-output/specs/spec-pentest-scribe-cert/stories/story-C6a-rapport-incident-docx.md`.
 
 - low — second avis — rejeté : « Aucun fait détecté » sur liste vide avec récits (le contrat
   ne fixe que le cas sans détection, couvert).

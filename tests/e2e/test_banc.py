@@ -11,10 +11,10 @@ from datetime import datetime
 
 import pytest
 
-from waveaudit.application import banc, composition
-from waveaudit.application.config import racine_projet
-from waveaudit.domaine.erreurs import MoteurInjoignable
-from waveaudit.domaine.modeles import (
+from pentest_scribe.application import banc, composition
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.domaine.erreurs import MoteurInjoignable
+from pentest_scribe.domaine.modeles import (
     Candidat,
     CodeMotif,
     Cvss,

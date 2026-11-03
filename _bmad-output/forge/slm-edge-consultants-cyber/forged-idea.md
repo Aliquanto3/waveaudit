@@ -3,8 +3,8 @@
 **Issue : HARDENED** (2026-10-17)
 
 ## Contexte établi
-- Utilisateurs : consultants du pool audit cyber de Wavestone. Un seul PC (16 Go, sans GPU), connecté au SI Wavestone (mail, VPN).
-- Interdiction : politique liée à PASSI et aux contrats (périmètre maîtrisé), pas une coupure réseau. Un LLM interne Wavestone cloisonné reste possible à terme.
+- Utilisateurs : consultants d'un pool audit cyber. Un seul PC (16 Go, sans GPU), connecté au SI de l'entreprise (mail, VPN).
+- Interdiction : politique liée à PASSI et aux contrats (périmètre maîtrisé), pas une coupure réseau. Un LLM interne de l'entreprise cloisonné reste possible à terme.
 - Perf de référence : EliteBook i5-1145G7, 16 Go, CPU seul : 1,3 tok/s en chat, 5,7 tok/s en labo (`wavelocalai/docs/audits/`).
 
 ## Décisions verrouillées
@@ -14,7 +14,7 @@
 4. **Cas n°1 : fiches de vulnérabilité.** On retrouve le constat type dans un catalogue, puis on l'adapte aux notes brutes. Pas de génération ex nihilo. Traitement par lot, pas en chat. **Cas n°2 : code** (scripts d'analyse des sorties d'outils).
 5. **Séquence** : POC sur gabarit générique et données publiques → entrants des collègues et sponsor → pilote réel.
 6. **Règles du POC** : vérifiablement hors ligne (test d'absence d'appel sortant, SBOM, SHA-256 des poids, source documentée) ; données publiques ou synthétiques seulement (CWE, OWASP WSTG, ANSSI ; notes fictives ; bandeau « démonstration ») ; périmètre figé : notes → fiche, FR, sortie Word.
-7. **Distribution** : dépôt GitHub + `uv sync` (simple et auditable). Charte visuelle Wavestone ; format de fiche générique : Description / Impact / Recommandation / CVSS 3.1 / Références.
+7. **Distribution** : dépôt GitHub + `uv sync` (simple et auditable). Charte visuelle générique ; format de fiche générique : Description / Impact / Recommandation / CVSS 3.1 / Références.
 8. **Extension n°2 : CERT / réponse à incident**, prévue dans l'architecture (parseurs de logs, gabarit de rapport d'incident), non développée. DR/défense en backlog.
 
 ## Critères de réussite du POC
@@ -38,6 +38,6 @@
 - Entretien avec les collègues : (1) la frontière exacte (PASSI interne ou poste seul) ; (2) le poids réel des fiches dans une mission ; (3) la chaîne de rédaction et l'existence d'un catalogue de constats.
 - Accès à PyPI, GitHub et Hugging Face depuis le poste ; variante archive des poids avec SHA-256.
 - Moteur Windows sans compilateur : roue CPU précompilée ou `llama-server` épinglé.
-- Charte Wavestone dans un dépôt public : accord de la communication, ou dépôt privé / thème hors dépôt.
+- Charte visuelle : charte générique dans le dépôt public.
 - Risque de dispersion (6 dépôts actifs) : périmètre et date figés.
 - Réutiliser : `service-public-slm-fine-tuning` (hors ligne, RAG, mesures CPU), `slm-quality-bench` (méthode de choix du modèle), `wavelocalai` (profil machine).

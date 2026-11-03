@@ -8,13 +8,13 @@ from pathlib import Path
 from docx import Document
 from fastapi.testclient import TestClient
 
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.interfaces.web.app import creer_app
 from tests.accessibilite import verifier_accessibilite, verifier_focus_css
 from tests.web_outils import client as client_web
-from waveaudit.application.config import racine_projet
-from waveaudit.interfaces.web.app import creer_app
 
 DEMO = racine_projet() / "donnees" / "demo" / "notes"
-_RACINE_WEB = Path(__file__).resolve().parents[2] / "src" / "waveaudit" / "interfaces" / "web"
+_RACINE_WEB = Path(__file__).resolve().parents[2] / "src" / "pentest_scribe" / "interfaces" / "web"
 
 
 def _vers(config, fm):
@@ -750,7 +750,7 @@ def test_lien_lots_recents_absent_sans_lot(config_test):
 def test_refus_lot_en_cours_occupation_liberee_entre_temps():
     """[revue W2] Verrou rendu entre l'échec de `prendre` et la lecture de l'occupation : 409
     codé, pas d'erreur 500."""
-    from waveaudit.interfaces.web.routeurs.lots import _refus_lot_en_cours
+    from pentest_scribe.interfaces.web.routeurs.lots import _refus_lot_en_cours
 
     reponse = _refus_lot_en_cours(None)
     assert reponse.status_code == 409

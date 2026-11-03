@@ -1,4 +1,4 @@
-# Manifeste des artefacts installés par `waveaudit installer` (contrats §11, AD-12).
+# Manifeste des artefacts installés par `pentest-scribe installer` (contrats §11, AD-12).
 # `destination` est relatif à var/ : un dossier si extraire = true, sinon le fichier final.
 # `executable` est le chemin de l'exécutable dans `destination`, pour le rôle moteur seulement.
 # Ordre des entrées : moteur, défaut, repli, puis candidats (contrats §11 v2).

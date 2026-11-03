@@ -3,9 +3,9 @@
 import httpx
 import pytest
 
-from waveaudit.adaptateurs.llama_server import LlamaServer
-from waveaudit.application.config import charger_configuration
-from waveaudit.installation import manifeste
+from pentest_scribe.adaptateurs.llama_server import LlamaServer
+from pentest_scribe.application.config import charger_configuration
+from pentest_scribe.installation import manifeste
 
 pytestmark = pytest.mark.slow
 
@@ -17,7 +17,7 @@ def test_vrai_llama_server_demarre_et_s_arrete(tmp_path):
     binaire = manifeste.chemin(manifeste.par_role(artefacts, "moteur"), var)
     gguf = manifeste.chemin(manifeste.par_role(artefacts, "modele_defaut"), var)
     if not (var / "modeles").is_dir() or not binaire.is_file() or not gguf.is_file():
-        pytest.skip("var/modeles ou llama-server absent : lancer `waveaudit installer`")
+        pytest.skip("var/modeles ou llama-server absent : lancer `pentest-scribe installer`")
     m = config.moteur
     journal = tmp_path / "llama-server-reel.log"  # jamais dans le var/ du dépôt
     with LlamaServer(binaire, gguf, m.ctx, m.threads, m.delai_demarrage_s, journal) as serveur:

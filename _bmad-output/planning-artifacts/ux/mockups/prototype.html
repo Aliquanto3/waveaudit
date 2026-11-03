@@ -1,5 +1,5 @@
 <!--
-  WaveAudit — prototype interactif (voie rapide, données fictives).
+  PentestScribe — prototype interactif (voie rapide, données fictives).
   Les spines (DESIGN.md, EXPERIENCE.md) priment sur ce fichier en cas de conflit : ce prototype
   illustre leur comportement, il ne le définit pas. Fichier autonome : CSS et JS inline, aucune
   ressource externe, aucune requête réseau. Navigation simulée par état JS (pas de hash routing
@@ -10,21 +10,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WaveAudit — prototype</title>
+<title>PentestScribe — prototype</title>
 <style>
-/* ===== Tokens (DESIGN.md) — palette officielle Wavestone ===== */
+/* ===== Tokens (DESIGN.md) — charte générique ===== */
 :root{
-  --primaire:#451DC7; --primaire-fonce:#250F6B; --primaire-doux:#EDE7FE;
-  --accent:#04F06A; --accent-doux:#CAFEE0; --accent-texte:#036B38;
-  --encre:#0A0A14; --encre-douce:#4A4A5E;
-  --gris:#8A8A9E; --gris-texte:#616670;
-  --trait:#E6E6EC; --fond-creme:#F6F5FA;
-  --attention:#FFCA4A; --attention-doux:#FBE9CF; --attention-texte:#8A5A00;
-  --danger:#FF2A49; --danger-doux:#F8DEDC; --danger-texte:#B3261E;
-  --texte-sur-vif:#0A0A14;
-  --focus-outline:2px solid var(--primaire); --focus-offset:2px;
-  --font:'Aptos','Segoe UI',system-ui,sans-serif;
-  --font-mono:'Cascadia Mono',Consolas,monospace;
+  --primaire:#0B6B78; --primaire-fonce:#084E58; --primaire-doux:#DCEFF1;
+  --accent:#B4500F; --accent-doux:#FBE7D7; --accent-texte:#9A430B;
+  --encre:#141A1F; --encre-douce:#4B5560;
+  --gris:#737E85; --gris-texte:#4B5560;
+  --trait:#C9D1D3; --fond:#F7F8F6;
+  --attention:#E8A317; --attention-doux:#FCF0D4; --attention-texte:#7A4E00;
+  --danger:#B42318; --danger-doux:#FCE4E1; --danger-texte:#B42318;
+  --texte-sur-vif:#141A1F;
+  --focus-outline:2px solid #1F5FD1; --focus-offset:2px;
+  --font:system-ui,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  --font-mono:'Cascadia Mono',Consolas,ui-monospace,monospace;
   --r-sm:12px; --r-md:16px; --r-lg:22px; --r-full:9999px;
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px;
   --ease:cubic-bezier(0.16,1,0.3,1);
@@ -91,7 +91,7 @@ button:focus:not(:focus-visible){outline:none;}
 .carte-workflow[aria-pressed="true"]{border-color:var(--primaire); background:var(--primaire-doux);}
 .carte-workflow h3{font-size:16px; margin-bottom:var(--sp-2);}
 .carte-depot{
-  border:2px dashed var(--trait); border-radius:var(--r-lg); background:var(--fond-creme);
+  border:2px dashed var(--trait); border-radius:var(--r-lg); background:var(--fond);
   padding:var(--sp-6); text-align:center; margin-bottom:var(--sp-5);
 }
 .carte-depot.actif{border-color:var(--primaire); background:var(--primaire-doux);}
@@ -125,7 +125,7 @@ table.lots{width:100%; border-collapse:collapse;}
 table.lots th{text-align:left; font-size:12px; color:var(--gris-texte); padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--trait);}
 table.lots td{padding:var(--sp-3); border-bottom:1px solid var(--trait);}
 table.lots tr{cursor:pointer;}
-table.lots tr:hover td{background:var(--fond-creme);}
+table.lots tr:hover td{background:var(--fond);}
 
 /* ===== Pastilles ===== */
 .pastille{
@@ -166,7 +166,7 @@ table.lots tr:hover td{background:var(--fond-creme);}
   padding:var(--sp-3); cursor:pointer; border-bottom:1px solid var(--trait); font-size:13px;
 }
 .tiroir-liste [role=option][aria-selected=true]{background:var(--primaire-doux);}
-.tiroir-liste [role=option]:hover{background:var(--fond-creme);}
+.tiroir-liste [role=option]:hover{background:var(--fond);}
 .tiroir-nom{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .relecture-corps{flex:1; display:flex; flex-direction:column; min-width:0;}
 .candidats{display:flex; border-bottom:1px solid var(--trait); padding:0 var(--sp-4);}
@@ -178,7 +178,7 @@ table.lots tr:hover td{background:var(--fond-creme);}
 .candidats .score{font-family:var(--font-mono); font-size:12px; color:var(--gris-texte);}
 .deux-colonnes{flex:1; display:flex; min-height:0; overflow:hidden;}
 .panneau-note{
-  flex:1 1 50%; background:var(--fond-creme); padding:var(--sp-4); overflow:auto;
+  flex:1 1 50%; background:var(--fond); padding:var(--sp-4); overflow:auto;
   font-family:var(--font-mono); font-size:13px; white-space:pre-wrap; border-right:1px solid var(--trait);
 }
 .panneau-fiche{flex:1 1 50%; padding:var(--sp-4); overflow:auto; position:relative;}
@@ -200,7 +200,7 @@ table.lots tr:hover td{background:var(--fond-creme);}
 .severite-faible{background:var(--accent-doux); color:var(--accent-texte);}
 .severite-moyenne{background:var(--attention-doux); color:var(--attention-texte);}
 .severite-elevee{background:var(--danger-doux); color:var(--danger-texte);}
-.severite-critique{background:var(--danger); color:var(--texte-sur-vif);}
+.severite-critique{background:var(--danger); color:#FFFFFF;}
 .cvss-erreur{color:var(--danger-texte); font-size:12px; margin-top:4px;}
 input[aria-invalid=true]{border-color:var(--danger);}
 .refs{list-style:none; padding:0; margin:0;}
@@ -224,13 +224,13 @@ input[aria-invalid=true]{border-color:var(--danger);}
 
 /* ===== Boîte de confirmation ===== */
 .overlay{
-  position:fixed; inset:0; background:rgba(10,10,20,.4); display:flex; align-items:center;
+  position:fixed; inset:0; background:rgba(20,26,31,.4); display:flex; align-items:center;
   justify-content:center; z-index:50;
 }
 .overlay[hidden]{display:none;}
 .boite{
   background:#fff; border-radius:var(--r-md); padding:var(--sp-5); max-width:420px; width:90%;
-  box-shadow:0 12px 32px rgba(10,10,20,.18);
+  box-shadow:0 12px 32px rgba(20,26,31,.18);
 }
 .boite h2{font-size:16px; margin-bottom:var(--sp-3);}
 .boite p{margin-bottom:var(--sp-4); font-size:14px; color:var(--encre-douce);}
@@ -240,7 +240,7 @@ input[aria-invalid=true]{border-color:var(--danger);}
 .toast{
   position:fixed; bottom:48px; right:var(--sp-5); background:var(--encre); color:#fff;
   padding:var(--sp-3) var(--sp-4); border-radius:var(--r-sm); font-size:13px; max-width:320px;
-  box-shadow:0 8px 20px rgba(10,10,20,.25); z-index:60;
+  box-shadow:0 8px 20px rgba(20,26,31,.25); z-index:60;
 }
 .toast[hidden]{display:none;}
 
@@ -260,7 +260,7 @@ table.detections td{padding:var(--sp-3); border-bottom:1px solid var(--trait); v
 /* ===== Guide de la démo ===== */
 #guide{
   position:fixed; right:var(--sp-4); bottom:84px; width:300px; background:#fff;
-  border:1px solid var(--trait); border-radius:var(--r-md); box-shadow:0 8px 24px rgba(10,10,20,.15);
+  border:1px solid var(--trait); border-radius:var(--r-md); box-shadow:0 8px 24px rgba(20,26,31,.15);
   z-index:40; font-size:13px;
 }
 #guide-tete{
@@ -284,7 +284,7 @@ table.detections td{padding:var(--sp-3); border-bottom:1px solid var(--trait); v
 <header class="en-tete">
   <div class="marque">
     <img id="logo-prive" src="../../../../theme-prive/web/logo.svg" alt="" onerror="this.style.display='none'">
-    <span class="nom">WaveAudit</span>
+    <span class="nom">PentestScribe</span>
   </div>
   <div class="lot-bloc" id="en-tete-lot" hidden></div>
 </header>

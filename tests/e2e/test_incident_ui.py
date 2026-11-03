@@ -14,17 +14,17 @@ from docx import Document
 from fastapi.testclient import TestClient
 from lxml import html as lxml_html
 
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.securite import garde_reseau
 from tests.accessibilite import verifier_accessibilite, verifier_focus_css
 from tests.e2e.test_cli import _ecrire_config, runner
 from tests.e2e.test_cli import app as cli_app
 from tests.web_outils import application
 from tests.web_outils import client as client_web
-from waveaudit.application.config import racine_projet
-from waveaudit.securite import garde_reseau
 
 DEMO = racine_projet() / "donnees" / "demo" / "incident"
 ANNEE = "2026"
-_RACINE_WEB = racine_projet() / "src" / "waveaudit" / "interfaces" / "web"
+_RACINE_WEB = racine_projet() / "src" / "pentest_scribe" / "interfaces" / "web"
 
 
 def _vers(config, fm):

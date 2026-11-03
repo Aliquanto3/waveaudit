@@ -1,6 +1,6 @@
 ---
 name: Retour testeur
-about: Retour après test du POC WaveAudit (voir docs/guide-testeurs.md)
+about: Retour après test du POC PentestScribe (voir docs/guide-testeurs.md)
 title: "Retour testeur — "
 labels: retour-testeur
 ---
@@ -9,11 +9,11 @@ labels: retour-testeur
 
 - Modèle / configuration (CPU, RAM) :
 - OS :
-- Version testée (`uv run waveaudit version`) :
+- Version testée (`uv run pentest-scribe version`) :
 
 ## Installation
 
-- Temps d'installation (`uv sync` + `waveaudit installer`) :
+- Temps d'installation (`uv sync` + `pentest-scribe installer`) :
 - [ ] Proxy d'entreprise configuré (`HTTPS_PROXY`)
 - [ ] Blocage ou téléchargement échoué rencontré — si oui, message exact :
 

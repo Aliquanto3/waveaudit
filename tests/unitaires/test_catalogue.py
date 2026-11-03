@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-from waveaudit.adaptateurs.catalogue_yaml import IDENTIFIANTS_FIGES, CatalogueYaml, verifier
-from waveaudit.application.config import racine_projet
-from waveaudit.domaine.erreurs import ConfigurationInvalide, EntreeInvalide
-from waveaudit.domaine.qualite_texte import motif_langue
+from pentest_scribe.adaptateurs.catalogue_yaml import IDENTIFIANTS_FIGES, CatalogueYaml, verifier
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.domaine.erreurs import ConfigurationInvalide, EntreeInvalide
+from pentest_scribe.domaine.qualite_texte import motif_langue
 
 # [v2] ids dont le titre anglais ne peut pas différer utilement du titre français : termes
 # techniques sans traduction propre (revue E38).
@@ -26,7 +26,7 @@ CONSTAT_MINIMAL = {
     "references": [
         {"id": "CWE-79", "titre": "XSS", "url": "https://cwe.mitre.org/data/definitions/79.html"}
     ],
-    "source": "Rédaction WaveAudit d'après CWE-79, licence du dépôt",
+    "source": "Rédaction PentestScribe d'après CWE-79, licence du dépôt",
     # [v2] bloc anglais obligatoire (contrats §15, CAP-8).
     "en": {
         "titre": "Test finding",
@@ -253,7 +253,7 @@ def test_contenu_du_catalogue_du_depot_suit_le_cahier_des_charges():
         assert 6 <= len(c.mots_cles) <= 12, c.id
         # Garde-fou §6 : un titre de fiche de moins de 20 caractères est remplacé (a_revoir).
         assert len(c.titre) >= 20, c.id
-        assert c.source.startswith("Rédaction WaveAudit d'après "), c.id
+        assert c.source.startswith("Rédaction PentestScribe d'après "), c.id
         assert c.source.endswith(", licence du dépôt"), c.id
         for ref in c.references:
             assert ref.url.split("/")[2].removeprefix("www.") in DOMAINES_REFERENCES, c.id

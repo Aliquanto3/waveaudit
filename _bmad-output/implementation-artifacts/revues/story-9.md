@@ -21,5 +21,5 @@ Branche `story-9-revue` (depuis `story-9`, 1ead340, déjà à jour sur `main` c1
 Écart au contrat consigné : §17 ne dit pas qu'un thème privé invalide est une erreur ; choix `ConfigurationInvalide` (code 2, §4) plutôt qu'un repli silencieux sur le thème générique, pour ne pas livrer à tort un rapport sans la charte attendue.
 
 Complexité : 0 constat (export linéaire : 100 fiches 0,96 s, 400 fiches 3,8 s ; le bandeau parcourt les sections une fois).
-Sécurité : aucun appel réseau, aucun élément Wavestone dans le dépôt (thèmes de test sous `tmp_path`).
+Sécurité : aucun appel réseau, aucun élément de marque dans le dépôt (thèmes de test sous `tmp_path`).
 Tests : ciblés 11 verts ; suite complète 176 verts ; ruff check et format verts.

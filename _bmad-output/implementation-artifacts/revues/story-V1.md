@@ -2,7 +2,7 @@
 
 Branche revue : `story-V1-revue` (depuis `story-V1`, rebase sur `main` : déjà à jour).
 Commit dev : `0e46341` (documents seulement). Socle modifié par la revue pour le seul point
-autorisé par le cahier (sortie JSON : configuration, `waveaudit.toml`, manifeste, `moteur_openai`,
+autorisé par le cahier (sortie JSON : configuration, `pentest-scribe.toml`, manifeste, `moteur_openai`,
 composition, tests).
 
 ## Constats
@@ -25,7 +25,7 @@ composition, tests).
 - low — second avis 5 — corrigé : sondes brutes (finish_reason, jetons, longueurs de `content` et
   `reasoning_content`, durée) consignées en tableau.
 - low — revue — reporté : workflow incident (même adaptateur) non mesuré sur MiniCPM5 et Qwen3.5.
-  Vérification : `uv run waveaudit incident <dossier de démo> --modele minicpm5-1b-q4km`.
+  Vérification : `uv run pentest-scribe incident <dossier de démo> --modele minicpm5-1b-q4km`.
 - Complexité : 0 constat (aucune structure qui grossit pendant l'exécution n'est touchée ;
   `_avec_schema_en_texte` copie la liste de 2 messages une fois par appel).
 

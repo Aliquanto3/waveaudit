@@ -1,12 +1,12 @@
-# WaveAudit
+# PentestScribe
 
-[![CI](https://github.com/Aliquanto3/waveaudit/actions/workflows/ci.yml/badge.svg)](https://github.com/Aliquanto3/waveaudit/actions/workflows/ci.yml)
+[![CI](https://github.com/Aliquanto3/pentest-scribe/actions/workflows/ci.yml/badge.svg)](https://github.com/Aliquanto3/pentest-scribe/actions/workflows/ci.yml)
 
 Assistant IA **hors ligne** pour les consultants en audit de cybersécurité, sur un PC professionnel de 16 Go sans GPU. Il rédige des **fiches de vulnérabilité** à partir des notes brutes du consultant, en retrouvant le constat type dans un catalogue puis en l'adaptant au contexte. Aucune donnée ne quitte le poste.
 
 > **État : POC v2 en test (version candidate 0.2.0).** Il ne traite que des données publiques ou fictives ; toute sortie porte le bandeau « Démonstration — données fictives ».
 
-## Ce que fait WaveAudit
+## Ce que fait PentestScribe
 
 - Déposer des notes d'audit fictives et obtenir des fiches de vulnérabilité rédigées automatiquement.
 - Relire chaque fiche à côté de sa note source, la corriger, puis la valider, dans une interface web locale.
@@ -54,13 +54,13 @@ Les données de mission d'un audit de sécurité (preuves, vulnérabilités, ext
 ## Installation
 
 ```
-git clone https://github.com/Aliquanto3/waveaudit.git
-cd waveaudit
+git clone https://github.com/Aliquanto3/pentest-scribe.git
+cd pentest-scribe
 uv sync
-uv run waveaudit installer
+uv run pentest-scribe installer
 ```
 
-`uv sync` installe les dépendances Python épinglées (`uv.lock`). `waveaudit installer` télécharge
+`uv sync` installe les dépendances Python épinglées (`uv.lock`). `pentest-scribe installer` télécharge
 `llama-server` et les poids épinglés du manifeste (`config/artefacts.toml`) dans `var/`, vérifie
 leur empreinte SHA-256 et refuse (en la supprimant) toute empreinte incorrecte. `--candidats`
 télécharge en plus les modèles candidats du manifeste.
@@ -68,7 +68,7 @@ télécharge en plus les modèles candidats du manifeste.
 ## Utilisation — CLI
 
 ```
-uv run waveaudit fiches <dossier-de-notes> [-o FICHIER] [--modele NOM] [--langue fr|en] [--config FICHIER]
+uv run pentest-scribe fiches <dossier-de-notes> [-o FICHIER] [--modele NOM] [--langue fr|en] [--config FICHIER]
 ```
 
 Traite les notes `.md`/`.txt` du dossier et produit un rapport Word de fiches de vulnérabilité
@@ -80,10 +80,10 @@ choisit un modèle du manifeste (mode `local-gere`) ou surcharge le nom envoyé 
 Exporter à nouveau le rapport d'un lot déjà traité, final ou brouillon, sans relancer le moteur :
 
 ```
-uv run waveaudit exporter <id-du-lot> [--brouillon] [--config FICHIER]
+uv run pentest-scribe exporter <id-du-lot> [--brouillon] [--config FICHIER]
 ```
 
-Autres commandes (`uv run waveaudit --help` pour le détail) :
+Autres commandes (`uv run pentest-scribe --help` pour le détail) :
 
 | Commande | Rôle |
 |---|---|
@@ -97,14 +97,14 @@ Autres commandes (`uv run waveaudit --help` pour le détail) :
 | `sbom` | Écrit le SBOM (CycloneDX) de l'environnement installé |
 | `version` | Affiche la version installée |
 
-Codes retour (`uv run waveaudit <commande> ...; echo $?`) : `0` lot terminé, `2` entrée ou
+Codes retour (`uv run pentest-scribe <commande> ...; echo $?`) : `0` lot terminé, `2` entrée ou
 configuration invalide (dont `--modele` inconnu), `3` moteur injoignable, `4` connexion interdite
 ou permission refusée (ex. `-o` sur un fichier verrouillé), `5` empreinte d'artefact invalide.
 
 ## Utilisation — interface web
 
 ```
-uv run waveaudit ui
+uv run pentest-scribe ui
 ```
 
 Démarre une interface web strictement locale (`http://127.0.0.1:8765` par défaut, `--port` pour
@@ -119,7 +119,7 @@ exportables).
 ## Utilisation — CERT (analyse d'incident)
 
 ```
-uv run waveaudit incident <dossier-de-journaux> [-o FICHIER] [--annee N] [--modele NOM] [--config FICHIER]
+uv run pentest-scribe incident <dossier-de-journaux> [-o FICHIER] [--annee N] [--modele NOM] [--config FICHIER]
 ```
 
 Lit les journaux (auth/syslog Linux, journal Windows exporté en JSON, Sysmon en CSV) d'un
@@ -138,7 +138,7 @@ produit un rapport téléchargeable qui l'indique (« Aucune détection sur ce d
 Le dossier `donnees/demo/incident/` fournit un jeu de démonstration (données fictives) :
 
 ```
-uv run waveaudit incident donnees/demo/incident --annee 2026
+uv run pentest-scribe incident donnees/demo/incident --annee 2026
 ```
 
 Limites connues :
@@ -187,7 +187,7 @@ objet seul, que le lecteur ignore).
 
 ## Preuve hors ligne
 
-- **Aucun appel réseau sortant à l'exécution** (hors `uv sync` et `waveaudit installer`, qui
+- **Aucun appel réseau sortant à l'exécution** (hors `uv sync` et `pentest-scribe installer`, qui
   n'ont lieu qu'à l'installation) : un garde réseau (`securite/garde_reseau.py`) remplace les
   fonctions de connexion du module `socket` pendant les commandes `fiches`, `incident`, `ui` et
   `banc`, et
@@ -195,16 +195,16 @@ objet seul, que le lecteur ignore).
   `tests/e2e/test_hors_ligne.py` exécute un lot CLI et un lot UI complets sous ce garde et vérifie
   qu'aucune tentative n'a été refusée, puis prouve, à l'inverse, que le garde détecte et bloque
   une tentative de connexion sortante faite par un abonné du lot.
-- **SHA-256** : chaque artefact téléchargé par `waveaudit installer` (moteur, modèles) est vérifié
+- **SHA-256** : chaque artefact téléchargé par `pentest-scribe installer` (moteur, modèles) est vérifié
   contre l'empreinte du manifeste (`config/artefacts.toml`), qui documente aussi sa source et sa
   licence ; une empreinte incorrecte est refusée et le fichier supprimé.
-- **SBOM** : `uv run waveaudit sbom` écrit un inventaire CycloneDX des dépendances installées
+- **SBOM** : `uv run pentest-scribe sbom` écrit un inventaire CycloneDX des dépendances installées
   dans `var/`, pour l'audit.
 - **Suite de tests** : `uv run pytest -q` n'utilise jamais le vrai modèle ni le réseau (faux
   moteur HTTP local). Seuls les tests marqués `slow` (`tests/e2e/test_reel.py`, lot de bout en
   bout sur 2 notes de démonstration, et `tests/e2e/test_llama_reel.py`) lancent le vrai
   `llama-server` ; ils sont exclus par défaut (`-m 'not slow'`), et sautés tant que
-  `waveaudit installer` n'a pas été lancé.
+  `pentest-scribe installer` n'a pas été lancé.
 
 ## Choix et licences des modèles
 
@@ -219,7 +219,7 @@ Les artefacts installés sont épinglés par version et empreinte dans `config/a
 
 Tous sous licence permissive. `repeat_penalty = 1.1` pour granite et qwen3-1.7b. Sans `--modele`
 ni modèle choisi à l'accueil, granite (par défaut) n'est retenu que si la RAM disponible au
-lancement est ≥ 4,5 Go (`ram_min_defaut_go`, `config/waveaudit.toml`) ; sous ce seuil, repli
+lancement est ≥ 4,5 Go (`ram_min_defaut_go`, `config/pentest-scribe.toml`) ; sous ce seuil, repli
 automatique sur qwen3.5-0.8b. Seuil fixé au POC, non remesuré en v2.
 
 Rebanc EliteBook (v2, détail dans
@@ -238,7 +238,7 @@ premiers dans 9 cas sur 9 (top3).
 ## Banc
 
 ```
-uv run waveaudit banc <dossier-de-notes> [--modele NOM]
+uv run pentest-scribe banc <dossier-de-notes> [--modele NOM]
 ```
 
 Exécute un lot instrumenté (contrats §20) : il échantillonne, toutes les 0,5 s, le pic de mémoire
@@ -262,7 +262,7 @@ réels (< 3 min/fiche, pic ≤ 6 Go) se vérifient hors nuit, sur le poste cible
   multi-utilisateur ni serveur.
 - Pas de verrou inter-processus entre un lot CLI et un lot UI : les lancer en même temps peut
   charger un second llama-server. Un lot CLI en cours apparaît en lecture seule dans l'UI et est
-  refusé par `waveaudit exporter`. Le moteur est relancé à la première régénération après un lot.
+  refusé par `pentest-scribe exporter`. Le moteur est relancé à la première régénération après un lot.
 - Arrêt de l'UI (Ctrl+C) : le llama-server est tué, en moins de 15 s mesurées en test. Sous un
   système autre que Windows, cette borne n'est pas garantie au pire cas (dépend du délai
   d'arrêt du processus moteur).
@@ -278,9 +278,9 @@ réels (< 3 min/fiche, pic ≤ 6 Go) se vérifient hors nuit, sur le poste cible
 - `_bmad-output/specs/`, `_bmad-output/planning-artifacts/` : spécifications et architecture du POC.
 - `_bmad/`, `.claude/skills/` : méthode [BMAD](https://github.com/bmad-code-org/BMAD-METHOD) pour la spécification et le développement.
 - `.claude/cost-kit/` : contrôle rapide de [agent-cost-kit](https://github.com/Aliquanto3/agent-cost-kit).
-- `theme-prive/` (ignoré par git, absent du dépôt public) : charte et logo Wavestone pour le
+- `theme-prive/` (ignoré par git, absent du dépôt public) : logo et charte Word facultatifs pour le
   thème du rapport Word (`modele.docx`) et de l'UI (`theme-prive/web/logo.svg`) ; le dépôt
-  fonctionne sans lui (thème générique, palette publique Wavestone, sans logo).
+  fonctionne sans lui (thème générique, sans logo).
 
 ## Licence
 

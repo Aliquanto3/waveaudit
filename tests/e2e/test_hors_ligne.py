@@ -10,13 +10,13 @@ avant qu'elle n'atteigne le réseau : depuis un abonné du vrai lot, et depuis l
 import time
 from typing import Any
 
+from pentest_scribe.domaine.erreurs import ConnexionInterdite
+from pentest_scribe.domaine.modeles import TypeEvenement
+from pentest_scribe.securite import garde_reseau
 from tests.e2e.test_cli import DEMO, _ecrire_config, app, runner
 from tests.e2e.test_cli_incident import DEMO as DEMO_INCIDENT
 from tests.e2e.test_ui import _attendre_fin, _notes_demo
 from tests.web_outils import client as client_web
-from waveaudit.domaine.erreurs import ConnexionInterdite
-from waveaudit.domaine.modeles import TypeEvenement
-from waveaudit.securite import garde_reseau
 
 
 def test_cli_lot_sous_garde_sans_tentative(tmp_path, faux_moteur):
@@ -105,7 +105,7 @@ def test_negatif_connexion_hors_boucle_locale_refusee(monkeypatch, tmp_path, fau
     erreurs d'abonné (AD-6) : la commande se termine donc normalement, mais rien n'est sorti."""
     import socket
 
-    import waveaudit.application.lot as lot_module
+    import pentest_scribe.application.lot as lot_module
 
     executer_lot_reel = lot_module.executer_lot
     erreurs: list[BaseException] = []
@@ -137,7 +137,7 @@ def test_negatif_connexion_hors_boucle_locale_code_retour_4(monkeypatch, tmp_pat
     """Une connexion interdite qui remonte jusqu'à la commande (hors abonné) donne le code 4."""
     import socket
 
-    import waveaudit.application.lot as lot_module
+    import pentest_scribe.application.lot as lot_module
 
     def executer_lot_qui_se_connecte(requete: Any, config: Any, abonne: Any = None) -> None:
         socket.create_connection(("192.0.2.1", 80), timeout=0.2)

@@ -10,9 +10,9 @@ from pathlib import Path
 import httpx
 import pytest
 
-from waveaudit.domaine.erreurs import ConfigurationInvalide, EmpreinteInvalide
-from waveaudit.installation import manifeste, sbom, telechargement
-from waveaudit.installation.manifeste import Artefact
+from pentest_scribe.domaine.erreurs import ConfigurationInvalide, EmpreinteInvalide
+from pentest_scribe.installation import manifeste, sbom, telechargement
+from pentest_scribe.installation.manifeste import Artefact
 
 RACINE = Path(__file__).resolve().parents[2]
 MANIFESTE_DEPOT = RACINE / "config" / "artefacts.toml"

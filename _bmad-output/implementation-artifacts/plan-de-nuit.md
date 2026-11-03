@@ -1,14 +1,14 @@
-# Plan de nuit — POC WaveAudit (2026-10-17)
+# Plan de nuit — POC PentestScribe (2026-10-17)
 
 Orchestrateur : une session principale neuve (`/clear`), qui lit seulement ce fichier puis applique la boucle. Elle code peu et délègue.
 
 ## Contrat à lire par chaque agent de story
 
-- `_bmad-output/specs/spec-waveaudit-poc/SPEC.md` et `formats.md`
-- `_bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/ARCHITECTURE-SPINE.md`
-- `_bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/contrats.md` (normatif)
-- L'entrée de la story dans `_bmad-output/specs/spec-waveaudit-poc/stories.yaml` (`description` et `invoke_dev_with`)
-- Stories C1 à C6 : en plus, `_bmad-output/specs/spec-waveaudit-cert/SPEC.md` et `formats-incident.md` ; leurs entrées sont dans `_bmad-output/specs/spec-waveaudit-cert/stories.yaml` ; AD-17 et contrats §21.
+- `_bmad-output/specs/spec-pentest-scribe-poc/SPEC.md` et `formats.md`
+- `_bmad-output/planning-artifacts/architecture/architecture-pentest-scribe-2026-10-17/ARCHITECTURE-SPINE.md`
+- `_bmad-output/planning-artifacts/architecture/architecture-pentest-scribe-2026-10-17/contrats.md` (normatif)
+- L'entrée de la story dans `_bmad-output/specs/spec-pentest-scribe-poc/stories.yaml` (`description` et `invoke_dev_with`)
+- Stories C1 à C6 : en plus, `_bmad-output/specs/spec-pentest-scribe-cert/SPEC.md` et `formats-incident.md` ; leurs entrées sont dans `_bmad-output/specs/spec-pentest-scribe-cert/stories.yaml` ; AD-17 et contrats §21.
 
 ## Vagues
 
@@ -70,6 +70,6 @@ Après la vague P, ou quand plus aucune story n'est exécutable :
 ## Au réveil (Anaël)
 
 1. Lire `etat-de-nuit.md` et les revues.
-2. Sur l'EliteBook : `uv sync`, `uv run waveaudit installer --candidats`, `uv run pytest -m slow`, `uv run waveaudit banc donnees/demo/notes` pour chaque modèle.
+2. Sur l'EliteBook : `uv sync`, `uv run pentest-scribe installer --candidats`, `uv run pytest -m slow`, `uv run pentest-scribe banc donnees/demo/notes` pour chaque modèle.
 3. Relire le catalogue (contenu rédigé par l'agent).
 4. Si tout est utilisable : version 0.1.0 (pyproject, tag annoté, release GitHub) et topic `status-test`.

@@ -1,7 +1,7 @@
 # Prompt de cadrage de la version 2 (à lancer après `/clear`)
 
 ```
-Session de CADRAGE de la version 2 de WaveAudit, sans écrire de code.
+Session de CADRAGE de la version 2 de PentestScribe, sans écrire de code.
 Nous sommes sur l'EliteBook cible : les mesures de la nuit valent pour la cible.
 
 0. Version 0.1.0 d'abord. Le POC est livré, testé et mesuré sur la cible.
@@ -14,11 +14,11 @@ Nous sommes sur l'EliteBook cible : les mesures de la nuit valent pour la cible.
      « Écarts à arbitrer » ;
    - _bmad-output/implementation-artifacts/bilan-modeles.md et
      validation-moteur.md : qualité des fiches, recopie, rattachement, modèles ;
-   - les « Non-goals » et reports de _bmad-output/specs/spec-waveaudit-poc/SPEC.md
-     et de _bmad-output/specs/spec-waveaudit-cert/SPEC.md ;
+   - les « Non-goals » et reports de _bmad-output/specs/spec-pentest-scribe-poc/SPEC.md
+     et de _bmad-output/specs/spec-pentest-scribe-cert/SPEC.md ;
    - les décisions verrouillées et les idées pour plus tard de
      _bmad-output/forge/slm-edge-consultants-cyber/forged-idea.md ;
-   - _bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/
+   - _bmad-output/planning-artifacts/architecture/architecture-pentest-scribe-2026-10-17/
      (ARCHITECTURE-SPINE.md, contrats.md), pour savoir ce que chaque choix
      touche.
 
@@ -47,10 +47,10 @@ Nous sommes sur l'EliteBook cible : les mesures de la nuit valent pour la cible.
    Parcours du consultant : déposer, suivre, relire chaque fiche à côté de
    sa note, corriger, valider, exporter. Plus l'incident côté CERT s'il est
    retenu. Contraintes : 127.0.0.1 seulement, aucune ressource externe
-   (CDN, polices), pas de charte Wavestone (theme-prive/), bandeau
+   (CDN, polices), pas de charte de marque (theme-prive/), bandeau
    démonstration, accessibilité de base, Windows sans droits admin.
 
-4. Spec v2 avec `bmad-spec`, dans _bmad-output/specs/spec-waveaudit-v2/
+4. Spec v2 avec `bmad-spec`, dans _bmad-output/specs/spec-pentest-scribe-v2/
    (SPEC.md, formats.md si besoin, stories.yaml). Puis mise à jour de
    l'architecture avec `bmad-architecture` : amender contrats.md pour les
    écarts entérinés et les nouveaux contrats (API de l'UI, persistance des

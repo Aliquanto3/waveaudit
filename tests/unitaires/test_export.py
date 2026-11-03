@@ -8,9 +8,9 @@ from pathlib import Path
 import pytest
 from docx import Document
 
-from waveaudit.application import composition, export, relecture
-from waveaudit.application.lot import dossier_sorties
-from waveaudit.domaine.modeles import (
+from pentest_scribe.application import composition, export, relecture
+from pentest_scribe.application.lot import dossier_sorties
+from pentest_scribe.domaine.modeles import (
     Candidat,
     Cvss,
     Fiche,
@@ -19,7 +19,7 @@ from waveaudit.domaine.modeles import (
     Statut,
     Tracabilite,
 )
-from waveaudit.domaine.relecture import FicheCorrigee, RefusRelecture, corriger, valider
+from pentest_scribe.domaine.relecture import FicheCorrigee, RefusRelecture, corriger, valider
 
 VECTEUR = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
 CVSS = Cvss(vecteur=VECTEUR, score=9.8, severite="critique")
@@ -135,7 +135,7 @@ def test_lot_en_cours_dans_ce_processus(config_test):
     """[revue X2] §27 étape 3 : verrou de ce processus (route web), pid = `os.getpid()`."""
     import os
 
-    from waveaudit.application.moteur_demande import Occupation
+    from pentest_scribe.application.moteur_demande import Occupation
 
     dossier = _lot(config_test, "lot-local", ["01.md"])
     _ecrire_lot_json(dossier, pid=os.getpid())

@@ -1,7 +1,7 @@
 # Revue de la story C5 — workflow incident, service et calibrage
 
 Branche `story-C5-revue`, rebasée sans conflit sur main. Tri détaillé : section « Revue » de
-`_bmad-output/specs/spec-waveaudit-cert/stories/story-C5-workflow-incident-service.md`.
+`_bmad-output/specs/spec-pentest-scribe-cert/stories/story-C5-workflow-incident-service.md`.
 
 ## Constats
 

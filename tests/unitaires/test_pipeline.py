@@ -9,14 +9,13 @@ from pathlib import Path
 
 import pytest
 
-from tests.faux_moteur import FauxMoteur
-from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
-from waveaudit.adaptateurs.moteur_openai import MoteurOpenAI
-from waveaudit.adaptateurs.notes_fichiers import NotesFichiers
-from waveaudit.domaine import cvss31
-from waveaudit.domaine.configuration import Configuration
-from waveaudit.domaine.erreurs import EntreeInvalide
-from waveaudit.domaine.modeles import (
+from pentest_scribe.adaptateurs.catalogue_yaml import CatalogueYaml
+from pentest_scribe.adaptateurs.moteur_openai import MoteurOpenAI
+from pentest_scribe.adaptateurs.notes_fichiers import NotesFichiers
+from pentest_scribe.domaine import cvss31
+from pentest_scribe.domaine.configuration import Configuration
+from pentest_scribe.domaine.erreurs import EntreeInvalide
+from pentest_scribe.domaine.modeles import (
     CodeMotif,
     ConstatType,
     EntreeEcartee,
@@ -26,9 +25,10 @@ from waveaudit.domaine.modeles import (
     Rapport,
     Statut,
 )
-from waveaudit.domaine.ports import Ports
-from waveaudit.workflows.fiches import pipeline, prompt
-from waveaudit.workflows.registre import REGISTRE
+from pentest_scribe.domaine.ports import Ports
+from pentest_scribe.workflows.fiches import pipeline, prompt
+from pentest_scribe.workflows.registre import REGISTRE
+from tests.faux_moteur import FauxMoteur
 
 RACINE = Path(__file__).resolve().parents[2]
 NOTES_DEMO = RACINE / "donnees" / "demo" / "notes"

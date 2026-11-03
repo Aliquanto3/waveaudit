@@ -2,8 +2,8 @@
 
 from datetime import datetime
 
-from waveaudit.application.journal import JournalLot
-from waveaudit.domaine.modeles import EvenementLot, Statut, TypeEvenement
+from pentest_scribe.application.journal import JournalLot
+from pentest_scribe.domaine.modeles import EvenementLot, Statut, TypeEvenement
 
 
 def _evenement(type_: TypeEvenement, **champs) -> EvenementLot:

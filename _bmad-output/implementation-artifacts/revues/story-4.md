@@ -22,5 +22,5 @@ Branche `story-4-revue` (depuis `story-4`, 9f101f9, rebasée sur `main` 900e975)
 
 Écart du dev (`constats()` / `obtenir(id)` au lieu de `charger()`) : accepté, c'est le port `Catalogue` de contrats §3.
 Complexité : 1 constat (corrigé).
-Intégration : `verifier` n'a pas encore d'appelant (`waveaudit catalogue verifier`, story CLI) ; signature `verifier(dossier) -> list[str]` conforme à la story.
+Intégration : `verifier` n'a pas encore d'appelant (`pentest-scribe catalogue verifier`, story CLI) ; signature `verifier(dossier) -> list[str]` conforme à la story.
 Tests : ciblés 23 verts ; suite complète 106 verts ; ruff check et format verts.

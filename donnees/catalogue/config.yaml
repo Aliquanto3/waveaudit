@@ -36,7 +36,7 @@
     - id: CWE-1392
       titre: Use of Default Credentials
       url: https://cwe.mitre.org/data/definitions/1392.html
-  source: "Rédaction WaveAudit d'après CWE-1392, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-1392, licence du dépôt"
 
 - id: CONFIG-SECRETS-EN-CLAIR
   titre: Secrets stockés en clair
@@ -77,7 +77,7 @@
     - id: CWE-312
       titre: Cleartext Storage of Sensitive Information
       url: https://cwe.mitre.org/data/definitions/312.html
-  source: "Rédaction WaveAudit d'après CWE-312, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-312, licence du dépôt"
 
 - id: CONFIG-LISTAGE-REPERTOIRE
   titre: Listage de répertoire activé
@@ -114,7 +114,7 @@
     - id: CWE-548
       titre: Exposure of Information Through Directory Listing
       url: https://cwe.mitre.org/data/definitions/548.html
-  source: "Rédaction WaveAudit d'après CWE-548, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-548, licence du dépôt"
 
 - id: CONFIG-DEBUG-ACTIF
   titre: Mode de débogage actif en production
@@ -153,7 +153,7 @@
     - id: CWE-489
       titre: Active Debug Code
       url: https://cwe.mitre.org/data/definitions/489.html
-  source: "Rédaction WaveAudit d'après CWE-489, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-489, licence du dépôt"
 
 - id: CONFIG-SAUVEGARDE-EXPOSEE
   titre: Fichier de sauvegarde accessible publiquement
@@ -193,7 +193,7 @@
     - id: CWE-530
       titre: Exposure of Backup File to an Unauthorized Control Sphere
       url: https://cwe.mitre.org/data/definitions/530.html
-  source: "Rédaction WaveAudit d'après CWE-530, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-530, licence du dépôt"
 
 - id: CONFIG-CORS-DEBUG
   titre: Configuration CORS de débogage laissée active en production
@@ -234,4 +234,4 @@
     - id: CWE-942
       titre: Permissive Cross-domain Policy with Untrusted Domains
       url: https://cwe.mitre.org/data/definitions/942.html
-  source: "Rédaction WaveAudit d'après CWE-942, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-942, licence du dépôt"

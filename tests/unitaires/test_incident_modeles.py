@@ -6,8 +6,7 @@ from datetime import timedelta
 import pytest
 from pydantic import ValidationError
 
-from tests.incident_outils import HORODATAGE, detection, evenement, recit, regle
-from waveaudit.domaine.incident import (
+from pentest_scribe.domaine.incident import (
     CHAMPS_LINUX,
     CHAMPS_WINDOWS,
     IDS_REGLES_MINIMAUX,
@@ -28,7 +27,8 @@ from waveaudit.domaine.incident import (
     RequeteIncident,
     schema_recit,
 )
-from waveaudit.domaine.modeles import CodeMotif, Motif, Statut
+from pentest_scribe.domaine.modeles import CodeMotif, Motif, Statut
+from tests.incident_outils import HORODATAGE, detection, evenement, recit, regle
 
 
 def test_fabriques_valides_par_defaut():

@@ -1,7 +1,7 @@
 import pytest
 
-from waveaudit.domaine.cvss31 import evaluer
-from waveaudit.domaine.erreurs import EntreeInvalide
+from pentest_scribe.domaine.cvss31 import evaluer
+from pentest_scribe.domaine.erreurs import EntreeInvalide
 
 
 @pytest.mark.parametrize(

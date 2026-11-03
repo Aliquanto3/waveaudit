@@ -6,12 +6,12 @@ from datetime import datetime
 
 import pytest
 
+from pentest_scribe.adaptateurs import memoire_psutil
+from pentest_scribe.application import composition
+from pentest_scribe.application.moteur_demande import MoteurALaDemande, Occupation, VerrouUnique
+from pentest_scribe.domaine.erreurs import ConfigurationInvalide, MoteurInjoignable
+from pentest_scribe.installation import manifeste
 from tests.unitaires.test_composition import GO, _FauxServeur, _installer, _local
-from waveaudit.adaptateurs import memoire_psutil
-from waveaudit.application import composition
-from waveaudit.application.moteur_demande import MoteurALaDemande, Occupation, VerrouUnique
-from waveaudit.domaine.erreurs import ConfigurationInvalide, MoteurInjoignable
-from waveaudit.installation import manifeste
 
 DEBUT = datetime(2026, 1, 2, 3, 4, 5)
 BINAIRE = "llama-server-b11714"

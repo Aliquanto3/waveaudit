@@ -27,4 +27,6 @@ __pycache__/
 
 # État d'exécution et surcharge locale de la configuration
 /var/
+pentest-scribe.local.toml
+# Ancien nom de la surcharge locale (compatibilité)
 waveaudit.local.toml

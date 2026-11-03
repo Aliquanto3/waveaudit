@@ -125,7 +125,7 @@ function creerMonde() {
     body,
   };
   const window = {};
-  window.WaveAudit = {
+  window.PentestScribe = {
     envoyer: (url, options) => fetch_(url, options),
     messageErreur: (r) => r.json().then((c) => c.detail),
     MESSAGE_REDEMARRAGE: "redemarrage",

@@ -5,14 +5,14 @@ from datetime import timedelta
 
 import pytest
 
+from pentest_scribe.adaptateurs.moteur_openai import MoteurOpenAI
+from pentest_scribe.domaine.configuration import Configuration
+from pentest_scribe.domaine.incident import LectureJournaux, LigneIgnoree
+from pentest_scribe.domaine.indicateurs import extraire
+from pentest_scribe.domaine.modeles import CodeMotif, Statut
+from pentest_scribe.workflows.incident import pipeline
 from tests.faux_moteur import FauxMoteur
 from tests.incident_outils import HORODATAGE, detection, evenement, recit, regle
-from waveaudit.adaptateurs.moteur_openai import MoteurOpenAI
-from waveaudit.domaine.configuration import Configuration
-from waveaudit.domaine.incident import LectureJournaux, LigneIgnoree
-from waveaudit.domaine.indicateurs import extraire
-from waveaudit.domaine.modeles import CodeMotif, Statut
-from waveaudit.workflows.incident import pipeline
 
 Traiter = Callable[..., tuple]
 
