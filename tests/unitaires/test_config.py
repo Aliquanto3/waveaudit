@@ -78,7 +78,7 @@ def test_surcharge_locale_puis_fichier(fausse_racine, tmp_path):
 def test_ancienne_surcharge_locale_lue_en_repli_avec_avertissement(fausse_racine):
     ancien = fausse_racine / "waveaudit.local.toml"
     ancien.write_text('[moteur]\nmode = "externe"\nseed = 11\n', encoding="utf-8")
-    with pytest.warns(DeprecationWarning, match="waveaudit.local.toml est obsolète"):
+    with pytest.warns(FutureWarning, match="waveaudit.local.toml est obsolète"):
         config = charger_configuration()
     assert config.moteur.mode == "externe"
     assert config.moteur.seed == 11
@@ -91,7 +91,7 @@ def test_nouvelle_surcharge_locale_prime_sur_l_ancienne(fausse_racine, recwarn):
     nouveau.write_text("[moteur]\nseed = 12\n", encoding="utf-8")
     config = charger_configuration()
     assert config.moteur.seed == 12
-    assert not [w for w in recwarn if issubclass(w.category, DeprecationWarning)]
+    assert not [w for w in recwarn if issubclass(w.category, FutureWarning)]
 
 
 @pytest.mark.parametrize(

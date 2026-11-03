@@ -1,4 +1,4 @@
-# Revue — story DOC-T (guide des testeurs pour collègues auditeurs)
+# Revue — story DOC-T (guide des testeurs pour auditeurs)
 
 Commit relu : 0a0dc08 (base 1d354e6), branche `doc-testeurs`. Documentation seule
 (`docs/guide-testeurs.md`, `README.md`, modèle d'issue). Verdict : structure et public visés

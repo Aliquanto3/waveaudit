@@ -30,6 +30,7 @@ colors:
   danger-doux: '#FCE4E1'
   danger-texte: '#B42318'
   texte-sur-vif: '#141A1F'
+  sur-statut: '#FFFFFF'
   focus: '#1F5FD1'
 focus:
   outline: '2px solid {colors.focus}'
@@ -214,7 +215,7 @@ ton plus soutenu, toujours doublé d'une icône et d'un libellé (jamais la coul
 - **`attention`** (`#E8A317`) : fond plein et trait de l'encart des motifs, de la pastille « à revoir », rôle « moyenne » en vecteur de fond. **Jamais en texte** : texte `texte-sur-vif` dessus.
 - **`attention-doux`** (`#FCF0D4`, dérivé) : fond doux de l'attention : pastille « à revoir », encart des motifs, pastille de sévérité CVSS « moyenne ».
 - **`attention-texte`** (`#7A4E00`, dérivé) : rôle de texte de l'attention : foreground du statut « à revoir », de l'encart des motifs, de la sévérité CVSS « moyenne ». Contraste 7,2:1 sur blanc ; 6,4:1 sur `attention-doux`.
-- **`danger`** (`#B42318`) : erreurs bloquantes (moteur injoignable, lot déjà en cours), trait et fond plein de la sévérité CVSS « critique » (texte blanc, 6,6:1).
+- **`danger`** (`#B42318`) : erreurs bloquantes (moteur injoignable, lot déjà en cours), trait et fond plein de la sévérité CVSS « critique » (texte `sur-statut`, blanc, 6,6:1).
 - **`danger-doux`** (`#FCE4E1`, dérivé) : fond doux du danger : pastille de sévérité CVSS « élevée ».
 - **`danger-texte`** (`#B42318`, dérivé) : rôle de texte du danger : messages d'erreur, foreground de la sévérité CVSS « élevée ». Contraste 6,6:1 sur blanc ; 5,4:1 sur `danger-doux`.
 - **`focus`** (`#1F5FD1`) : anneau de focus clavier. Contraste 5,8:1 sur blanc ; 5,5:1 sur `fond`.

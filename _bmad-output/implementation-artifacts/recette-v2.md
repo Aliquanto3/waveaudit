@@ -1,7 +1,7 @@
 # Recette v2 (REC) — fiche à remplir
 
 Poste : EliteBook (i5-1145G7, 15,7 Gio). Base : `main` à a49d271 (suite 1079 verts, `slow` 5/5, CI verte).
-Déroulé détaillé : `docs/guide-testeurs.md` (parcours de Camille et Karim). Version interactive : https://claude.ai/artifact/Nk48VmdCwE7XfDNTGvUuWQ.
+Déroulé détaillé : `docs/guide-testeurs.md` (parcours de Camille et Karim).
 Cocher `[x]` si conforme, `[!]` si écart (le décrire dans « Écarts relevés »).
 
 ## 0. Avant de commencer

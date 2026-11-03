@@ -34,7 +34,8 @@ PAIRES = [
     ("danger-texte", BLANC, 6.6, 4.5),
     ("danger-texte", "danger-doux", 5.4, 4.5),
     ("texte-sur-vif", "attention", 8.1, 4.5),
-    (BLANC, "danger", 6.6, 4.5),
+    ("sur-statut", "danger", 6.6, 4.5),
+    ("sur-statut", "primaire", 6.2, 4.5),
     # Anneau de focus (DESIGN.md « Focus visible ») : seuil non-texte 3:1.
     ("focus", BLANC, 5.8, 3.0),
     ("focus", "fond", 5.5, 3.0),

@@ -12,7 +12,7 @@
 2. **Fine-tuning = R&D personnelle séparée**, hors chemin critique.
 3. **Filtre** : uniquement les tâches portant sur des données client. Les tâches génériques (formules, syntaxe) sont exclues.
 4. **Cas n°1 : fiches de vulnérabilité.** On retrouve le constat type dans un catalogue, puis on l'adapte aux notes brutes. Pas de génération ex nihilo. Traitement par lot, pas en chat. **Cas n°2 : code** (scripts d'analyse des sorties d'outils).
-5. **Séquence** : POC sur gabarit générique et données publiques → entrants des collègues et sponsor → pilote réel.
+5. **Séquence** : POC sur gabarit générique et données publiques → entrants des testeurs et sponsor → pilote réel.
 6. **Règles du POC** : vérifiablement hors ligne (test d'absence d'appel sortant, SBOM, SHA-256 des poids, source documentée) ; données publiques ou synthétiques seulement (CWE, OWASP WSTG, ANSSI ; notes fictives ; bandeau « démonstration ») ; périmètre figé : notes → fiche, FR, sortie Word.
 7. **Distribution** : dépôt GitHub + `uv sync` (simple et auditable). Charte visuelle générique ; format de fiche générique : Description / Impact / Recommandation / CVSS 3.1 / Références.
 8. **Extension n°2 : CERT / réponse à incident**, prévue dans l'architecture (parseurs de logs, gabarit de rapport d'incident), non développée. DR/défense en backlog.
@@ -20,7 +20,7 @@
 ## Critères de réussite du POC
 | Axe | Seuil |
 |---|---|
-| Qualité | ≥ 70 % de fiches utilisables après retouches légères (20 notes fictives, 2-3 collègues) |
+| Qualité | ≥ 70 % de fiches utilisables après retouches légères (20 notes fictives, 2-3 testeurs) |
 | Fiabilité | 0 référence inventée (test déterministe sur le catalogue) |
 | Vitesse | < 3 min par fiche, EliteBook 16 Go, Office ouvert |
 | Mémoire | pic ≤ 6 Go |
@@ -35,7 +35,7 @@
 - Génération d'exploits : refus des SLM alignés ; les modèles « abliterated » posent un risque de supply chain.
 
 ## Points ouverts
-- Entretien avec les collègues : (1) la frontière exacte (PASSI interne ou poste seul) ; (2) le poids réel des fiches dans une mission ; (3) la chaîne de rédaction et l'existence d'un catalogue de constats.
+- Entretien avec les auditeurs : (1) la frontière exacte (PASSI interne ou poste seul) ; (2) le poids réel des fiches dans une mission ; (3) la chaîne de rédaction et l'existence d'un catalogue de constats.
 - Accès à PyPI, GitHub et Hugging Face depuis le poste ; variante archive des poids avec SHA-256.
 - Moteur Windows sans compilateur : roue CPU précompilée ou `llama-server` épinglé.
 - Charte visuelle : charte générique dans le dépôt public.
