@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-RACINE_WEB = Path(__file__).resolve().parents[2] / "src" / "waveaudit" / "interfaces" / "web"
+RACINE_WEB = Path(__file__).resolve().parents[2] / "src" / "pentest_scribe" / "interfaces" / "web"
 TOKENS_CSS = RACINE_WEB / "static" / "tokens.css"
 
 BLANC = "#FFFFFF"
@@ -20,24 +20,25 @@ BLANC = "#FFFFFF"
 # ratio qui y est annoncé. `seuil` : 4,5 pour du texte, 3 pour le contour de focus (ce dernier
 # réutilise `primaire`, déjà bien au-dessus du seuil texte).
 PAIRES = [
-    ("primaire", BLANC, 9.3, 4.5),
-    ("primaire", "primaire-doux", 7.7, 4.5),
-    (BLANC, "primaire-fonce", 15.4, 4.5),
-    ("encre", BLANC, 19.7, 4.5),
-    ("encre-douce", BLANC, 8.6, 4.5),
+    ("primaire", BLANC, 6.2, 4.5),
+    ("primaire", "primaire-doux", 5.2, 4.5),
+    (BLANC, "primaire-fonce", 9.4, 4.5),
+    ("encre", BLANC, 17.5, 4.5),
+    ("encre-douce", BLANC, 7.6, 4.5),
     ("accent-texte", BLANC, 6.6, 4.5),
-    ("accent-texte", "accent-doux", 5.9, 4.5),
-    ("gris-texte", BLANC, 5.8, 4.5),
-    ("gris-texte", "fond-creme", 5.3, 4.5),
-    ("attention-texte", BLANC, 5.9, 4.5),
-    ("attention-texte", "attention-doux", 5.0, 4.5),
-    ("danger-texte", BLANC, 6.5, 4.5),
-    ("danger-texte", "danger-doux", 5.1, 4.5),
-    ("texte-sur-vif", "accent", 12.8, 4.5),
-    ("texte-sur-vif", "attention", 12.9, 4.5),
-    ("texte-sur-vif", "danger", 5.3, 4.5),
-    # Contour de focus (DESIGN.md « Focus visible ») : seuil non-texte 3:1.
-    ("primaire", BLANC, 9.3, 3.0),
+    ("accent-texte", "accent-doux", 5.5, 4.5),
+    ("gris-texte", BLANC, 7.6, 4.5),
+    ("gris-texte", "fond", 7.1, 4.5),
+    ("attention-texte", BLANC, 7.2, 4.5),
+    ("attention-texte", "attention-doux", 6.4, 4.5),
+    ("danger-texte", BLANC, 6.6, 4.5),
+    ("danger-texte", "danger-doux", 5.4, 4.5),
+    ("texte-sur-vif", "attention", 8.1, 4.5),
+    ("sur-statut", "danger", 6.6, 4.5),
+    ("sur-statut", "primaire", 6.2, 4.5),
+    # Anneau de focus (DESIGN.md « Focus visible ») : seuil non-texte 3:1.
+    ("focus", BLANC, 5.8, 3.0),
+    ("focus", "fond", 5.5, 3.0),
 ]
 
 _RE_TOKEN = re.compile(r"--couleur-([a-z-]+)\s*:\s*(#[0-9A-Fa-f]{6})")

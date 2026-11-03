@@ -6,8 +6,8 @@ champs (`evenement(ligne=3)`, `regle(agregation=None)`).
 
 from datetime import datetime, timedelta, timezone
 
-from waveaudit.domaine.incident import Detection, Evenement, Recit, Regle
-from waveaudit.domaine.modeles import Reference, Statut
+from pentest_scribe.domaine.incident import Detection, Evenement, Recit, Regle
+from pentest_scribe.domaine.modeles import Reference, Statut
 
 FUSEAU = timezone(timedelta(hours=2))
 HORODATAGE = datetime(2026, 10, 14, 8, 2, 10, tzinfo=FUSEAU)

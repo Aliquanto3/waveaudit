@@ -1,8 +1,8 @@
 """Tests de `domaine/qualite_texte.py` (contrats §6 v2 étapes 5 et 6, §21 v2)."""
 
-from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
-from waveaudit.application.config import racine_projet
-from waveaudit.domaine.qualite_texte import est_repetitif, motif_langue
+from pentest_scribe.adaptateurs.catalogue_yaml import CatalogueYaml
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.domaine.qualite_texte import est_repetitif, motif_langue
 
 RACINE = racine_projet()
 

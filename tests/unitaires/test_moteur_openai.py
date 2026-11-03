@@ -6,11 +6,11 @@ from collections.abc import Callable
 import httpx
 import pytest
 
+from pentest_scribe.adaptateurs.moteur_openai import MoteurOpenAI
+from pentest_scribe.domaine.erreurs import MoteurInjoignable, SortieInvalide
+from pentest_scribe.domaine.modeles import schema_sortie
+from pentest_scribe.domaine.ports import Message
 from tests.faux_moteur import FauxMoteur
-from waveaudit.adaptateurs.moteur_openai import MoteurOpenAI
-from waveaudit.domaine.erreurs import MoteurInjoignable, SortieInvalide
-from waveaudit.domaine.modeles import schema_sortie
-from waveaudit.domaine.ports import Message
 
 _CONSTAT = json.dumps(
     {

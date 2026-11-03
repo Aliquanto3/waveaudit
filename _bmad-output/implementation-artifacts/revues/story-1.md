@@ -1,14 +1,14 @@
 # Revue — story 1 (socle, AD-0)
 
 Commit relu : 52fb232 (base b4e0d8e). Contrat de référence : `contrats.md` de `main` (285f832).
-Une passe. Les formes partagées (§1 à §5), `waveaudit.toml` (§2), le manifeste (§11, tailles et SHA-256 recoupés avec la table Stack), `addopts` (§12), le faux moteur et `config_test` (§13) et l'arborescence sont conformes.
+Une passe. Les formes partagées (§1 à §5), `pentest-scribe.toml` (§2), le manifeste (§11, tailles et SHA-256 recoupés avec la table Stack), `addopts` (§12), le faux moteur et `config_test` (§13) et l'arborescence sont conformes.
 
 ## Revue
 
 | Sévérité | Source | Constat | Suite |
 |---|---|---|---|
 | moyen | second avis 1 | Faux moteur nominal : sans `<constat>`, renvoyait une fiche plausible par défaut, masquant un prompt mal formé. | Corrigé : `content` = `SANS_CONSTAT` (non JSON), test ajouté. |
-| moyen | reviewer | Script `waveaudit = cli:app` : rien n'appelle `sys.stdout.reconfigure` exigé « au début de `main()` » (§19), et `pyproject.toml` est figé après le socle. | Corrigé : `cli.main()` (reconfigure stdout/stderr puis `app()`), script `cli:main`, test qui échoue sans la reconfiguration (cp1252). |
+| moyen | reviewer | Script `pentest-scribe = cli:app` : rien n'appelle `sys.stdout.reconfigure` exigé « au début de `main()` » (§19), et `pyproject.toml` est figé après le socle. | Corrigé : `cli.main()` (reconfigure stdout/stderr puis `app()`), script `cli:main`, test qui échoue sans la reconfiguration (cp1252). |
 | moyen | second avis 2 | `Ports` sans `MesureMemoire`. | Rejeté : le contrat prévoit `composition.creer_mesure_memoire()` (§9, story 12). Aucune règle n'interdit `application/banc.py` → `application/composition.py` (vérifié dans `test_architecture.py`). |
 | faible | second avis 3 | `horodatage: AwareDatetime`. | Conservé : aligné sur le contrat de `main`. |
 | faible | second avis 4 | `metriques_depuis_vecteur` accepte un ordre libre. | Conservé ; docstring : `vecteur(...)` recanonise, comparer pour exiger la forme canonique. |

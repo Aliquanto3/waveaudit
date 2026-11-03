@@ -3,9 +3,9 @@
 import json
 from pathlib import Path
 
-from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
-from waveaudit.domaine.modeles import ConstatType, Note
-from waveaudit.workflows.fiches import prompt
+from pentest_scribe.adaptateurs.catalogue_yaml import CatalogueYaml
+from pentest_scribe.domaine.modeles import ConstatType, Note
+from pentest_scribe.workflows.fiches import prompt
 
 RACINE = Path(__file__).resolve().parents[2]
 

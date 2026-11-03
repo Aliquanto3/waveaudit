@@ -10,14 +10,14 @@ from pathlib import Path
 import pytest
 from docx import Document
 
-from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
-from waveaudit.adaptateurs.export_docx import LIBELLES
-from waveaudit.application import lot, relecture
-from waveaudit.application.config import racine_projet
-from waveaudit.application.lot import executer_lot, nouvel_id_lot
-from waveaudit.domaine.erreurs import EntreeInvalide, MoteurInjoignable
-from waveaudit.domaine.modeles import Rapport, RequeteLot, TypeEvenement
-from waveaudit.workflows.fiches.prompt import CONSIGNES
+from pentest_scribe.adaptateurs.catalogue_yaml import CatalogueYaml
+from pentest_scribe.adaptateurs.export_docx import LIBELLES
+from pentest_scribe.application import lot, relecture
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.application.lot import executer_lot, nouvel_id_lot
+from pentest_scribe.domaine.erreurs import EntreeInvalide, MoteurInjoignable
+from pentest_scribe.domaine.modeles import Rapport, RequeteLot, TypeEvenement
+from pentest_scribe.workflows.fiches.prompt import CONSIGNES
 
 DEMO = racine_projet() / "donnees" / "demo" / "notes"
 T = TypeEvenement
@@ -105,7 +105,7 @@ def test_lot_nominal_30_notes(config_test, tmp_path):
 
 def test_lot_echoue_au_milieu_entrees_attente(config_test, monkeypatch):
     """Lot interrompu à la 3e note : fiches déjà produites relisibles, reste en `attente`."""
-    from waveaudit.workflows.fiches import pipeline
+    from pentest_scribe.workflows.fiches import pipeline
 
     traiter = pipeline.WorkflowFiches.traiter
     appels = []

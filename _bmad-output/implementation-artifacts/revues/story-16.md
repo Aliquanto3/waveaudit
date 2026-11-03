@@ -16,7 +16,7 @@ Branche `story-16-revue` (depuis `story-16`, rebasée sur `main` 0788e08 sans co
 
 ## Reports
 
-- `tests/e2e/test_reel.py` (slow) non exécuté (vrai moteur interdit ici) : collecté seulement, API vérifiées par introspection (`RequeteLot`, `ResultatLot`, `Fiche`, manifeste, `_ID_LOT`). À lancer en V1 : `uv run pytest -q -m slow tests/e2e/test_reel.py` après `waveaudit installer`.
+- `tests/e2e/test_reel.py` (slow) non exécuté (vrai moteur interdit ici) : collecté seulement, API vérifiées par introspection (`RequeteLot`, `ResultatLot`, `Fiche`, manifeste, `_ID_LOT`). À lancer en V1 : `uv run pytest -q -m slow tests/e2e/test_reel.py` après `pentest-scribe installer`.
 
 ## Tests
 

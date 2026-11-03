@@ -1,4 +1,4 @@
-# Revue — story X2 (service d'export et `waveaudit exporter`)
+# Revue — story X2 (service d'export et `pentest-scribe exporter`)
 
 Commit relu : afb3fee (base 67ed56a), branche `worktree-agent-a0245ca2369b09de8`. LIB
 (`adaptateurs/export_docx.py`) et W4 (routeurs web) en parallèle : non touchés.

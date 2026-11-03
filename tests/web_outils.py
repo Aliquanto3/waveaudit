@@ -9,8 +9,8 @@ alors `base_url="http://127.0.0.1:<port>"`). Dans les deux cas, chaque requête 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from waveaudit.domaine.configuration import Configuration
-from waveaudit.interfaces.web.app import creer_app
+from pentest_scribe.domaine.configuration import Configuration
+from pentest_scribe.interfaces.web.app import creer_app
 
 HOTES_TEST = ("testserver",)
 

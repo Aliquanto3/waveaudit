@@ -4,13 +4,13 @@ from pathlib import Path
 
 import pytest
 
-from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
-from waveaudit.adaptateurs.notes_fichiers import NotesFichiers
-from waveaudit.application.config import racine_projet
-from waveaudit.domaine.configuration import ConfigRecherche
-from waveaudit.domaine.erreurs import EntreeInvalide
-from waveaudit.domaine.modeles import Note, NoteInvalide
-from waveaudit.domaine.recherche import classer, requete_depuis_note
+from pentest_scribe.adaptateurs.catalogue_yaml import CatalogueYaml
+from pentest_scribe.adaptateurs.notes_fichiers import NotesFichiers
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.domaine.configuration import ConfigRecherche
+from pentest_scribe.domaine.erreurs import EntreeInvalide
+from pentest_scribe.domaine.modeles import Note, NoteInvalide
+from pentest_scribe.domaine.recherche import classer, requete_depuis_note
 
 DOSSIER_DEMO = racine_projet() / "donnees" / "demo" / "notes"
 DOSSIER_FIXTURES = Path(__file__).resolve().parents[1] / "donnees" / "notes"

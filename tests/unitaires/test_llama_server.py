@@ -15,9 +15,9 @@ import httpx
 import psutil
 import pytest
 
-from waveaudit.adaptateurs import llama_server
-from waveaudit.adaptateurs.llama_server import LlamaServer
-from waveaudit.domaine.erreurs import MoteurInjoignable
+from pentest_scribe.adaptateurs import llama_server
+from pentest_scribe.adaptateurs.llama_server import LlamaServer
+from pentest_scribe.domaine.erreurs import MoteurInjoignable
 
 TESTS = Path(__file__).resolve().parents[1]
 PYTHON = Path(getattr(sys, "_base_executable", sys.executable))

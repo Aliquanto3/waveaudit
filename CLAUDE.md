@@ -1,14 +1,14 @@
-# WaveAudit — assistant d'audit cyber hors ligne
+# PentestScribe — assistant d'audit cyber hors ligne
 
 Windows, Python 3.12 géré par `uv` (pas de `python` global : `uv run …`).
 Cadrage : `_bmad-output/forge/slm-edge-consultants-cyber/forged-idea.md` (décisions verrouillées, ne pas les rouvrir sans le dire).
 
 ## Règles du POC
 - Aucun appel réseau sortant à l'exécution ; données publiques ou fictives seulement.
-- Palette officielle Wavestone permise dans le thème de l'UI (comme agentic-harness-training-demo) ; pas de logo Wavestone ni de modèle Word de marque dans le dépôt public : ils vont dans `theme-prive/` (ignoré par git).
+- Charte générique dans le thème de l'UI (jetons dans `tokens.css`, `DESIGN.md`) ; pas de logo de marque ni de modèle Word de marque dans le dépôt public : ils vont dans `theme-prive/` (ignoré par git).
 
 ## Contrat de développement
-Spec v2 : `_bmad-output/specs/spec-waveaudit-v2/` (SPEC.md, formats.md, stories.yaml) ; antérieures : `spec-waveaudit-poc/`, `spec-waveaudit-cert/`. UX : `_bmad-output/planning-artifacts/ux/`. Architecture : `_bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/` (ARCHITECTURE-SPINE.md, contrats.md normatif). Exécution v2 : `_bmad-output/implementation-artifacts/plan-v2.md` et `etat-v2.md`.
+Spec v2 : `_bmad-output/specs/spec-pentest-scribe-v2/` (SPEC.md, formats.md, stories.yaml) ; antérieures : `spec-pentest-scribe-poc/`, `spec-pentest-scribe-cert/`. UX : `_bmad-output/planning-artifacts/ux/`. Architecture : `_bmad-output/planning-artifacts/architecture/architecture-pentest-scribe-2026-10-17/` (ARCHITECTURE-SPINE.md, contrats.md normatif). Exécution v2 : `_bmad-output/implementation-artifacts/plan-v2.md` et `etat-v2.md`.
 Ne pas modifier les fichiers du socle (AD-0) hors story dédiée ; aucun test sur le vrai modèle ni le réseau hors marqueur `slow`.
 
 ## Commandes

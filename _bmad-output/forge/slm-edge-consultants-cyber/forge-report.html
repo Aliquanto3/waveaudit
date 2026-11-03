@@ -39,7 +39,7 @@ footer{color:var(--muted);font-size:.85rem;margin-top:32px;text-align:center}
   <div class="t">
     <h1>Assistant d'audit local pour consultants cyber</h1>
     <p class="sub">Session Forge Idea · 2026-10-17 · Anaël</p>
-    <p class="sub">Idée de départ : un SLM on-edge (16 Go, sans GPU, sans cloud) pour le pool audit de Wavestone.</p>
+    <p class="sub">Idée de départ : un SLM on-edge (16 Go, sans GPU, sans cloud) pour le pool audit d'un cabinet de conseil.</p>
   </div>
   <svg class="seal" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Sceau HARDENED">
     <defs><radialGradient id="g" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="var(--seal2)"/><stop offset="1" stop-color="var(--seal)"/></radialGradient></defs>
@@ -59,13 +59,13 @@ footer{color:var(--muted);font-size:.85rem;margin-top:32px;text-align:center}
 <section>
 <h2>Décisions verrouillées</h2>
 <ul>
-<li class="lock">Le moteur passe par un endpoint compatible OpenAI : un SLM local aujourd'hui, un LLM interne Wavestone demain s'il est construit.</li>
+<li class="lock">Le moteur passe par un endpoint compatible OpenAI : un SLM local aujourd'hui, un LLM interne de l'entreprise demain s'il est construit.</li>
 <li class="lock">Le fine-tuning est une R&amp;D personnelle séparée, hors chemin critique.</li>
 <li class="lock">Filtre : uniquement les tâches portant sur des données client.</li>
 <li class="lock">Cas n°1 : fiches de vulnérabilité, traitées par lot et non en chat. Cas n°2 : scripts d'analyse des sorties d'outils.</li>
-<li class="lock">POC sur un gabarit générique et des données publiques, puis entrants des collègues et sponsor, puis pilote réel.</li>
+<li class="lock">POC sur un gabarit générique et des données publiques, puis entrants des testeurs et sponsor, puis pilote réel.</li>
 <li class="lock">POC vérifiablement hors ligne (test, SBOM, SHA-256 des poids), données synthétiques seulement, périmètre figé (FR, sortie Word).</li>
-<li class="lock">Distribution par un dépôt GitHub et <code>uv sync</code>. Charte visuelle Wavestone ; format générique Description / Impact / Recommandation / CVSS 3.1 / Références.</li>
+<li class="lock">Distribution par un dépôt GitHub et <code>uv sync</code>. Charte visuelle générique ; format générique Description / Impact / Recommandation / CVSS 3.1 / Références.</li>
 <li class="lock">Extension n°2 : CERT et réponse à incident, prévue dans l'architecture.</li>
 </ul>
 <table>
@@ -96,7 +96,7 @@ footer{color:var(--muted);font-size:.85rem;margin-top:32px;text-align:center}
 <li class="open">Le besoin est connu par ouï-dire. Il reste trois questions d'entretien : la frontière exacte, le poids des fiches dans une mission, la chaîne de rédaction et l'existence d'un catalogue.</li>
 <li class="open">Un LLM interne cloisonné reste possible : l'avantage du local a peut-être une durée de vie limitée.</li>
 <li class="open">Installation : accès à PyPI, GitHub et HF depuis le poste ; moteur Windows sans compilateur.</li>
-<li class="open">Charte Wavestone dans un dépôt public : il faut un accord de la communication.</li>
+<li class="open">Charte visuelle : charte générique dans le dépôt public.</li>
 <li class="open">Risque de dispersion avec six dépôts actifs.</li>
 </ul>
 </section>

@@ -4,8 +4,8 @@ import json
 import re
 from datetime import timedelta
 
+from pentest_scribe.workflows.incident import prompt
 from tests.incident_outils import HORODATAGE, detection, evenement, regle
-from waveaudit.workflows.incident import prompt
 
 
 def _preuves(contenu: str) -> list[str]:

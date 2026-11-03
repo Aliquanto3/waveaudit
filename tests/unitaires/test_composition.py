@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from waveaudit.adaptateurs import memoire_psutil
-from waveaudit.application import composition
-from waveaudit.domaine.erreurs import ConfigurationInvalide
-from waveaudit.installation import manifeste
+from pentest_scribe.adaptateurs import memoire_psutil
+from pentest_scribe.application import composition
+from pentest_scribe.domaine.erreurs import ConfigurationInvalide
+from pentest_scribe.installation import manifeste
 
 GO = composition.OCTETS_PAR_GO
 

@@ -1,6 +1,6 @@
 [project]
-name = "waveaudit"
-version = "0.2.0rc1"
+name = "pentest-scribe"
+version = "0.2.0rc2"
 description = "Assistant d'audit cyber hors ligne : notes brutes vers fiches de vulnérabilité (POC)."
 readme = "README.md"
 license = "Apache-2.0"
@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-waveaudit = "waveaudit.interfaces.cli:main"
+pentest-scribe = "pentest_scribe.interfaces.cli:main"
 
 [dependency-groups]
 dev = [
@@ -53,4 +53,4 @@ select = ["E", "F", "W", "I", "UP", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 # Idiome typer : les valeurs par défaut `typer.Argument(...)`/`typer.Option(...)` sont des appels.
-"src/waveaudit/interfaces/cli.py" = ["B008"]
+"src/pentest_scribe/interfaces/cli.py" = ["B008"]

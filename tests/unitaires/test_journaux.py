@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from waveaudit.adaptateurs.journaux import SourceJournauxFichiers
-from waveaudit.domaine.erreurs import EntreeInvalide
-from waveaudit.domaine.incident import Evenement
+from pentest_scribe.adaptateurs.journaux import SourceJournauxFichiers
+from pentest_scribe.domaine.erreurs import EntreeInvalide
+from pentest_scribe.domaine.incident import Evenement
 
 FIXTURE = Path(__file__).parents[1] / "donnees" / "incident" / "canoniques.yaml"
 ENTREES = yaml.safe_load(FIXTURE.read_text(encoding="utf-8"))

@@ -2,7 +2,7 @@
 
 Branche `story-D2-revue` (depuis `story-D2`, rebasée sur `main` f71f0d8 sans conflit).
 Constats et tri : section « Revue » de
-`_bmad-output/specs/spec-waveaudit-poc/stories/story-d2-ci-github-actions.md`, reprise
+`_bmad-output/specs/spec-pentest-scribe-poc/stories/story-d2-ci-github-actions.md`, reprise
 ci-dessous.
 
 ## Constats

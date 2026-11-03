@@ -2,8 +2,8 @@
 
 import pytest
 
-from waveaudit.application import lot
-from waveaudit.domaine.erreurs import EntreeInvalide
+from pentest_scribe.application import lot
+from pentest_scribe.domaine.erreurs import EntreeInvalide
 
 
 @pytest.fixture
@@ -68,8 +68,8 @@ def test_sans_chemin_public():
 
 
 def test_emetteur_public(tmp_path):
-    from waveaudit.application.journal import JournalLot
-    from waveaudit.domaine.modeles import TypeEvenement
+    from pentest_scribe.application.journal import JournalLot
+    from pentest_scribe.domaine.modeles import TypeEvenement
 
     recus = []
     with JournalLot(tmp_path / "journal.jsonl") as journal:

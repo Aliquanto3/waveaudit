@@ -1,4 +1,4 @@
-"""Sens des dépendances (AD-1), vérifié par analyse `ast` des imports de `src/waveaudit/`."""
+"""Sens des dépendances (AD-1), vérifié par analyse `ast` des imports de `src/pentest_scribe/`."""
 
 import ast
 import sys
@@ -8,9 +8,9 @@ from pathlib import Path
 import pytest
 
 SRC = Path(__file__).resolve().parents[2] / "src"
-PAQUET = SRC / "waveaudit"
+PAQUET = SRC / "pentest_scribe"
 
-# Bibliothèque tierce -> préfixes de modules (relatifs à waveaudit/) autorisés à l'importer.
+# Bibliothèque tierce -> préfixes de modules (relatifs à pentest_scribe/) autorisés à l'importer.
 RESERVES: dict[str, tuple[str, ...]] = {
     "cvss": ("domaine/cvss31.py",),
     "httpx": ("adaptateurs/", "installation/telechargement.py"),
@@ -63,7 +63,7 @@ def _imports(fichier: Path) -> list[Import]:
                 else:
                     nom = enfant.module or ""
                 resultat.append(Import(nom, enfant.lineno, not dans_fonction))
-                # `from waveaudit import adaptateurs` : le nom importé peut être un module.
+                # `from pentest_scribe import adaptateurs` : le nom importé peut être un module.
                 for alias in enfant.names:
                     resultat.append(Import(f"{nom}.{alias.name}", enfant.lineno, not dans_fonction))
             visiter(enfant, fonction)
@@ -84,8 +84,10 @@ def _racine(module: str) -> str:
     return module.split(".")[0]
 
 
-def _waveaudit(module: str, sous_paquet: str) -> bool:
-    return module == f"waveaudit.{sous_paquet}" or module.startswith(f"waveaudit.{sous_paquet}.")
+def _pentest_scribe(module: str, sous_paquet: str) -> bool:
+    return module == f"pentest_scribe.{sous_paquet}" or module.startswith(
+        f"pentest_scribe.{sous_paquet}."
+    )
 
 
 def test_fichiers_trouves():
@@ -103,7 +105,9 @@ def test_noyau_stdlib_pydantic_domaine(couche):
         racine = _racine(imp.module)
         if racine in sys.stdlib_module_names or racine == "pydantic":
             continue
-        if racine == "waveaudit" and any(_waveaudit(imp.module, c) for c in autorises_internes):
+        if racine == "pentest_scribe" and any(
+            _pentest_scribe(imp.module, c) for c in autorises_internes
+        ):
             continue
         if racine == "cvss" and chemin == "domaine/cvss31.py":
             continue
@@ -124,7 +128,7 @@ def test_installation_importee_par_application_et_cli():
     fautes = [
         f"{chemin}:{imp.ligne} importe {imp.module}"
         for chemin, imp in TOUS
-        if _waveaudit(imp.module, "installation")
+        if _pentest_scribe(imp.module, "installation")
         and not _sous(chemin, ("installation/", "application/", "interfaces/cli.py"))
     ]
     assert fautes == []
@@ -138,7 +142,7 @@ def test_adaptateurs_instancies_par_la_composition_seule():
     """
     fautes = []
     for chemin, imp in TOUS:
-        if not _waveaudit(imp.module, "adaptateurs"):
+        if not _pentest_scribe(imp.module, "adaptateurs"):
             continue
         if _sous(chemin, ("adaptateurs/", "application/composition.py")):
             continue
@@ -154,17 +158,17 @@ def test_adaptateurs_sans_couche_superieure():
         f"{chemin}:{imp.ligne} importe {imp.module}"
         for chemin, imp in TOUS
         if chemin.startswith("adaptateurs/")
-        and any(_waveaudit(imp.module, c) for c in ("application", "interfaces", "workflows"))
+        and any(_pentest_scribe(imp.module, c) for c in ("application", "interfaces", "workflows"))
     ]
     assert fautes == []
 
 
-MODULE_LOT = "waveaudit.application.lot"
+MODULE_LOT = "pentest_scribe.application.lot"
 TESTS = Path(__file__).resolve().parents[1]
 
 
 def _noms_prives_de_lot(source: str, nom_fichier: str, paquet: list[str]) -> list[str]:
-    """Noms `_…` de `waveaudit.application.lot` importés ou lus (`lot._x`) dans `source`."""
+    """Noms `_…` de `pentest_scribe.application.lot` importés ou lus (`lot._x`) dans `source`."""
     arbre = ast.parse(source, filename=nom_fichier)
     alias_module: set[str] = set()
     fautes: list[str] = []
@@ -218,11 +222,11 @@ def test_noms_prives_de_lot_non_importes_hors_de_lot():
 @pytest.mark.parametrize(
     "source",
     [
-        "from waveaudit.application.lot import _ID_LOT\n",
-        "from waveaudit.application import lot\nlot._sans_chemin('x')\n",
-        "import waveaudit.application.lot as l\nl._Emetteur\n",
-        "from waveaudit.application import lot as module_lot\nmodule_lot._sorties\n",
-        "import waveaudit.application.lot\nwaveaudit.application.lot._sans_chemin('x')\n",
+        "from pentest_scribe.application.lot import _ID_LOT\n",
+        "from pentest_scribe.application import lot\nlot._sans_chemin('x')\n",
+        "import pentest_scribe.application.lot as l\nl._Emetteur\n",
+        "from pentest_scribe.application import lot as module_lot\nmodule_lot._sorties\n",
+        "import pentest_scribe.application.lot\npentest_scribe.application.lot._sans_chemin('x')\n",
     ],
 )
 def test_noms_prives_de_lot_detectes(source):
@@ -232,8 +236,8 @@ def test_noms_prives_de_lot_detectes(source):
 
 def test_noms_publics_de_lot_admis():
     source = (
-        "from waveaudit.application.lot import MOTIF_ID_LOT, Emetteur, sans_chemin\n"
-        "from waveaudit.application import lot\nlot.dossier_sorties\nlot.__name__\n"
+        "from pentest_scribe.application.lot import MOTIF_ID_LOT, Emetteur, sans_chemin\n"
+        "from pentest_scribe.application import lot\nlot.dossier_sorties\nlot.__name__\n"
     )
     assert _noms_prives_de_lot(source, "exemple.py", ["tests"]) == []
 
@@ -242,5 +246,5 @@ def test_analyse_detecte_les_imports():
     """Contrôle de l'analyseur lui-même : imports relatifs, `from x import y`, fonctions."""
     fichier = PAQUET / "workflows" / "registre.py"
     modules = {imp.module: imp.niveau_module for imp in _imports(fichier)}
-    assert modules["waveaudit.domaine.ports"] is True
-    assert modules["waveaudit.workflows.fiches"] is False
+    assert modules["pentest_scribe.domaine.ports"] is True
+    assert modules["pentest_scribe.workflows.fiches"] is False

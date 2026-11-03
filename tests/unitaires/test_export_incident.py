@@ -6,12 +6,12 @@ from pathlib import Path
 import pytest
 from docx import Document
 
+from pentest_scribe.adaptateurs.export_docx import BANDEAU
+from pentest_scribe.adaptateurs.export_incident_docx import ExporteurIncidentDocx
+from pentest_scribe.domaine.erreurs import ConfigurationInvalide
+from pentest_scribe.domaine.incident import Indicateur, LigneIgnoree, RapportIncident
+from pentest_scribe.domaine.modeles import CodeMotif, Motif, Statut
 from tests.incident_outils import detection, evenement, recit
-from waveaudit.adaptateurs.export_docx import BANDEAU
-from waveaudit.adaptateurs.export_incident_docx import ExporteurIncidentDocx
-from waveaudit.domaine.erreurs import ConfigurationInvalide
-from waveaudit.domaine.incident import Indicateur, LigneIgnoree, RapportIncident
-from waveaudit.domaine.modeles import CodeMotif, Motif, Statut
 
 FUSEAU = timezone(timedelta(hours=2))
 

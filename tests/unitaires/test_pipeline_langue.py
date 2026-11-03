@@ -2,14 +2,14 @@
 
 from pathlib import Path
 
+from pentest_scribe.adaptateurs.catalogue_yaml import CatalogueYaml
+from pentest_scribe.adaptateurs.moteur_openai import MoteurOpenAI
+from pentest_scribe.adaptateurs.notes_fichiers import NotesFichiers
+from pentest_scribe.domaine.configuration import Configuration
+from pentest_scribe.domaine.modeles import CodeMotif, ConstatType, Fiche, Note, Rapport, Statut
+from pentest_scribe.domaine.ports import Ports
+from pentest_scribe.workflows.registre import REGISTRE
 from tests.faux_moteur import FauxMoteur
-from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
-from waveaudit.adaptateurs.moteur_openai import MoteurOpenAI
-from waveaudit.adaptateurs.notes_fichiers import NotesFichiers
-from waveaudit.domaine.configuration import Configuration
-from waveaudit.domaine.modeles import CodeMotif, ConstatType, Fiche, Note, Rapport, Statut
-from waveaudit.domaine.ports import Ports
-from waveaudit.workflows.registre import REGISTRE
 
 RACINE = Path(__file__).resolve().parents[2]
 NOTE_XSS = "01-xss-reflechi.md"

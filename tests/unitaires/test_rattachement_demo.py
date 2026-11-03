@@ -11,12 +11,12 @@ top1 >= 8/9 et top3 = 9/9, bloquant depuis la levée du verrou en fin de story Q
 Essais et scores 01-20 : bilan-modeles.md, section v2.
 """
 
-from waveaudit.adaptateurs.catalogue_yaml import CatalogueYaml
-from waveaudit.adaptateurs.notes_fichiers import NotesFichiers
-from waveaudit.application.config import racine_projet
-from waveaudit.domaine.configuration import ConfigRecherche
-from waveaudit.domaine.modeles import Note
-from waveaudit.domaine.recherche import classer, requete_depuis_note
+from pentest_scribe.adaptateurs.catalogue_yaml import CatalogueYaml
+from pentest_scribe.adaptateurs.notes_fichiers import NotesFichiers
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.domaine.configuration import ConfigRecherche
+from pentest_scribe.domaine.modeles import Note
+from pentest_scribe.domaine.recherche import classer, requete_depuis_note
 
 SEUIL_TOP3 = 20
 SEUIL_TOP1 = 17

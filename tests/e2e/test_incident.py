@@ -14,12 +14,12 @@ import pytest
 import yaml
 from docx import Document
 
-from waveaudit.application import composition
-from waveaudit.application.config import racine_projet
-from waveaudit.application.incident import executer_incident
-from waveaudit.domaine.erreurs import EntreeInvalide, MoteurInjoignable
-from waveaudit.domaine.incident import RapportIncident, RequeteIncident
-from waveaudit.domaine.modeles import CodeMotif, Statut, TypeEvenement
+from pentest_scribe.application import composition
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.application.incident import executer_incident
+from pentest_scribe.domaine.erreurs import EntreeInvalide, MoteurInjoignable
+from pentest_scribe.domaine.incident import RapportIncident, RequeteIncident
+from pentest_scribe.domaine.modeles import CodeMotif, Statut, TypeEvenement
 
 RACINE = racine_projet()
 DEMO = RACINE / "donnees" / "demo" / "incident"

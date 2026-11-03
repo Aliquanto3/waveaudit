@@ -1,15 +1,15 @@
 ---
-name: WaveAudit
+name: PentestScribe
 status: final
 sources:
   - _bmad-output/planning-artifacts/ux/.memlog.md
-  - _bmad-output/specs/spec-waveaudit-v2/arbitrages.md
-  - _bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/contrats.md
-  - _bmad-output/specs/spec-waveaudit-cert/formats-incident.md
+  - _bmad-output/specs/spec-pentest-scribe-v2/arbitrages.md
+  - _bmad-output/planning-artifacts/architecture/architecture-pentest-scribe-2026-10-17/contrats.md
+  - _bmad-output/specs/spec-pentest-scribe-cert/formats-incident.md
 updated: 2026-10-18
 ---
 
-# WaveAudit — Experience Spine
+# PentestScribe — Experience Spine
 
 > Voie rapide. Application web de bureau, rendu serveur Jinja + JS sans framework, servie sur
 > `127.0.0.1`. Paire avec `DESIGN.md` (tokens référencés en `{colors.primaire}` etc.). Maquette
@@ -165,7 +165,7 @@ accès réseau sortant à l'exécution. Navigateurs cibles : Edge et Chrome réc
 
 ## Inspiration & Anti-patterns
 
-- **Rejeté — tableau de bord animé ou vitrine** : WaveAudit est un outil de relecture, pas une
+- **Rejeté — tableau de bord animé ou vitrine** : PentestScribe est un outil de relecture, pas une
   démo commerciale ; aucune animation qui ne serve pas la compréhension d'un changement d'état.
 - **Rejeté — édition des récits d'incident en v2** : le workflow incident reste lecture +
   téléchargement ; pas de formulaire de correction côté CERT pour cette version.
@@ -177,7 +177,7 @@ accès réseau sortant à l'exécution. Navigateurs cibles : Edge et Chrome réc
 
 ### Flow 1 — Camille, consultante pentest (rendu du rapport le lendemain)
 
-1. Camille ouvre WaveAudit sur son poste. Elle choisit le workflow « Fiches » et dépose ses 12
+1. Camille ouvre PentestScribe sur son poste. Elle choisit le workflow « Fiches » et dépose ses 12
    notes de mission (glisser-déposer sur la carte de dépôt).
 2. Elle choisit le modèle par défaut (durée indicative affichée : ~20 s/fiche) et la langue
    « Français », puis lance le lot.
@@ -210,7 +210,7 @@ reprendra la relecture le lendemain matin depuis « Lots récents » avant l'exp
 
 ### Flow 2 — Karim, analyste CERT (journaux d'un bastion compromis)
 
-1. Karim ouvre WaveAudit, choisit le workflow « Incident » et dépose le dossier exporté du
+1. Karim ouvre PentestScribe, choisit le workflow « Incident » et dépose le dossier exporté du
    bastion (journaux Windows en `.json`, `.log` Linux).
 2. Avant de lancer, il choisit le modèle parmi les modèles installés (même sélecteur que pour un
    lot de fiches) : les récits de détection passent par le SLM. Pas de choix de langue pour ce

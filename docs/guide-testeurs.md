@@ -1,6 +1,6 @@
-# Guide des testeurs — WaveAudit POC
+# Guide des testeurs — PentestScribe POC
 
-Merci de tester WaveAudit. Ce guide vous installe le POC, vous fait traiter un premier lot de
+Merci de tester PentestScribe. Ce guide vous installe le POC, vous fait traiter un premier lot de
 notes fictives et vous explique comment transmettre votre retour. Toute sortie porte le bandeau
 « Démonstration — données fictives » : aucune donnée réelle n'est traitée.
 
@@ -49,8 +49,8 @@ version.
 Avec git :
 
 ```
-git clone https://github.com/Aliquanto3/waveaudit.git
-cd waveaudit
+git clone https://github.com/Aliquanto3/pentest-scribe.git
+cd pentest-scribe
 ```
 
 Sans git : sur la page GitHub du dépôt, bouton *Code* puis *Download ZIP*, décompressez
@@ -59,7 +59,7 @@ l'archive et ouvrez un terminal dans le dossier obtenu.
 ### Réseau d'entreprise
 
 Seules deux commandes sortent sur Internet : `uv sync` (paquets Python, et Python 3.12 lui-même
-s'il manque) et `waveaudit installer` (moteur et modèles). Les principaux domaines contactés
+s'il manque) et `pentest-scribe installer` (moteur et modèles). Les principaux domaines contactés
 sont `pypi.org` et `files.pythonhosted.org` (paquets Python), `github.com` (moteur et, au
 besoin, Python) et `huggingface.co` (modèles) ; les téléchargements sont ensuite redirigés vers
 les serveurs de diffusion de ces sites (par exemple `objects.githubusercontent.com` pour GitHub,
@@ -82,7 +82,7 @@ $env:SSL_CERT_FILE = "C:\chemin\vers\certificat-entreprise.pem"
 $env:UV_NATIVE_TLS = "1"
 ```
 
-`SSL_CERT_FILE` sert aux deux commandes (`uv sync` et `waveaudit installer`) ; `UV_NATIVE_TLS`
+`SSL_CERT_FILE` sert aux deux commandes (`uv sync` et `pentest-scribe installer`) ; `UV_NATIVE_TLS`
 permet en plus à `uv` de reprendre les certificats déjà reconnus par Windows.
 
 Si un téléchargement reste bloqué malgré ces réglages, notez-le dans votre retour (voir
@@ -93,11 +93,11 @@ avoir besoin d'ouvrir les domaines cités plus haut.
 
 ```
 uv sync                     # installe les dépendances Python, et Python 3.12 si besoin (~1 min)
-uv run waveaudit installer  # télécharge moteur + modèles, vérifie leur empreinte (~5-8 min)
+uv run pentest-scribe installer  # télécharge moteur + modèles, vérifie leur empreinte (~5-8 min)
 ```
 
 `uv sync` lit `uv.lock` et télécharge les paquets Python figés (dépôt PyPI) : pas d'autre dépôt,
-pas de télémétrie. `waveaudit installer` télécharge le moteur et les poids épinglés du dépôt, et
+pas de télémétrie. `pentest-scribe installer` télécharge le moteur et les poids épinglés du dépôt, et
 vérifie leur empreinte (il refuse et supprime tout fichier dont l'empreinte ne correspond pas).
 Si une empreinte est refusée, relancez la commande ; si l'échec persiste, c'est un retour à nous
 signaler.
@@ -105,7 +105,7 @@ signaler.
 ## Premier essai dans l'interface
 
 ```
-uv run waveaudit ui
+uv run pentest-scribe ui
 ```
 
 Démarre une interface strictement locale sur `http://127.0.0.1:8765`. Ouvrez cette adresse dans
@@ -177,7 +177,7 @@ Pour traiter un lot complet sans passer par l'interface (environ 15 min pour les
 démonstration, de l'ordre de 28 secondes par fiche) :
 
 ```
-uv run waveaudit fiches donnees/demo/notes
+uv run pentest-scribe fiches donnees/demo/notes
 ```
 
 La commande traite les notes l'une après l'autre et affiche l'avancement, puis le chemin du
@@ -186,14 +186,14 @@ rapport Word produit (`var/sorties/<id-du-lot>/rapport.docx`).
 Pour un rapport en anglais :
 
 ```
-uv run waveaudit fiches donnees/demo/notes --langue en
+uv run pentest-scribe fiches donnees/demo/notes --langue en
 ```
 
 Pour réexporter le rapport final d'un lot déjà traité, sans relancer le moteur (ajoutez
 `--brouillon` pour un brouillon) :
 
 ```
-uv run waveaudit exporter <id-du-lot>
+uv run pentest-scribe exporter <id-du-lot>
 ```
 
 ### Écrire ses propres notes fictives
@@ -217,30 +217,30 @@ Seul le corps est obligatoire ; une note sans corps est invalide et ressort dans
 
 - Fermez les applications gourmandes en mémoire (le POC vise un pic de 6 Go maximum, suite
   bureautique ouverte) avant un lot complet.
-- Sur un poste avec moins de 4,5 Go de RAM libre, WaveAudit choisit automatiquement un modèle
+- Sur un poste avec moins de 4,5 Go de RAM libre, PentestScribe choisit automatiquement un modèle
   plus petit et plus rapide (`qwen3.5-0.8b-q4km` au lieu de `granite-4.0-1b-q4km`). Aucun
   message ne l'annonce : dans l'interface, c'est le modèle présélectionné dans la liste
   « Modèle » de l'accueil (la mémoire libre est mesurée à l'affichage de la page). Notez dans
   votre retour le modèle utilisé.
 - Une fiche qui dépasse largement 3 min n'est pas bloquée : le modèle tourne sur CPU, laissez-le
   finir. Au-delà de 10 min sans avancement (journal du lot dans l'interface, ou affichage du
-  terminal en ligne de commande), arrêtez WaveAudit (`Ctrl+C` dans le terminal) et notez-le
+  terminal en ligne de commande), arrêtez PentestScribe (`Ctrl+C` dans le terminal) et notez-le
   dans votre retour avec la fiche concernée.
-- `uv run waveaudit catalogue verifier` contrôle que le catalogue des constats types est
+- `uv run pentest-scribe catalogue verifier` contrôle que le catalogue des constats types est
   intact : utile pour écarter cette cause avant de suspecter le modèle.
 
 ## Ce qui sort, ou non, du poste
 
 Aucun appel réseau sortant n'a lieu pendant l'utilisation de l'interface ou le traitement d'un
 lot : un garde réseau du dépôt bloque toute connexion qui ne serait pas vers votre propre
-machine (vérifié par un test automatisé). Seules `uv sync` et `waveaudit installer`, à
+machine (vérifié par un test automatisé). Seules `uv sync` et `pentest-scribe installer`, à
 l'installation, appellent l'extérieur. Vos notes, fictives, et les rapports générés restent dans
 votre dossier et dans `var/` : rien n'est envoyé ailleurs.
 
 ## Votre retour
 
 Merci de remplir une issue GitHub avec le modèle « Retour testeur » (menu *New issue* du dépôt).
-Indiquez-y la version testée, affichée par `uv run waveaudit version` (`waveaudit 0.2.0rc1` ou
+Indiquez-y la version testée, affichée par `uv run pentest-scribe version` (`pentest-scribe 0.2.0rc2` ou
 plus récent pour cette campagne). Cela demande un compte GitHub ; si vous n'en avez pas, envoyez le même contenu par mail à la
 personne qui vous a invité à tester.
 

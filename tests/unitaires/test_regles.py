@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
+from pentest_scribe.adaptateurs.regles_yaml import CatalogueReglesYaml, verifier_regles
+from pentest_scribe.domaine.erreurs import ConfigurationInvalide
+from pentest_scribe.domaine.incident import IDS_REGLES_MINIMAUX
 from tests.incident_outils import regle
-from waveaudit.adaptateurs.regles_yaml import CatalogueReglesYaml, verifier_regles
-from waveaudit.domaine.erreurs import ConfigurationInvalide
-from waveaudit.domaine.incident import IDS_REGLES_MINIMAUX
 
 DOSSIER_REGLES = Path(__file__).parents[2] / "donnees" / "regles"
 

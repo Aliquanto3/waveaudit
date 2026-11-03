@@ -1,6 +1,6 @@
-# Relecture grille — UX WaveAudit v2 (2026-10-18)
+# Relecture grille — UX PentestScribe v2 (2026-10-18)
 
-Spines : `DESIGN.md` / `EXPERIENCE.md`. Sources (`.memlog.md`, `arbitrages.md`, `contrats.md`, `formats-incident.md`) résolvent toutes. Aucune ressource externe, aucune valeur de charte Wavestone dans le dépôt public — conforme.
+Spines : `DESIGN.md` / `EXPERIENCE.md`. Sources (`.memlog.md`, `arbitrages.md`, `contrats.md`, `formats-incident.md`) résolvent toutes. Aucune ressource externe, aucune valeur de charte de marque dans le dépôt public — conforme.
 
 ## Constats
 

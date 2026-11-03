@@ -3,8 +3,8 @@
 Commit relu : 5456aaa, branche `worktree-agent-a0388b8908d827ca6`, fusionnée avec `main` (W3b
 intégrée, 367bfc6) avant relecture — pas de conflit sur `README.md` ni `docs/guide-testeurs.md`.
 Fichiers revus : `README.md`, `docs/guide-testeurs.md`, contre le code de `main` fusionné
-(`static/relecture.js`, `templates/lot.html`, `src/waveaudit/adaptateurs/journaux.py`,
-`src/waveaudit/application/composition.py`, `src/waveaudit/interfaces/cli.py`) et
+(`static/relecture.js`, `templates/lot.html`, `src/pentest_scribe/adaptateurs/journaux.py`,
+`src/pentest_scribe/application/composition.py`, `src/pentest_scribe/interfaces/cli.py`) et
 `bilan-modeles.md`, `mesures-qualite.md`, `revues/story-W3b.md`, `revues/story-ARR.md`,
 `revues/story-X2.md`. Aucun fichier `.py` ni gabarit modifié.
 
@@ -18,16 +18,16 @@ Fichiers revus : `README.md`, `docs/guide-testeurs.md`, contre le code de `main`
 | medium | second avis 6 | guide:94 (Camille étape 5) « sur une entrée non rattachée (si le lot en produit une) » : `tests/unitaires/test_notes.py::test_les_30_notes_de_demonstration_sont_rattachables` prouve qu'aucune des 30 notes fournies ne donne `non_rattachee` ; l'étape n'était donc jamais reproductible avec le jeu livré. | Corrigé : étape reformulée pour ajouter une note hors sujet (ex. une recette, cf. `tests/donnees/notes/hors-sujet.md`, utilisée par `test_note_hors_sujet_non_rattachee_sans_requete`), qui donne bien `non_rattachee` sans appel au modèle (score BM25 maximal ≤ 0). |
 | low | second avis 7 | Libellés « Génération en cours », « Enregistrement… », « Exporter un brouillon » à vérifier contre le code. | Vérifié conformes (voir constat high 2) ; aucune correction. |
 | low | second avis 8 | Limites manquantes : borne d'arrêt de l'UI non garantie à 10 s hors Windows (`revues/story-ARR.md`, second avis 6) ; régénération d'un lot depuis une autre instance de l'UI non détectable (`revues/story-X2.md`, second avis 2). | Corrigé : deux puces ajoutées à « Limites du POC » du README. |
-| low | second avis 9 | Seuil de repli modèle (`ram_min_defaut_go` = 4,5 Go, `composition.py:47-51` et `config/waveaudit.toml`) absent du README, et non remesuré en v2. | Corrigé : phrase ajoutée à la section « Choix et licences des modèles », précisant le seuil et qu'il n'a pas été remesuré en v2. |
-| low | second avis 10 | `_bmad-output/specs/spec-waveaudit-v2/stories/story-DOC-documentation-v2.md:113` « incident ne connaît pas --annee » est faux : `cli.py` définit bien l'option `--annee` (défaut : année courante si absente). | Corrigé dans le fichier de spec : formulation reprise pour dire explicitement que `--annee` existe, avec sa valeur par défaut, et note que la formulation précédente était ambiguë/fausse telle que lue. |
+| low | second avis 9 | Seuil de repli modèle (`ram_min_defaut_go` = 4,5 Go, `composition.py:47-51` et `config/pentest-scribe.toml`) absent du README, et non remesuré en v2. | Corrigé : phrase ajoutée à la section « Choix et licences des modèles », précisant le seuil et qu'il n'a pas été remesuré en v2. |
+| low | second avis 10 | `_bmad-output/specs/spec-pentest-scribe-v2/stories/story-DOC-documentation-v2.md:113` « incident ne connaît pas --annee » est faux : `cli.py` définit bien l'option `--annee` (défaut : année courante si absente). | Corrigé dans le fichier de spec : formulation reprise pour dire explicitement que `--annee` existe, avec sa valeur par défaut, et note que la formulation précédente était ambiguë/fausse telle que lue. |
 | — | reviewer | Section « Points à vérifier en recette » du guide incomplète au regard de `revues/story-W3b.md` (« Reste pour la REC ») : manquaient l'indicateur Enregistrement…/Enregistré et ses annonces `aria-live`, le conflit à deux onglets (Échap, Garder ma version, Recharger), le serveur arrêté pendant une saisie, le détail de la confirmation de changement de candidat sur fiche corrigée, l'export brouillon par `Blob`, le lien « Télécharger le rapport », l'opacité des dialogues, et le piège de focus Tab. | Corrigé : puces ajoutées, sans doublon avec les points déjà présents (bascule de workflow, parcours clavier, `lang`, confirmations, arrêt UI, repli RAM, repli du tiroir sous 1440 px). |
 | — | reviewer | Complexité : 0 constat. Story de documentation seule, aucune structure de code modifiée. | — |
 
 ## Points vérifiés conformes, sans correction
 
-- `uv run python -c "from waveaudit.application.composition import journal_reconnu; print(journal_reconnu('notes.txt'))"` → `False` ; `journal_reconnu('notes.csv')` → `True`.
-- `src/waveaudit/interfaces/cli.py:184-235` : `incident` définit `--annee` (`typer.Option(None, "--annee", ...)`, défaut `datetime.now().year`).
-- `src/waveaudit/domaine/configuration.py:37` et `config/waveaudit.toml:18` : `ram_min_defaut_go = 4.5`.
+- `uv run python -c "from pentest_scribe.application.composition import journal_reconnu; print(journal_reconnu('notes.txt'))"` → `False` ; `journal_reconnu('notes.csv')` → `True`.
+- `src/pentest_scribe/interfaces/cli.py:184-235` : `incident` définit `--annee` (`typer.Option(None, "--annee", ...)`, défaut `datetime.now().year`).
+- `src/pentest_scribe/domaine/configuration.py:37` et `config/pentest-scribe.toml:18` : `ram_min_defaut_go = 4.5`.
 - `_bmad-output/implementation-artifacts/bilan-modeles.md:114-116` : top1 = 18/20 (01-20), top1 = 8/9 et top3 = 9/9 (21-28, 30).
 - `tests/unitaires/test_notes.py::test_les_30_notes_de_demonstration_sont_rattachables` et `tests/unitaires/test_pipeline.py::test_note_hors_sujet_non_rattachee_sans_requete`.
 

@@ -13,7 +13,7 @@ Branche `story-8-revue` (depuis `story-8`, 2662c4f, déjà à jour sur `main` c1
 | low | second avis 4 | Ré-extraction à chaque appel ; `chemin()` ne vérifie pas l'existence de l'exécutable | reporté | inoffensif (zip de 20 Mo) ; l'existence de `llama-server.exe` dans le zip est à confirmer à la première installation réelle (§11 : « à confirmer en ouvrant le zip ») |
 | low | second avis 5 | Schéma https non imposé | rejeté | manifeste versionné et testé (URL épinglées) ; l'intégrité repose sur le SHA-256, pas sur le transport |
 | low | second avis 6 | `.part` non nettoyé si le flux échoue | corrigé | suppression du `.part` sur toute exception ; test `test_erreur_http_ne_laisse_pas_de_part` |
-| low | revue | Une erreur HTTP ou réseau remonte en `httpx.HTTPError`, hors hiérarchie `ErreurWaveAudit` : la commande `installer` sortirait en trace brute | reporté | contrat muet (§4 ne mappe que `EmpreinteInvalide` → 5) ; à traiter par la story CLI (message clair, code non nul) sans élargir le contrat en silence |
+| low | revue | Une erreur HTTP ou réseau remonte en `httpx.HTTPError`, hors hiérarchie `ErreurPentestScribe` : la commande `installer` sortirait en trace brute | reporté | contrat muet (§4 ne mappe que `EmpreinteInvalide` → 5) ; à traiter par la story CLI (message clair, code non nul) sans élargir le contrat en silence |
 
 Complexité : 0 constat (lecture et hachage en flux par blocs de 1 Mo, aucune structure qui grossit).
 Intégration : `installer(manifeste, var, candidats, transport=None)` exposée ; pas encore d'appelant (`interfaces/cli.py` : story ultérieure). `cyclonedx-bom` déclaré dans les dépendances.

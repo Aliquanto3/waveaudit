@@ -170,7 +170,7 @@ ba40d211,60556073,Amend architecture for v2,2026-10-18,opus,1,1,68,349698,6.505,
 ba40d211,2fe8146e,Extract non-goals and locked decisions,2026-10-18,haiku,1,1,4,27105,0.005,,0,0.0,0.007
 ba40d211,8d8248fc,Verification gap lens review,2026-10-18,sonnet,1,1,22,140465,0.647,,0,0.0,0.857
 ba40d211,648f58ce,UX rubric walker review,2026-10-18,sonnet,1,1,7,73446,0.191,,0,0.0,0.265
-ba40d211,40f7c1fc,Wavestone theme and interactive prototype,2026-10-18,sonnet,1,1,44,145564,1.287,,0,0.0,1.468
+ba40d211,40f7c1fc,Brand theme and interactive prototype,2026-10-18,sonnet,1,1,44,145564,1.287,,0,0.0,1.468
 ba40d211,4583a67d,Apply spec open-question answers,2026-10-18,sonnet,1,1,19,88458,0.524,,0,0.0,0.656
 ba40d211,2d0da8a6,UX accessibility review,2026-10-18,sonnet,1,1,6,67999,0.249,,0,0.0,0.314
 ba40d211,3fd6eb12,Write stories.yaml for v2,2026-10-18,opus,1,1,27,159721,1.842,,0,0.0,2.258

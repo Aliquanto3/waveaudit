@@ -1,4 +1,4 @@
-# Relecture accessibilité — spines UX WaveAudit v2
+# Relecture accessibilité — spines UX PentestScribe v2
 
 Sources : DESIGN.md, EXPERIENCE.md, mockups/relecture.html. Cible WCAG 2.1 AA, clavier + NVDA/Narrateur.
 

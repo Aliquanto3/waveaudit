@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from waveaudit.domaine.incident import IDS_REGLES_MINIMAUX, Evenement
+from pentest_scribe.domaine.incident import IDS_REGLES_MINIMAUX, Evenement
 
 FIXTURE = Path(__file__).parents[1] / "donnees" / "incident" / "canoniques.yaml"
 FICHIERS = {"security.json", "system.json", "sysmon.csv", "auth.log"}

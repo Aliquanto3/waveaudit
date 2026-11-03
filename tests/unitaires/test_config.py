@@ -6,31 +6,32 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from waveaudit.application import config as module_config
-from waveaudit.application.config import charger_configuration, racine_projet
-from waveaudit.domaine.configuration import Configuration
-from waveaudit.domaine.erreurs import ConfigurationInvalide
-from waveaudit.installation import manifeste
+from pentest_scribe.application import config as module_config
+from pentest_scribe.application.config import charger_configuration, racine_projet
+from pentest_scribe.domaine.configuration import Configuration
+from pentest_scribe.domaine.erreurs import ConfigurationInvalide
+from pentest_scribe.installation import manifeste
 
 RACINE = racine_projet()
 
 
 @pytest.fixture
 def fausse_racine(tmp_path, monkeypatch) -> Path:
-    """Racine de projet isolée : copie de config/waveaudit.toml, sans fichier local."""
+    """Racine de projet isolée : copie de config/pentest-scribe.toml, sans fichier local."""
     (tmp_path / "config").mkdir()
-    shutil.copy(RACINE / "config" / "waveaudit.toml", tmp_path / "config" / "waveaudit.toml")
+    nom = "pentest-scribe.toml"
+    shutil.copy(RACINE / "config" / nom, tmp_path / "config" / nom)
     monkeypatch.setattr(module_config, "racine_projet", lambda: tmp_path)
     return tmp_path
 
 
 def test_racine_projet():
-    assert (RACINE / "config" / "waveaudit.toml").is_file()
+    assert (RACINE / "config" / "pentest-scribe.toml").is_file()
     assert (RACINE / "pyproject.toml").is_file()
 
 
 def test_defauts_du_toml_egaux_au_modele():
-    with (RACINE / "config" / "waveaudit.toml").open("rb") as fichier:
+    with (RACINE / "config" / "pentest-scribe.toml").open("rb") as fichier:
         donnees = tomllib.load(fichier)
     assert Configuration.model_validate(donnees) == Configuration()
 
@@ -58,7 +59,7 @@ def test_chemins_relatifs_a_la_racine(fausse_racine, tmp_path, monkeypatch):
 
 
 def test_surcharge_locale_puis_fichier(fausse_racine, tmp_path):
-    (fausse_racine / "waveaudit.local.toml").write_text(
+    (fausse_racine / "pentest-scribe.local.toml").write_text(
         '[moteur]\nmode = "externe"\nbase_url = "http://127.0.0.1:9/v1"\nseed = 7\n',
         encoding="utf-8",
     )
@@ -72,6 +73,25 @@ def test_surcharge_locale_puis_fichier(fausse_racine, tmp_path):
     assert config.moteur.temperature == 0.2  # fusion profonde : le reste de [moteur] demeure
     assert config.chemins.var == tmp_path / "var-test"
     assert config.chemins.catalogue == fausse_racine / "donnees" / "catalogue"
+
+
+def test_ancienne_surcharge_locale_lue_en_repli_avec_avertissement(fausse_racine):
+    ancien = fausse_racine / "waveaudit.local.toml"
+    ancien.write_text('[moteur]\nmode = "externe"\nseed = 11\n', encoding="utf-8")
+    with pytest.warns(FutureWarning, match="waveaudit.local.toml est obsolète"):
+        config = charger_configuration()
+    assert config.moteur.mode == "externe"
+    assert config.moteur.seed == 11
+
+
+def test_nouvelle_surcharge_locale_prime_sur_l_ancienne(fausse_racine, recwarn):
+    ancien = fausse_racine / "waveaudit.local.toml"
+    ancien.write_text("[moteur]\nseed = 11\n", encoding="utf-8")
+    nouveau = fausse_racine / "pentest-scribe.local.toml"
+    nouveau.write_text("[moteur]\nseed = 12\n", encoding="utf-8")
+    config = charger_configuration()
+    assert config.moteur.seed == 12
+    assert not [w for w in recwarn if issubclass(w.category, FutureWarning)]
 
 
 @pytest.mark.parametrize(
@@ -96,8 +116,8 @@ def test_fichier_absent(fausse_racine, tmp_path):
         charger_configuration(tmp_path / "absent.toml")
 
 
-def test_waveaudit_toml_cles_exactes():
-    with (RACINE / "config" / "waveaudit.toml").open("rb") as fichier:
+def test_pentest_scribe_toml_cles_exactes():
+    with (RACINE / "config" / "pentest-scribe.toml").open("rb") as fichier:
         donnees = tomllib.load(fichier)
     assert {s: list(v) for s, v in donnees.items()} == {
         s: list(type(v).model_fields) for s, v in Configuration()

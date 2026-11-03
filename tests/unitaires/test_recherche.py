@@ -4,8 +4,8 @@ from math import log
 
 import pytest
 
-from waveaudit.domaine.modeles import ConstatType, Note, Reference, TextesConstat
-from waveaudit.domaine.recherche import _MOTS_VIDES, _tokeniser, classer, requete_depuis_note
+from pentest_scribe.domaine.modeles import ConstatType, Note, Reference, TextesConstat
+from pentest_scribe.domaine.recherche import _MOTS_VIDES, _tokeniser, classer, requete_depuis_note
 
 _REF = Reference(id="r1", titre="Référence", url="https://example.invalid/r1")
 

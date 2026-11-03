@@ -3,7 +3,7 @@
 Branche revue : `story-V2-revue` (depuis `story-V2`, rebase sur `main` : déjà à jour, `main` était
 ancêtre de `story-V2`). Commit dev : `a43cf8a` (documents seulement :
 `_bmad-output/implementation-artifacts/bilan-modeles.md` et
-`_bmad-output/specs/spec-waveaudit-poc/stories/story-V2-banc-modeles.md`). Aucun fichier de code
+`_bmad-output/specs/spec-pentest-scribe-poc/stories/story-V2-banc-modeles.md`). Aucun fichier de code
 modifié par la revue non plus : tous les constats corrigés sont des erreurs de calcul ou de
 rédaction dans ces deux documents.
 

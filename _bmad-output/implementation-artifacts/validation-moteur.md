@@ -13,11 +13,11 @@ elles remplacent celles de la première passe, prises en partie pendant la fin d
 
 ## Installation
 
-- Commande : `uv run waveaudit installer --candidats`, lancée depuis le dépôt principal.
+- Commande : `uv run pentest-scribe installer --candidats`, lancée depuis le dépôt principal.
 - Durée : 6 min 15 s pour environ 3,4 Go, d'une traite, sans reprise.
 - Empreintes SHA-256 : toutes conformes au manifeste (moteur et 4 modèles).
 - Archive llama-server : `llama-server.exe` est à la racine du zip. `executable` reste inchangé dans `config/artefacts.toml`.
-- Le worktree pointe sur `var/` du dépôt principal par un `waveaudit.local.toml` ignoré par git (`[chemins] var = "<dépôt>/var"`). Les modèles n'ont pas été copiés. Aucun nouveau téléchargement pendant la revue.
+- Le worktree pointe sur `var/` du dépôt principal par un `pentest-scribe.local.toml` ignoré par git (`[chemins] var = "<dépôt>/var"`). Les modèles n'ont pas été copiés. Aucun nouveau téléchargement pendant la revue.
 
 ## Diagnostic (sonde brute, hors application)
 
@@ -34,7 +34,7 @@ Appel direct de `/chat/completions` avec le prompt et le schéma réels de la no
 
 Début de `reasoning_content` : MiniCPM5 raisonne en français (« J'apprécie cette note d'audit… »), Qwen3.5 en anglais (« Thinking Process: 1. **Analyze the Request:** … »).
 
-En application, `waveaudit fiches` avec `mode_json = "json_object"` dans l'entrée du manifeste de MiniCPM5 : 0/2 fiches ok, 2 `repli_sortie_invalide` (« réponse du moteur : contenu non JSON »), 50 s et 55 s par fiche.
+En application, `pentest-scribe fiches` avec `mode_json = "json_object"` dans l'entrée du manifeste de MiniCPM5 : 0/2 fiches ok, 2 `repli_sortie_invalide` (« réponse du moteur : contenu non JSON »), 50 s et 55 s par fiche.
 
 Lecture : avec `json_schema`, la sortie est vide, ce qui remplit la condition du §22. Mais la cause est la réflexion activée par défaut dans le modèle de discussion : elle consomme tout `max_tokens` avant toute réponse. Le mode `json_object` du §22 ne change rien. Seul `chat_template_kwargs = {"enable_thinking": false}` rétablit un JSON conforme.
 
@@ -52,7 +52,7 @@ Commande : `uv run pytest -m slow -q --tb=short -p no:warnings`.
 
 ## Lots réels de 2 notes (après correction)
 
-Commande : `uv run waveaudit fiches var/v1-notes --modele <nom>`, manifeste livré.
+Commande : `uv run pentest-scribe fiches var/v1-notes --modele <nom>`, manifeste livré.
 
 - Les notes : copies de `01-xss-reflechi.md` et `03-injection-sql.md`.
 - Un seul llama-server à la fois, aucun ne restait après chaque lot (psutil). Garde réseau actif (commande `fiches` inchangée).

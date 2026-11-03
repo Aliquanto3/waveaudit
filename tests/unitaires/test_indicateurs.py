@@ -4,9 +4,9 @@ from pathlib import Path
 
 import yaml
 
+from pentest_scribe.domaine.incident import Evenement
+from pentest_scribe.domaine.indicateurs import extraire
 from tests.incident_outils import evenement
-from waveaudit.domaine.incident import Evenement
-from waveaudit.domaine.indicateurs import extraire
 
 FIXTURE = Path(__file__).parents[1] / "donnees" / "incident" / "canoniques.yaml"
 

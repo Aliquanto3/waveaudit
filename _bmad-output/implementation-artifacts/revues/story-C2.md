@@ -2,7 +2,7 @@
 
 Branche `story-C2-revue`, rebasée sans conflit sur main (C3, C4, C6a intégrées).
 Constats, tri et corrections détaillés : section « Revue » de
-`_bmad-output/specs/spec-waveaudit-cert/stories/story-C2-lecture-journaux-demo.md`.
+`_bmad-output/specs/spec-pentest-scribe-cert/stories/story-C2-lecture-journaux-demo.md`.
 
 ## Constats
 

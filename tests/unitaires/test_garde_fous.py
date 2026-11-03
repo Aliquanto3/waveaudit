@@ -1,6 +1,6 @@
-from waveaudit.domaine.cvss31 import evaluer
-from waveaudit.domaine.garde_fous import appliquer
-from waveaudit.domaine.modeles import (
+from pentest_scribe.domaine.cvss31 import evaluer
+from pentest_scribe.domaine.garde_fous import appliquer
+from pentest_scribe.domaine.modeles import (
     Candidat,
     CodeMotif,
     ConstatType,
@@ -29,7 +29,7 @@ def _constat(**kwargs) -> ConstatType:
                 id="CWE-79", titre="XSS", url="https://cwe.mitre.org/data/definitions/79.html"
             )
         ],
-        source="Rédaction WaveAudit, licence du dépôt",
+        source="Rédaction PentestScribe, licence du dépôt",
     )
     defauts.update(kwargs)
     return ConstatType(**defauts)

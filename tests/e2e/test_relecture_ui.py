@@ -15,16 +15,16 @@ from docx import Document
 from fastapi.testclient import TestClient
 from lxml import html as lxml_html
 
+from pentest_scribe.application import composition
+from pentest_scribe.application import relecture as relecture_app
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.application.moteur_demande import Occupation
+from pentest_scribe.domaine.erreurs import MoteurInjoignable
 from tests.accessibilite import verifier_accessibilite, verifier_focus_css
 from tests.e2e.test_ui import DEMO, _attendre_fin
 from tests.web_outils import client as client_web
-from waveaudit.application import composition
-from waveaudit.application import relecture as relecture_app
-from waveaudit.application.config import racine_projet
-from waveaudit.application.moteur_demande import Occupation
-from waveaudit.domaine.erreurs import MoteurInjoignable
 
-_RACINE_WEB = racine_projet() / "src" / "waveaudit" / "interfaces" / "web"
+_RACINE_WEB = racine_projet() / "src" / "pentest_scribe" / "interfaces" / "web"
 
 NOTE_SQL = "03-injection-sql.md"
 NOTE_IDOR = "05-idor.md"
@@ -445,7 +445,7 @@ def test_export_verrouille_409(config_test, monkeypatch):
 
 
 def test_lot_echoue_relisible_et_exportable(config_test, monkeypatch):
-    from waveaudit.workflows.fiches import pipeline
+    from pentest_scribe.workflows.fiches import pipeline
 
     traiter = pipeline.WorkflowFiches.traiter
     appels: list[str] = []

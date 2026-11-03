@@ -12,13 +12,13 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
+from pentest_scribe.adaptateurs import memoire_psutil
+from pentest_scribe.application import composition
+from pentest_scribe.application.moteur_demande import Occupation
+from pentest_scribe.domaine.erreurs import MoteurInjoignable
+from pentest_scribe.installation import manifeste
+from pentest_scribe.interfaces.web import app as app_module
 from tests.unitaires.test_composition import GO, _FauxServeur, _installer, _local
-from waveaudit.adaptateurs import memoire_psutil
-from waveaudit.application import composition
-from waveaudit.application.moteur_demande import Occupation
-from waveaudit.domaine.erreurs import MoteurInjoignable
-from waveaudit.installation import manifeste
-from waveaudit.interfaces.web import app as app_module
 
 BINAIRE = "llama-server-b11714"
 MODELE = "granite-4.0-1b-q4km"
@@ -93,7 +93,7 @@ def test_lifespan_arret_pendant_ouverture_vrai_llama_server_sans_orphelin(config
 
     import psutil
 
-    from waveaudit.adaptateurs.llama_server import LlamaServer
+    from pentest_scribe.adaptateurs.llama_server import LlamaServer
 
     tests = Path(__file__).resolve().parents[1]
     python = Path(getattr(sys, "_base_executable", sys.executable))

@@ -38,7 +38,7 @@
     - id: CWE-300
       titre: Channel Accessible by Non-Endpoint
       url: https://cwe.mitre.org/data/definitions/300.html
-  source: "Rédaction WaveAudit d'après CWE-300, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-300, licence du dépôt"
 
 - id: INFRA-SERVICE-OBSOLETE
   titre: Service réseau obsolète ou non maintenu
@@ -78,7 +78,7 @@
     - id: CWE-1104
       titre: Use of Unmaintained Third Party Components
       url: https://cwe.mitre.org/data/definitions/1104.html
-  source: "Rédaction WaveAudit d'après CWE-1104, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-1104, licence du dépôt"
 
 - id: INFRA-SNMP-COMMUNAUTE
   titre: Communauté SNMP par défaut ou faible
@@ -117,7 +117,7 @@
     - id: CWE-1392
       titre: Use of Default Credentials
       url: https://cwe.mitre.org/data/definitions/1392.html
-  source: "Rédaction WaveAudit d'après CWE-1392, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-1392, licence du dépôt"
 
 - id: INFRA-RDP-EXPOSE
   titre: Bureau à distance exposé sans restriction
@@ -159,7 +159,7 @@
     - id: CWE-284
       titre: Improper Access Control
       url: https://cwe.mitre.org/data/definitions/284.html
-  source: "Rédaction WaveAudit d'après CWE-284, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-284, licence du dépôt"
 
 - id: INFRA-LLMNR-NBTNS
   titre: Résolution de noms LLMNR/NBT-NS non désactivée
@@ -198,7 +198,7 @@
     - id: CWE-300
       titre: Channel Accessible by Non-Endpoint
       url: https://cwe.mitre.org/data/definitions/300.html
-  source: "Rédaction WaveAudit d'après CWE-300, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-300, licence du dépôt"
 
 - id: INFRA-IPMI-EXPOSE
   titre: Interface de gestion IPMI exposée sans restriction
@@ -238,7 +238,7 @@
     - id: CWE-306
       titre: Missing Authentication for Critical Function
       url: https://cwe.mitre.org/data/definitions/306.html
-  source: "Rédaction WaveAudit d'après CWE-306, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-306, licence du dépôt"
 
 - id: INFRA-NFS-EXPORTE
   titre: Partage NFS exporté sans restriction d'accès
@@ -281,7 +281,7 @@
     - id: CWE-668
       titre: Exposure of Resource to Wrong Sphere
       url: https://cwe.mitre.org/data/definitions/668.html
-  source: "Rédaction WaveAudit d'après CWE-668, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-668, licence du dépôt"
 
 - id: INFRA-SERVICE-GESTION-EXPOSE
   titre: Interface de gestion d'équipement exposée sur le réseau
@@ -324,4 +324,4 @@
     - id: CWE-284
       titre: Improper Access Control
       url: https://cwe.mitre.org/data/definitions/284.html
-  source: "Rédaction WaveAudit d'après CWE-284, licence du dépôt"
+  source: "Rédaction PentestScribe d'après CWE-284, licence du dépôt"

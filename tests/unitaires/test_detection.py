@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 import yaml
 
+from pentest_scribe.adaptateurs.regles_yaml import CatalogueReglesYaml
+from pentest_scribe.domaine.detection import _fenetres, correspond, detecter
+from pentest_scribe.domaine.incident import Evenement
 from tests.incident_outils import evenement, regle
-from waveaudit.adaptateurs.regles_yaml import CatalogueReglesYaml
-from waveaudit.domaine.detection import _fenetres, correspond, detecter
-from waveaudit.domaine.incident import Evenement
 
 DOSSIER_REGLES = Path(__file__).parents[2] / "donnees" / "regles"
 FIXTURE = Path(__file__).parents[1] / "donnees" / "incident" / "canoniques.yaml"

@@ -1,13 +1,13 @@
-# Plan d'exécution — WaveAudit v2 (cadrage du 2026-10-18)
+# Plan d'exécution — PentestScribe v2 (cadrage du 2026-10-18)
 
 L'orchestrateur est une session principale neuve, ouverte après `/clear`. Elle lit seulement ce fichier et `etat-v2.md`, puis applique la boucle. Elle code peu et délègue. Base : `main` à a8541a7 ou après, v0.1.0 taguée. Poste : l'EliteBook cible, où les modèles sont déjà dans `var/`.
 
 ## Contrat à lire par chaque agent de story
 
-- `_bmad-output/specs/spec-waveaudit-v2/SPEC.md`, `formats.md`, `mesures-qualite.md`, `ecarts-contrat.md`
-- `_bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/ARCHITECTURE-SPINE.md` (AD-18 à AD-23) et `contrats.md` (normatif : sections [v2], [entériné v2], [revue <id>], §23 à §30)
-- `_bmad-output/planning-artifacts/architecture/architecture-waveaudit-2026-10-17/impacts-v2.md` (fichiers et tests à réaligner)
-- L'entrée de la story dans `_bmad-output/specs/spec-waveaudit-v2/stories.yaml` (`description`, `invoke_dev_with`) et son commentaire d'en-tête (collisions, pièges Windows)
+- `_bmad-output/specs/spec-pentest-scribe-v2/SPEC.md`, `formats.md`, `mesures-qualite.md`, `ecarts-contrat.md`
+- `_bmad-output/planning-artifacts/architecture/architecture-pentest-scribe-2026-10-17/ARCHITECTURE-SPINE.md` (AD-18 à AD-23) et `contrats.md` (normatif : sections [v2], [entériné v2], [revue <id>], §23 à §30)
+- `_bmad-output/planning-artifacts/architecture/architecture-pentest-scribe-2026-10-17/impacts-v2.md` (fichiers et tests à réaligner)
+- L'entrée de la story dans `_bmad-output/specs/spec-pentest-scribe-v2/stories.yaml` (`description`, `invoke_dev_with`) et son commentaire d'en-tête (collisions, pièges Windows)
 - Stories W : en plus, `_bmad-output/planning-artifacts/ux/EXPERIENCE.md`, `DESIGN.md` et `mockups/prototype.html`. Les spines priment sur le prototype.
 
 ## Vagues

@@ -5,7 +5,7 @@ llama-server b11714 en CPU, `threads = 4`, `ctx = 4096`. Configuration livrée :
 
 ## Protocole
 
-- Commande : `uv run waveaudit banc var/banc-sous-ensemble --modele <nom>`. Les modèles sont lus dans le `var/` du dépôt principal, par un `waveaudit.local.toml` ignoré par git. Aucun téléchargement.
+- Commande : `uv run pentest-scribe banc var/banc-sous-ensemble --modele <nom>`. Les modèles sont lus dans le `var/` du dépôt principal, par un `pentest-scribe.local.toml` ignoré par git. Aucun téléchargement.
 - Les 6 notes, copiées de `donnees/demo/notes/` :
   - classiques : `01-xss-reflechi`, `11-kerberoasting`, `16-tls-obsolete` ;
   - difficiles : `22-chemin-bloodhound-court`, `26-partage-trouve-en-scannant`, `29-erreur-etrange-generateur-devis`.
@@ -88,7 +88,7 @@ Contrôle hors itération : la consigne de l'essai 3 sur qwen3-1.7b donne une re
 
 ## Workflow incident (démo CERT, sans modification)
 
-Commande : `uv run waveaudit incident donnees/demo/incident --modele <nom>`. Psutil ne trouvait aucun llama-server restant après chaque run.
+Commande : `uv run pentest-scribe incident donnees/demo/incident --modele <nom>`. Psutil ne trouvait aucun llama-server restant après chaque run.
 
 | Modèle | Récits ok | Durée par récit | Lot total | Remarques |
 |---|---|---|---|---|
@@ -135,8 +135,8 @@ réglages.
 
 Mesures du 2026-10-18 sur l'EliteBook cible, protocole de `mesures-qualite.md` : llama-server
 b11714 en CPU, `threads = 4`, `ctx = 4096`, `temperature = 0.2`, `max_tokens = 700`, sous-ensemble
-de 6 notes (`var/banc-sous-ensemble`), `uv run waveaudit banc var/banc-sous-ensemble --modele
-<nom> --seed <s>`, modèles lus dans le `var/` du dépôt principal (`waveaudit.local.toml` ignoré
+de 6 notes (`var/banc-sous-ensemble`), `uv run pentest-scribe banc var/banc-sous-ensemble --modele
+<nom> --seed <s>`, modèles lus dans le `var/` du dépôt principal (`pentest-scribe.local.toml` ignoré
 par git), aucun téléchargement, garde réseau actif. Un seul llama-server à la fois ; psutil n'en
 trouvait aucun restant après chaque run ; chaque run a duré moins de 10 min. Recopie : définition
 unique de contrats §29 (`banc.json` v2), garde-fous v2 (répétition, langue, URL de l'actif

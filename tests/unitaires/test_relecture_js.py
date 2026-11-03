@@ -13,8 +13,8 @@ import subprocess
 
 import pytest
 
-from waveaudit.application.config import racine_projet
-from waveaudit.domaine.cvss31 import evaluer
+from pentest_scribe.application.config import racine_projet
+from pentest_scribe.domaine.cvss31 import evaluer
 
 _RACINE = racine_projet()
 _LIBELLES = {
@@ -43,7 +43,15 @@ def test_relecture_js_sous_node(tmp_path):
         [
             node,
             str(_RACINE / "tests" / "js" / "harnais_relecture.js"),
-            str(_RACINE / "src" / "waveaudit" / "interfaces" / "web" / "static" / "relecture.js"),
+            str(
+                _RACINE
+                / "src"
+                / "pentest_scribe"
+                / "interfaces"
+                / "web"
+                / "static"
+                / "relecture.js"
+            ),
             str(fichier),
         ],
         capture_output=True,

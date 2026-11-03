@@ -5,8 +5,8 @@ from urllib.parse import urlsplit
 
 import pytest
 
-from waveaudit.domaine.erreurs import ConnexionInterdite
-from waveaudit.securite import garde_reseau
+from pentest_scribe.domaine.erreurs import ConnexionInterdite
+from pentest_scribe.securite import garde_reseau
 
 
 def _fonctions_reseau() -> dict[str, object]:

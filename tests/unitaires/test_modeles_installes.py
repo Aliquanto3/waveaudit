@@ -3,8 +3,8 @@
 
 from pathlib import Path
 
-from waveaudit.adaptateurs import memoire_psutil
-from waveaudit.application import composition
+from pentest_scribe.adaptateurs import memoire_psutil
+from pentest_scribe.application import composition
 
 GO = composition.OCTETS_PAR_GO
 

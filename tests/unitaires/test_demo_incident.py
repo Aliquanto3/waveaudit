@@ -9,10 +9,10 @@ from pathlib import Path
 
 import yaml
 
-from waveaudit.adaptateurs.journaux import SourceJournauxFichiers
-from waveaudit.adaptateurs.regles_yaml import CatalogueReglesYaml
-from waveaudit.domaine.detection import detecter
-from waveaudit.domaine.indicateurs import extraire
+from pentest_scribe.adaptateurs.journaux import SourceJournauxFichiers
+from pentest_scribe.adaptateurs.regles_yaml import CatalogueReglesYaml
+from pentest_scribe.domaine.detection import detecter
+from pentest_scribe.domaine.indicateurs import extraire
 
 RACINE = Path(__file__).parents[2]
 DOSSIER_DEMO = RACINE / "donnees" / "demo" / "incident"
