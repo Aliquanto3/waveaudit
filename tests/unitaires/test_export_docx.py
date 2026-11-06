@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from docx import Document
+from docx.oxml.ns import qn
 
 from pentest_scribe.adaptateurs.export_docx import (
     BANDEAU,
@@ -191,7 +192,7 @@ def test_theme_prive_avec_modele_et_theme_toml(tmp_path: Path):
     theme_prive.mkdir()
     Document().save(str(theme_prive / "modele.docx"))
     (theme_prive / "theme.toml").write_text(
-        'couleur_primaire = "#123456"\ncle_inconnue = "ignoree"\n', encoding="utf-8"
+        'couleur_primaire = "#C24D1B"\ncle_inconnue = "ignoree"\n', encoding="utf-8"
     )
 
     chemin = tmp_path / "rapport.docx"
@@ -199,7 +200,7 @@ def test_theme_prive_avec_modele_et_theme_toml(tmp_path: Path):
 
     document = Document(str(chemin))
     assert document.styles["Heading 1"].font.color.rgb is not None
-    assert str(document.styles["Heading 1"].font.color.rgb) == "123456"
+    assert str(document.styles["Heading 1"].font.color.rgb) == "C24D1B"
     titres = [p.text for p in document.paragraphs]
     assert "Rapport de constats" in titres
 
@@ -273,14 +274,14 @@ def test_modele_docx_illisible_leve_configuration_invalide(tmp_path: Path):
 def test_theme_toml_sans_modele_colore_le_theme_generique(tmp_path: Path):
     theme_prive = tmp_path / "theme-prive"
     theme_prive.mkdir()
-    (theme_prive / "theme.toml").write_text('couleur_secondaire = "#abcdef"', encoding="utf-8")
+    (theme_prive / "theme.toml").write_text('couleur_secondaire = "#0E7C8C"', encoding="utf-8")
 
     chemin = tmp_path / "rapport.docx"
     ExportDocx(theme_prive).exporter(_rapport(avec_ecartees=False), chemin)
 
     document = Document(str(chemin))
-    assert str(document.styles["Heading 3"].font.color.rgb) == "ABCDEF"
-    assert str(document.styles["Heading 1"].font.color.rgb) == "1F3864"
+    assert str(document.styles["Heading 3"].font.color.rgb) == "0E7C8C"
+    assert str(document.styles["Heading 1"].font.color.rgb) == "1D5BC2"
 
 
 def _titres(document: Document) -> list[str]:
@@ -643,3 +644,42 @@ def test_completude_classement_des_codes_et_statuts():
     assert set(RUBRIQUES_EN) == set(RUBRIQUES)
     statuts = typing.get_args(EntreeEcartee.model_fields["statut"].annotation)
     assert set(STATUTS_ECARTES_EN) == set(statuts)
+
+
+def test_theme_generique_suit_la_charte_office(tmp_path: Path):
+    """Sans thème privé : couleurs du thème Office clair et polices de la charte v2.1."""
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin)
+
+    styles = Document(str(chemin)).styles
+    assert styles["Normal"].font.name == "Atkinson Hyperlegible"
+    for nom in ("Title", "Heading 1", "Heading 2", "Heading 3"):
+        assert styles[nom].font.name == "Sora SemiBold"
+        assert styles[nom].font.bold is False
+    assert str(styles["Title"].font.color.rgb) == "1D5BC2"
+    assert str(styles["Heading 2"].font.color.rgb) == "1D5BC2"
+    assert str(styles["Heading 3"].font.color.rgb) == "4F5A68"
+
+
+def test_theme_generique_sans_police_de_theme_office(tmp_path: Path):
+    """Les attributs `asciiTheme` du gabarit python-docx primeraient sur le nom de police."""
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin)
+
+    rfonts = Document(str(chemin)).styles["Heading 1"].element.rPr.rFonts
+    assert not [cle for cle in rfonts.attrib if "Theme" in cle or "theme" in cle]
+
+
+def test_theme_generique_filet_or_sous_le_titre(tmp_path: Path):
+    """Charte « Rapport » : filet `accent` de 3 pt sous le titre, sans la bordure `accent1`."""
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin)
+
+    ppr = Document(str(chemin)).styles["Title"].element.pPr
+    bordures = ppr.findall(qn("w:pBdr"))
+    assert len(bordures) == 1
+    (bas,) = bordures[0].findall(qn("w:bottom"))
+    assert bas.get(qn("w:val")) == "single"
+    assert bas.get(qn("w:sz")) == "24"
+    assert bas.get(qn("w:color")) == "8F6300"
+    assert bas.get(qn("w:themeColor")) is None

@@ -134,21 +134,21 @@ def _retire_le_contour(nom: str, valeur: str) -> bool:
 
 
 def _contour_focus(nom: str, valeur: str) -> bool:
-    return nom == "outline" and "var(--focus-contour" in valeur
+    return nom == "outline" and "var(--focus)" in valeur
 
 
 def verifier_focus_css(css: str) -> None:
     """`style.css` (contrats §28) : une règle `:focus-visible` pose `outline` avec
-    `var(--focus-contour)`, et aucune règle ne retire le contour (`outline: none` ou `0`,
+    `var(--focus)`, et aucune règle ne retire le contour (`outline: none` ou `0`,
     `outline-style: none`, `outline-width: 0`) sans contour de remplacement dans
-    la même règle (`box-shadow` non nul, ou `outline` avec `var(--focus-contour)` posé après).
+    la même règle (`box-shadow` non nul, ou `outline` avec `var(--focus)` posé après).
     """
     regles = _RE_REGLE.findall(_RE_COMMENTAIRE.sub("", css))
     if not any(
         ":focus-visible" in selecteur and any(_contour_focus(n, v) for n, v in _declarations(corps))
         for selecteur, corps in regles
     ):
-        raise AssertionError("aucune règle :focus-visible n'utilise var(--focus-contour)")
+        raise AssertionError("aucune règle :focus-visible n'utilise var(--focus)")
     for selecteur, corps in regles:
         declarations = _declarations(corps)
         ombre = any(n == "box-shadow" and not v.lower().startswith("none") for n, v in declarations)

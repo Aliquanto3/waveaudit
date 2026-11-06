@@ -1,54 +1,92 @@
-"""Contrastes WCAG des tokens (contrats §28 [revue V2]) : recalcule chaque ratio texte/fond
-déclaré dans `DESIGN.md` à partir des couleurs effectivement publiées par `tokens.css`, et
-vérifie qu'il atteint le seuil AA (4,5:1 pour du texte, 3:1 pour le contour de focus) et qu'il
-égale à 0,1 près le ratio annoncé par `DESIGN.md`. Une couleur de `tokens.css` qui s'écarte de
-`DESIGN.md` fait échouer ce test (c'est le but : les deux fichiers ne peuvent plus diverger en
-silence).
+"""Charte générique v2.1 de l'interface web : contrastes WCAG et règles de `style.css`.
+
+Les jetons viennent de `tokens.css` (copie de `charte-generique/dist/charte.css`), dans les deux
+thèmes : sombre en `:root`, clair sous `prefers-color-scheme: light` et `[data-theme="light"]`.
+Bibliothèque standard seulement. Seuils : 4,5:1 pour le texte ; 3:1 pour `trait-fort`, `focus` et
+les marques non textuelles (pictogramme, contours d'état).
 """
 
+import hashlib
 import re
 from pathlib import Path
 
-import yaml
-
 RACINE_WEB = Path(__file__).resolve().parents[2] / "src" / "pentest_scribe" / "interfaces" / "web"
 TOKENS_CSS = RACINE_WEB / "static" / "tokens.css"
+STYLE_CSS = RACINE_WEB / "static" / "style.css"
+BASE_HTML = RACINE_WEB / "templates" / "base.html"
 
-BLANC = "#FFFFFF"
-
-# Paires texte/fond déclarées dans DESIGN.md (section Colors et table « Rôle dérivé »), avec le
-# ratio qui y est annoncé. `seuil` : 4,5 pour du texte, 3 pour le contour de focus (ce dernier
-# réutilise `primaire`, déjà bien au-dessus du seuil texte).
-PAIRES = [
-    ("primaire", BLANC, 6.2, 4.5),
-    ("primaire", "primaire-doux", 5.2, 4.5),
-    (BLANC, "primaire-fonce", 9.4, 4.5),
-    ("encre", BLANC, 17.5, 4.5),
-    ("encre-douce", BLANC, 7.6, 4.5),
-    ("accent-texte", BLANC, 6.6, 4.5),
-    ("accent-texte", "accent-doux", 5.5, 4.5),
-    ("gris-texte", BLANC, 7.6, 4.5),
-    ("gris-texte", "fond", 7.1, 4.5),
-    ("attention-texte", BLANC, 7.2, 4.5),
-    ("attention-texte", "attention-doux", 6.4, 4.5),
-    ("danger-texte", BLANC, 6.6, 4.5),
-    ("danger-texte", "danger-doux", 5.4, 4.5),
-    ("texte-sur-vif", "attention", 8.1, 4.5),
-    ("sur-statut", "danger", 6.6, 4.5),
-    ("sur-statut", "primaire", 6.2, 4.5),
-    # Anneau de focus (DESIGN.md « Focus visible ») : seuil non-texte 3:1.
-    ("focus", BLANC, 5.8, 3.0),
-    ("focus", "fond", 5.5, 3.0),
+# Couples (texte, fond) réellement utilisés par `style.css`, seuil 4,5:1.
+PAIRES_TEXTE = [
+    ("texte", "fond"),  # body
+    ("texte", "surface"),  # en-tête, cartes, onglets, boîtes de dialogue
+    ("texte", "surface-alt"),  # panneau de note, carte de workflow choisie
+    ("texte", "primaire-doux"),  # ligne sélectionnée du tiroir
+    ("texte-attenue", "fond"),  # libellés, indicateur d'enregistrement
+    ("texte-attenue", "surface"),
+    ("texte-attenue", "surface-alt"),  # bouton désactivé
+    ("primaire", "fond"),  # liens
+    ("primaire", "surface"),  # onglet choisi
+    ("primaire-vif", "fond"),  # liens au survol
+    ("sur-bouton", "bouton"),  # bouton principal et bouton à bascule enfoncé
+    ("sur-bouton", "bouton-survol"),
+    ("sur-encre", "encre-pleine"),  # bandeau
+    ("accent-texte", "accent-doux"),  # pastille de sévérité faible
+    ("alerte-texte", "alerte-doux"),  # pastille moyenne, bandeau de motifs
+    ("erreur", "erreur-doux"),  # pastille élevée
+    ("sur-statut", "erreur"),  # pastille critique
 ]
 
-_RE_TOKEN = re.compile(r"--couleur-([a-z-]+)\s*:\s*(#[0-9A-Fa-f]{6})")
+# Couples (marque, fond) non textuels, seuil 3:1.
+PAIRES_NON_TEXTE = [
+    ("trait-fort", "surface"),  # contour des boutons, du tiroir, des boîtes
+    ("trait-fort", "fond"),
+    ("focus", "surface"),
+    ("focus", "fond"),
+    ("focus", "surface-alt"),
+    ("primaire", "surface"),  # contour de l'onglet choisi
+    ("erreur", "surface"),  # champ CVSS invalide
+    ("alerte-texte", "alerte-doux"),  # contour du bandeau de motifs
+    ("alerte-texte", "fond"),
+    ("bouton", "fond"),  # contour de la carte de workflow choisie
+    ("accent", "fond"),  # filet or sous le titre
+    ("picto-tuile", "surface"),  # pictogramme de l'en-tête
+    ("picto-barres", "picto-tuile"),
+    ("picto-point", "picto-tuile"),
+]
+
+_RE_VAR = re.compile(r"--([a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{6})\s*;")
+
+# Empreinte des 212 couples `--jeton: #RRGGBB` de `dist/charte.css` v2.1.0, dans l'ordre du
+# fichier. Pour passer à une nouvelle version : recopier le `dist/charte.css` de
+# charte-generique dans `tokens.css` (en gardant l'en-tête et les @font-face), puis remplacer
+# cette valeur par celle qu'affiche l'échec du test.
+EMPREINTE_JETONS_V21 = "d6d7280a114ae1075e84ba74801586fe01c835c393d8f8a949b61c0e83e87cd4"
 
 
-def _lire_couleurs() -> dict[str, str]:
-    texte = TOKENS_CSS.read_text(encoding="utf-8")
-    couleurs = {nom: valeur.upper() for nom, valeur in _RE_TOKEN.findall(texte)}
-    couleurs[BLANC] = BLANC
-    return couleurs
+def _bloc(css: str, ouverture: str) -> str:
+    debut = css.index(ouverture) + len(ouverture)
+    fin = css.index("\n}", debut)
+    return css[debut:fin]
+
+
+def _themes() -> dict[str, dict[str, str]]:
+    css = TOKENS_CSS.read_text(encoding="utf-8")
+    sombre = _bloc(css, ":root {")
+    clair = _bloc(css, '[data-theme="clair"],\n[data-theme="light"] {')
+    return {
+        nom: {cle: valeur.upper() for cle, valeur in _RE_VAR.findall(bloc)}
+        for nom, bloc in (("sombre", sombre), ("clair", clair))
+    }
+
+
+def _resoudre(theme: dict[str, str], nom: str) -> str:
+    # Les trois alias du pictogramme pointent vers d'autres jetons.
+    alias = {
+        "picto-tuile": "pictogramme-tuile",
+        "picto-barres": "sur-primaire",
+        "picto-point": "pictogramme-point",
+    }
+    return theme[alias.get(nom, nom)]
 
 
 def _luminance(hexv: str) -> float:
@@ -66,49 +104,128 @@ def _ratio(a: str, b: str) -> float:
     return (l1 + 0.05) / (l2 + 0.05)
 
 
-def test_tokens_css_declare_toutes_les_couleurs_des_paires():
-    couleurs = _lire_couleurs()
-    manquants = {fg for fg, _, _, _ in PAIRES if fg not in couleurs} | {
-        bg for _, bg, _, _ in PAIRES if bg not in couleurs
-    }
-    assert manquants == set()
-
-
-def test_contrastes_wcag_conformes_a_design_md():
-    couleurs = _lire_couleurs()
+def _fautes(paires: list[tuple[str, str]], seuil: float) -> list[str]:
     fautes = []
-    for fg, bg, attendu, seuil in PAIRES:
-        ratio = _ratio(couleurs[fg], couleurs[bg])
-        if ratio < seuil:
-            fautes.append(f"{fg}/{bg} : {ratio:.2f} sous le seuil {seuil}")
-        if abs(ratio - attendu) > 0.1:
-            fautes.append(f"{fg}/{bg} : {ratio:.2f} ≠ {attendu} annoncé par DESIGN.md")
-    assert fautes == []
+    for nom_theme, theme in _themes().items():
+        for avant, fond in paires:
+            ratio = _ratio(_resoudre(theme, avant), _resoudre(theme, fond))
+            if ratio < seuil:
+                fautes.append(f"{nom_theme} : {avant}/{fond} = {ratio:.2f} < {seuil}")
+    return fautes
 
 
-DESIGN_MD = Path(__file__).resolve().parents[2] / "_bmad-output/planning-artifacts/ux/DESIGN.md"
-STYLE_CSS = RACINE_WEB / "static" / "style.css"
-# Tokens hors de la clé `colors` de DESIGN.md, mais référence implicite de ses ratios.
-_TOKENS_HORS_DESIGN = {"blanc": BLANC}
+def test_les_deux_themes_definissent_les_memes_jetons_et_des_valeurs_differentes():
+    themes = _themes()
+    assert set(themes["sombre"]) == set(themes["clair"])
+    assert themes["sombre"]["fond"] == "#0F1318"
+    assert themes["clair"]["fond"] == "#F6F8FB"
+    assert themes["sombre"]["texte"] != themes["clair"]["texte"]
 
 
-def _couleurs_design_md() -> dict[str, str]:
-    texte = DESIGN_MD.read_text(encoding="utf-8")
-    entete = yaml.safe_load(texte.split("---")[1])
-    return {nom: str(valeur).upper() for nom, valeur in entete["colors"].items()}
+def test_le_bloc_media_clair_egale_le_theme_clair_force():
+    css = TOKENS_CSS.read_text(encoding="utf-8")
+    media = _bloc(
+        css,
+        "@media (prefers-color-scheme: light) {\n"
+        '  :root:not([data-theme="sombre"]):not([data-theme="dark"]) {',
+    )
+    media_vars = {cle: valeur.upper() for cle, valeur in _RE_VAR.findall(media)}
+    assert media_vars == _themes()["clair"]
+    assert media_vars["fond"] == "#F6F8FB"
 
 
-def test_tokens_css_egale_exactement_les_couleurs_de_design_md():
-    """§28 : une couleur de `tokens.css` différente de `DESIGN.md` fait échouer le test, même
-    si son ratio reste à 0,1 près du ratio annoncé."""
-    publiees = {
-        nom: valeur.upper() for nom, valeur in _RE_TOKEN.findall(TOKENS_CSS.read_text("utf-8"))
-    }
-    assert publiees == _couleurs_design_md() | _TOKENS_HORS_DESIGN
+def test_tokens_css_reprend_les_valeurs_de_la_charte_v21():
+    couples = _RE_VAR.findall(TOKENS_CSS.read_text(encoding="utf-8"))
+    texte = "\n".join(f"{cle}:{valeur.upper()}" for cle, valeur in couples)
+    empreinte = hashlib.sha256(texte.encode()).hexdigest()
+    assert empreinte == EMPREINTE_JETONS_V21, (
+        f"tokens.css s'écarte de dist/charte.css v2.1.0 ({len(couples)} couples, empreinte "
+        f"{empreinte}) : voir le commentaire d'EMPREINTE_JETONS_V21"
+    )
+
+
+def test_le_sombre_est_le_defaut_et_data_theme_force_les_deux_themes():
+    css = TOKENS_CSS.read_text(encoding="utf-8")
+    assert css.index("\n:root {") < css.index("@media (prefers-color-scheme: light)")
+    assert '[data-theme="sombre"],\n[data-theme="dark"]' in css
+    assert '[data-theme="clair"],\n[data-theme="light"]' in css
+
+
+def test_contrastes_du_texte_dans_les_deux_themes():
+    assert _fautes(PAIRES_TEXTE, 4.5) == []
+
+
+def test_contrastes_non_textuels_dans_les_deux_themes():
+    assert _fautes(PAIRES_NON_TEXTE, 3.0) == []
 
 
 def test_style_css_sans_couleur_litterale():
-    """§28 : `style.css` n'utilise que les propriétés de `tokens.css` pour les couleurs."""
+    """`style.css` n'emploie que les jetons de `tokens.css` pour les couleurs."""
     css = re.sub(r"/\*.*?\*/", "", STYLE_CSS.read_text(encoding="utf-8"), flags=re.DOTALL)
     litterales = re.findall(r"#[0-9A-Fa-f]{3,8}\b|\b(?:rgba?|hsla?)\(|:\s*(?:white|black)\b", css)
     assert litterales == []
+
+
+def test_style_css_ne_cite_que_des_jetons_definis():
+    css = re.sub(r"/\*.*?\*/", "", STYLE_CSS.read_text(encoding="utf-8"), flags=re.DOTALL)
+    definis = set(_themes()["sombre"]) | set(
+        re.findall(r"--([a-z0-9-]+)\s*:", TOKENS_CSS.read_text(encoding="utf-8"))
+    )
+    utilises = set(re.findall(r"var\(--([a-z0-9-]+)", css))
+    assert utilises - definis == set()
+
+
+def test_le_bleu_n_est_jamais_un_aplat_de_bouton():
+    css = re.sub(r"/\*.*?\*/", "", STYLE_CSS.read_text(encoding="utf-8"), flags=re.DOTALL)
+    fautes = []
+    for selecteur, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+        if (
+            "button" not in selecteur
+            and "carte-workflow" not in selecteur
+            and '[role="tab"]' not in selecteur
+        ):
+            continue
+        for declaration in corps.split(";"):
+            # `primaire-doux` reste permis : c'est le fond de sélection de la charte.
+            if re.match(
+                r"\s*background(-color)?\s*:.*var\(--primaire(?!-doux\))[a-z-]*\)", declaration
+            ):
+                fautes.append(selecteur.strip())
+    assert fautes == []
+
+
+def test_le_bouton_principal_est_neutre_et_le_secondaire_en_contour():
+    css = STYLE_CSS.read_text(encoding="utf-8")
+    principal = re.search(
+        r'button\[type="submit"\]:not\(:disabled\),.*?\{([^}]*)\}', css, re.DOTALL
+    )
+    assert principal is not None
+    assert "background: var(--bouton)" in principal.group(1)
+    assert "color: var(--sur-bouton)" in principal.group(1)
+    defaut = re.search(r"\nbutton \{([^}]*)\}", css)
+    assert defaut is not None
+    assert "border: 1px solid var(--trait-fort)" in defaut.group(1)
+    assert "background: var(--surface)" in defaut.group(1)
+
+
+def test_focus_en_jeton_focus_et_liens_soulignes():
+    css = STYLE_CSS.read_text(encoding="utf-8")
+    assert "outline: var(--focus-largeur) solid var(--focus);" in css
+    assert re.search(r"\na \{[^}]*text-decoration: underline", css)
+
+
+def test_polices_de_la_charte_servies_localement():
+    css = TOKENS_CSS.read_text(encoding="utf-8")
+    for famille in ("Sora", "Atkinson Hyperlegible", "JetBrains Mono"):
+        assert f"font-family: '{famille}';" in css
+    for fichier in re.findall(r"url\('/static/polices/([^']+)'\)", css):
+        assert (RACINE_WEB / "static" / "polices" / fichier).is_file()
+    assert (RACINE_WEB / "static" / "polices" / "OFL-sora.txt").is_file()
+
+
+def test_le_gabarit_pose_le_favicon_et_le_pictogramme_par_jetons():
+    html = BASE_HTML.read_text(encoding="utf-8")
+    assert 'rel="icon" href="/static/favicon.svg"' in html
+    assert "var(--picto-tuile)" in STYLE_CSS.read_text(encoding="utf-8")
+    assert "style=" not in html
+    assert not re.search(r"#[0-9A-Fa-f]{6}", html)
