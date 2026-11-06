@@ -197,13 +197,13 @@ def test_theme_prive_avec_modele_et_theme_toml(tmp_path: Path):
     theme_prive = tmp_path / "theme-prive"
     theme_prive.mkdir()
     Document().save(str(theme_prive / "modele.docx"))
-    (theme_prive / "theme.toml").write_text('couleur_primaire = "#123456"\n', encoding="utf-8")
+    (theme_prive / "theme.toml").write_text('couleur_primaire = "#C24D1B"\n', encoding="utf-8")
 
     chemin = tmp_path / "rapport.docx"
     ExporteurIncidentDocx(theme_prive).exporter(_rapport_vide(), chemin)
 
     document = Document(str(chemin))
-    assert str(document.styles["Heading 1"].font.color.rgb) == "123456"
+    assert str(document.styles["Heading 1"].font.color.rgb) == "C24D1B"
     assert "Rapport d'incident" in _titres(document)
 
 

@@ -67,10 +67,17 @@ def test_aucune_url_externe_dans_templates_et_static():
     for chemin in (_RACINE_WEB / "templates").iterdir():
         texte = chemin.read_text(encoding="utf-8")
         assert "http://" not in texte and "https://" not in texte, chemin
-    for chemin in (_RACINE_WEB / "static").iterdir():
+    # Les polices (`polices/*.woff2`) sont binaires ; les licences OFL citent des URL : on ne lit
+    # que css, js, svg et html.
+    for chemin in (_RACINE_WEB / "static").rglob("*"):
+        if chemin.suffix not in {".css", ".js", ".svg", ".html"}:
+            continue
         texte = chemin.read_text(encoding="utf-8")
         for motif in ("http://", "https://"):
             for occurrence in _occurrences(texte, motif):
+                # Espace de noms XML du favicon SVG : identifiant, jamais une requête réseau.
+                if occurrence.startswith("http://www.w3.org/2000/svg"):
+                    continue
                 assert occurrence.startswith(("http://127.0.0.1", "https://127.0.0.1")), chemin
 
 

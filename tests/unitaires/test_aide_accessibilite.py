@@ -53,16 +53,16 @@ def test_html_fautif_refuse(corps, message):
         verifier_accessibilite(_page(corps))
 
 
-_FOCUS = "button:focus-visible { outline: 2px solid var(--focus-contour); }\n"
+_FOCUS = "button:focus-visible { outline: 2px solid var(--focus); }\n"
 
 
 @pytest.mark.parametrize(
     "css",
     [
         _FOCUS,
-        _FOCUS + "a { outline: none; box-shadow: 0 0 0 2px var(--focus-contour); }",
-        _FOCUS + "a:focus { outline: none; outline: 2px solid var(--focus-contour); }",
-        _FOCUS + "/* outline: none */ p { color: var(--couleur-encre); }",
+        _FOCUS + "a { outline: none; box-shadow: 0 0 0 2px var(--focus); }",
+        _FOCUS + "a:focus { outline: none; outline: 2px solid var(--focus); }",
+        _FOCUS + "/* outline: none */ p { color: var(--texte); }",
     ],
 )
 def test_css_focus_conforme_accepte(css):
@@ -72,16 +72,16 @@ def test_css_focus_conforme_accepte(css):
 @pytest.mark.parametrize(
     "css",
     [
-        "button:focus { outline: 2px solid var(--focus-contour); }",
-        "button:focus-visible { outline: none; border-color: var(--focus-contour); }",
+        "button:focus { outline: 2px solid var(--focus); }",
+        "button:focus-visible { outline: none; border-color: var(--focus); }",
         _FOCUS + "a:focus { outline: none; }",
         _FOCUS + "a:focus { outline: 0; }",
         _FOCUS + "a:focus { outline: 0px !important; }",
         _FOCUS + "a:focus { outline-style: none; }",
         _FOCUS + "a:focus { outline-width: 0; }",
         _FOCUS + "a:focus { outline: none; box-shadow: none; }",
-        _FOCUS + "a:focus { outline: 2px solid var(--focus-contour); outline: none; }",
-        _FOCUS + "a:focus { outline: none; color: var(--focus-contour); }",
+        _FOCUS + "a:focus { outline: 2px solid var(--focus); outline: none; }",
+        _FOCUS + "a:focus { outline: none; color: var(--focus); }",
     ],
 )
 def test_css_focus_fautif_refuse(css):

@@ -440,7 +440,7 @@ wheels = [
 
 [[package]]
 name = "pentest-scribe"
-version = "0.2.0rc2"
+version = "0.2.0rc3"
 source = { editable = "." }
 dependencies = [
     { name = "cvss" },

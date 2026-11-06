@@ -1,6 +1,6 @@
 [project]
 name = "pentest-scribe"
-version = "0.2.0rc2"
+version = "0.2.0rc3"
 description = "Assistant d'audit cyber hors ligne : notes brutes vers fiches de vulnérabilité (POC)."
 readme = "README.md"
 license = "Apache-2.0"
