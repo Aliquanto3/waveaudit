@@ -6,6 +6,7 @@ Bibliothèque standard seulement. Seuils : 4,5:1 pour le texte ; 3:1 pour `trait
 les marques non textuelles (pictogramme, contours d'état).
 """
 
+import hashlib
 import re
 from pathlib import Path
 
@@ -44,6 +45,8 @@ PAIRES_NON_TEXTE = [
     ("focus", "surface-alt"),
     ("primaire", "surface"),  # contour de l'onglet choisi
     ("erreur", "surface"),  # champ CVSS invalide
+    ("alerte-texte", "alerte-doux"),  # contour du bandeau de motifs
+    ("alerte-texte", "fond"),
     ("bouton", "fond"),  # contour de la carte de workflow choisie
     ("accent", "fond"),  # filet or sous le titre
     ("picto-tuile", "surface"),  # pictogramme de l'en-tête
@@ -52,6 +55,12 @@ PAIRES_NON_TEXTE = [
 ]
 
 _RE_VAR = re.compile(r"--([a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{6})\s*;")
+
+# Empreinte des 212 couples `--jeton: #RRGGBB` de `dist/charte.css` v2.1.0, dans l'ordre du
+# fichier. Pour passer à une nouvelle version : recopier le `dist/charte.css` de
+# charte-generique dans `tokens.css` (en gardant l'en-tête et les @font-face), puis remplacer
+# cette valeur par celle qu'affiche l'échec du test.
+EMPREINTE_JETONS_V21 = "d6d7280a114ae1075e84ba74801586fe01c835c393d8f8a949b61c0e83e87cd4"
 
 
 def _bloc(css: str, ouverture: str) -> str:
@@ -121,8 +130,18 @@ def test_le_bloc_media_clair_egale_le_theme_clair_force():
         '  :root:not([data-theme="sombre"]):not([data-theme="dark"]) {',
     )
     media_vars = {cle: valeur.upper() for cle, valeur in _RE_VAR.findall(media)}
-    assert media_vars.items() <= _themes()["clair"].items()
+    assert media_vars == _themes()["clair"]
     assert media_vars["fond"] == "#F6F8FB"
+
+
+def test_tokens_css_reprend_les_valeurs_de_la_charte_v21():
+    couples = _RE_VAR.findall(TOKENS_CSS.read_text(encoding="utf-8"))
+    texte = "\n".join(f"{cle}:{valeur.upper()}" for cle, valeur in couples)
+    empreinte = hashlib.sha256(texte.encode()).hexdigest()
+    assert empreinte == EMPREINTE_JETONS_V21, (
+        f"tokens.css s'écarte de dist/charte.css v2.1.0 ({len(couples)} couples, empreinte "
+        f"{empreinte}) : voir le commentaire d'EMPREINTE_JETONS_V21"
+    )
 
 
 def test_le_sombre_est_le_defaut_et_data_theme_force_les_deux_themes():
@@ -167,7 +186,10 @@ def test_le_bleu_n_est_jamais_un_aplat_de_bouton():
         ):
             continue
         for declaration in corps.split(";"):
-            if re.match(r"\s*background(-color)?\s*:.*var\(--primaire\)", declaration):
+            # `primaire-doux` reste permis : c'est le fond de sélection de la charte.
+            if re.match(
+                r"\s*background(-color)?\s*:.*var\(--primaire(?!-doux\))[a-z-]*\)", declaration
+            ):
                 fautes.append(selecteur.strip())
     assert fautes == []
 

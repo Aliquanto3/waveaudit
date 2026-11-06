@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from docx import Document
+from docx.oxml.ns import qn
 
 from pentest_scribe.adaptateurs.export_docx import (
     BANDEAU,
@@ -667,3 +668,18 @@ def test_theme_generique_sans_police_de_theme_office(tmp_path: Path):
 
     rfonts = Document(str(chemin)).styles["Heading 1"].element.rPr.rFonts
     assert not [cle for cle in rfonts.attrib if "Theme" in cle or "theme" in cle]
+
+
+def test_theme_generique_filet_or_sous_le_titre(tmp_path: Path):
+    """Charte « Rapport » : filet `accent` de 3 pt sous le titre, sans la bordure `accent1`."""
+    chemin = tmp_path / "rapport.docx"
+    ExportDocx(tmp_path / "absent").exporter(_rapport(avec_ecartees=False), chemin)
+
+    ppr = Document(str(chemin)).styles["Title"].element.pPr
+    bordures = ppr.findall(qn("w:pBdr"))
+    assert len(bordures) == 1
+    (bas,) = bordures[0].findall(qn("w:bottom"))
+    assert bas.get(qn("w:val")) == "single"
+    assert bas.get(qn("w:sz")) == "24"
+    assert bas.get(qn("w:color")) == "8F6300"
+    assert bas.get(qn("w:themeColor")) is None
